@@ -1,0 +1,94 @@
+{
+  "head": "49072d046bc8e1163db28fbc4683394a6189097a",
+  "merge": "96da734d67ec4d0e70515fc27c6bf37158528ab0",
+  "merged": "2026-11-02T21:02:30Z",
+  "missing_roots": 0,
+  "number": 430,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "This group has no `matchUpdateTypes`, so major action bumps still join it. The later `\"schedule\": []` rule then gives only the majors a different schedule than the rest of the group. When updates in one group have different schedules, Renovate builds the branch's settings from roughly the first update. So this branch might wait for Tuesday or might open at any time, depending on which update comes first. Could we limit the group to non-major updates so majors get their own PRs, as the language groups already do?\n\n```suggestion\n      \"groupName\": \"github actions\",\n      \"matchUpdateTypes\": [\"minor\", \"patch\", \"pin\", \"pinDigest\", \"digest\"],\n```\n\n(The `python` group below has the same issue.) Or, if action majors are meant to wait for the weekly window, could the PR description say so?",
+      "created": "2026-11-02T06:14:13Z",
+      "hunk": "@@ -7,25 +7,18 @@\n   \"gitIgnoredAuthors\": [\n     \"332156698+otelbot-semconv-conformance[bot]@users.noreply.github.com\"\n   ],\n+  \"schedule\": [\"before 8am on Tuesday\"],\n   \"packageRules\": [\n     {\n       \"groupName\": \"all patch versions\",\n-      \"matchUpdateTypes\": [\"patch\"],\n-      \"schedule\": [\"before 8am every weekday\"]\n+      \"matchUpdateTypes\": [\"patch\"]\n     },\n     {\n-      \"matchUpdateTypes\": [\"minor\", \"major\"],\n-      \"schedule\": [\"before 8am on Monday\"]\n-    },\n-    {\n-      // group all GitHub Actions updates into a single weekly PR\n+      // group all GitHub Actions updates together\n       // (Renovate applies packageRules in order and later rules win)\n       \"groupName\": \"github actions\",",
+      "id": "PRRT_kwDOTuzK5c6yjXuX",
+      "opened": "2026-11-02T06:20:06Z",
+      "path": ".github/renovate.json5",
+      "replies": [
+        {
+          "at": "2026-11-02T15:20:17Z",
+          "body": "502e8935da569d811ec9c4ad968493317aff0997",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/430#discussion_r4444144908"
+        }
+      ],
+      "reviewed": "29614880a816dc7e407db0324dfef792a1f0129e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/430#discussion_r4439411928"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "This rule comes after the github-actions rule and matches on the Docker datasource. That moves images used in workflows (`container:`, `services:`, `docker://` steps) out of the \"github actions\" group and into `docker-minor`. It also catches the images read by the `versions.env` custom manager. Is that intended? If it is, could the comment mention the workflow images as well as the custom managers?",
+      "created": "2026-11-02T06:14:13Z",
+      "hunk": "@@ -89,6 +79,17 @@\n       \"matchUpdateTypes\": [\"minor\", \"patch\", \"pin\", \"digest\"],\n       \"groupName\": \"php-minor\"\n     },\n+    {\n+      // Match the datasource to include images read by custom managers.\n+      \"matchDatasources\": [\"docker\"],\n+      \"matchUpdateTypes\": [\"minor\", \"patch\", \"pin\", \"pinDigest\", \"digest\"],\n+      \"groupName\": \"docker-minor\"",
+      "id": "PRRT_kwDOTuzK5c6yjXun",
+      "opened": "2026-11-02T06:20:06Z",
+      "path": ".github/renovate.json5",
+      "replies": [
+        {
+          "at": "2026-11-02T15:47:03Z",
+          "body": "49072d046bc8e1163db28fbc4683394a6189097a",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/430#discussion_r4444448765"
+        }
+      ],
+      "reviewed": "29614880a816dc7e407db0324dfef792a1f0129e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/430#discussion_r4439411949"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "Nit: this rule includes `pinDigest`, but the language groups list only `pin` and `digest`. Because `config:best-practices` pins digests, pin-digest updates from other managers won't be grouped. Could we either add `pinDigest` to the language groups or drop it here?",
+      "created": "2026-11-02T06:14:13Z",
+      "hunk": "@@ -89,6 +79,17 @@\n       \"matchUpdateTypes\": [\"minor\", \"patch\", \"pin\", \"digest\"],\n       \"groupName\": \"php-minor\"\n     },\n+    {\n+      // Match the datasource to include images read by custom managers.\n+      \"matchDatasources\": [\"docker\"],\n+      \"matchUpdateTypes\": [\"minor\", \"patch\", \"pin\", \"pinDigest\", \"digest\"],",
+      "id": "PRRT_kwDOTuzK5c6yjXuq",
+      "opened": "2026-11-02T06:20:06Z",
+      "path": ".github/renovate.json5",
+      "replies": [
+        {
+          "at": "2026-11-02T15:35:05Z",
+          "body": "49072d046bc8e1163db28fbc4683394a6189097a",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/430#discussion_r4444316516"
+        }
+      ],
+      "reviewed": "29614880a816dc7e407db0324dfef792a1f0129e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/430#discussion_r4439411952"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "Nit: each later group (language, actions, docker) now takes over patch updates for its own managers. That leaves this catch-all collecting patches only for managers without a group, such as custom-manager deps that aren't Docker. Could we add a short comment saying that, so nobody assumes it still gathers every patch update?",
+      "created": "2026-11-02T06:14:13Z",
+      "hunk": "@@ -7,25 +7,18 @@\n   \"gitIgnoredAuthors\": [\n     \"332156698+otelbot-semconv-conformance[bot]@users.noreply.github.com\"\n   ],\n+  \"schedule\": [\"before 8am on Tuesday\"],\n   \"packageRules\": [\n     {\n       \"groupName\": \"all patch versions\",",
+      "id": "PRRT_kwDOTuzK5c6yjXut",
+      "opened": "2026-11-02T06:20:06Z",
+      "path": ".github/renovate.json5",
+      "replies": [
+        {
+          "at": "2026-11-02T15:08:18Z",
+          "body": "5f94455a26bc85465fc798e785af9fab1f0c89ff",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/430#discussion_r4443988930"
+        }
+      ],
+      "reviewed": "29614880a816dc7e407db0324dfef792a1f0129e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/430#discussion_r4439411959"
+    }
+  ]
+}

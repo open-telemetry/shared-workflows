@@ -1,0 +1,31 @@
+{
+  "head": "c1e3b48d984224d875720fe40c90a07fc428371f",
+  "merge": "eee6fa9ea07a5294a7248d7f8d0dcfedd51a9fdb",
+  "merged": "2026-10-27T07:04:46Z",
+  "missing_roots": 0,
+  "number": 20984,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to integrate its new regression coverage into the existing Spring RMI tests instead of keeping the standalone ServerAttributesGetterTest. This is a test-organization and stronger integration-coverage change; preserve the production behavior already implemented in this PR, its main base, its current draft state, the RPC preview flag, and legacy-only output. Do not create a separate PR or change unrelated instrumentations.\n\nIn instrumentation/spring/spring-rmi-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/rmi/v4_0/SpringRmiTest.java, add coverage through the actual instrumented remote invocation path for an unrecognized requested method name and a known name with an invalid parameter signature. Use a crafted RemoteInvocation or the appropriate existing low-level RMI invocation mechanism so these requests really reach server dispatch; a normal generated/typed client cannot express an undefined method. Verify the resulting server span uses rpc.method=\"_OTHER\", preserves the attempted name in rpc.method_original, and uses the spring_rmi fallback span name under preview. Preserve and assert legacy-only behavior. Reuse the existing default, testPreviewSemconv, and testBothSemconv Gradle runs and SemconvRpcStabilityUtil instead of changing system properties inside the test. Existing successful/inherited/overloaded integration coverage should remain; avoid duplicating it.\n\nIn the existing src/unitTests/java/io/opentelemetry/javaagent/instrumentation/spring/rmi/v4_0/server/SpringRmiServerRequestTest.java, retain the focused lookup edge cases and add direct rpcMethodOriginal assertions for unresolved methods/signatures, missing service interface, and recognized methods omitting the original name. Keep short expected values directly in assertions. The null-interface edge belongs in these unit tests, not an artificially invalid server configuration.\n\nRemove src/unitTests/java/io/opentelemetry/javaagent/instrumentation/spring/rmi/v4_0/server/ServerAttributesGetterTest.java once equivalent regression coverage is integrated. Do not simply move its hand-built Instrumenter setup and System.setProperty loop into another file. The purpose is to exercise actual javaagent wiring and reuse the existing suites. Run the narrowest relevant spotlessApply directly before the targeted unit/integration tests and all three RPC modes; do not run spotlessCheck first, clean, or bypass caches. If a validation command is blocked, report the actual blocker without changing the intended semantics.",
+      "created": "2026-10-26T20:55:35Z",
+      "hunk": "@@ -0,0 +1,136 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.spring.rmi.v4_0.server;\n+\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.assertThat;\n+import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo;\n+import static io.opentelemetry.semconv.incubating.RpcIncubatingAttributes.RPC_METHOD;\n+import static io.opentelemetry.semconv.incubating.RpcIncubatingAttributes.RPC_METHOD_ORIGINAL;\n+import static io.opentelemetry.semconv.incubating.RpcIncubatingAttributes.RPC_SERVICE;\n+import static io.opentelemetry.semconv.incubating.RpcIncubatingAttributes.RPC_SYSTEM;\n+import static io.opentelemetry.semconv.incubating.RpcIncubatingAttributes.RPC_SYSTEM_NAME;\n+\n+import io.opentelemetry.api.trace.SpanKind;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.rpc.RpcServerAttributesExtractor;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.rpc.RpcSpanNameExtractor;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.util.ClassAndMethod;\n+import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n+import io.opentelemetry.instrumentation.api.instrumenter.SpanKindExtractor;\n+import io.opentelemetry.sdk.testing.junit5.OpenTelemetryExtension;\n+import java.util.stream.Stream;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+import org.junit.jupiter.api.parallel.ResourceLock;\n+import org.junit.jupiter.api.parallel.Resources;\n+import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.Arguments;\n+import org.junit.jupiter.params.provider.MethodSource;\n+\n+@SuppressWarnings(\"deprecation\") // legacy RPC attributes\n+@ResourceLock(Resources.SYSTEM_PROPERTIES)\n+class ServerAttributesGetterTest {",
+      "id": "PRRT_kwDODJKVX86wcvr0",
+      "opened": "2026-10-26T20:55:35Z",
+      "path": "instrumentation/spring/spring-rmi-4.0/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/spring/rmi/v4_0/server/ServerAttributesGetterTest.java",
+      "replies": [
+        {
+          "at": "2026-10-26T21:10:19Z",
+          "body": "Integrated the regression coverage into `SpringRmiTest` through a crafted `RemoteInvocationFactory`, added direct original-method lookup assertions, and removed the standalone getter test. Commit: `57394d8d`. Unit tests and default, preview, and `/dup` RPC integration runs pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20984#discussion_r4382520427"
+        }
+      ],
+      "reviewed": "1629e3e2dfb8ad2a619c931e98c09d080f4ea5ab",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20984#discussion_r4382368900"
+    }
+  ]
+}

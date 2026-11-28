@@ -1,0 +1,85 @@
+{
+  "head": "1a539ab01917861221c4f5f04d1a5e543bdf06e2",
+  "merge": "18bc2cab0aff92dac50bff99e28bba74006fc1eb",
+  "merged": "2026-10-07T22:05:11Z",
+  "missing_roots": 0,
+  "number": 20422,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] The new primary selector is not honored by the startup installer. The module now resolves enablement in the order `oshi-5.0`, then `oshi`, but `OshiMetricsInstaller` still checks only `isInstrumentationEnabled(\"oshi\")`. With `otel.instrumentation.common.default-enabled=false` and `otel.instrumentation.oshi-5.0.enabled=true`, the transformer is installed but the installer returns without constructing `SystemInfo`, so applications that do not instantiate OSHI themselves emit no metrics. Make the installer resolve the same ordered pair of names (ideally from one shared definition).",
+      "created": "2026-10-07T04:01:10Z",
+      "hunk": "@@ -17,9 +16,7 @@\n public class OshiInstrumentationModule extends InstrumentationModule {\n \n   public OshiInstrumentationModule() {\n-    super(\n-        AgentCommonConfig.get().isV3Preview() ? \"oshi-5.0\" : \"oshi\",\n-        AgentCommonConfig.get().isV3Preview() ? new String[] {\"oshi\"} : new String[] {\"oshi-5.0\"});\n+    super(\"oshi-5.0\", \"oshi\");",
+      "id": "PRRT_kwDODJKVX86pwCnm",
+      "opened": "2026-10-07T04:01:10Z",
+      "path": "instrumentation/oshi-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/oshi/v5_0/OshiInstrumentationModule.java",
+      "replies": [],
+      "reviewed": "35a7c4c9c8225be282c56b24e281acf542fd9609",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20422#discussion_r4202923695"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I'm not sure we should mention the `v3-preview` flag at all since is going to get removed ",
+      "created": "2026-10-07T06:05:07Z",
+      "hunk": "@@ -1,10 +1,25 @@\n # OSHI Instrumentation\n \n-## Settings for the OSHI instrumentation\n+## Migrating to 3.0\n \n-| System property                                          | Type    | Default | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |\n-| -------------------------------------------------------- | ------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |\n-| `otel.instrumentation.oshi.experimental-metrics.enabled` | Boolean | `false` | Deprecated. Outside v3 preview, enable the `runtime.java.memory` and `runtime.java.cpu_time` process metrics. This setting is ignored when `otel.instrumentation.common.v3-preview=true`. Will be removed in 3.0. Use the standard JVM metrics `jvm.memory.used` and `jvm.cpu.time` instead. These are not exact replacements: `jvm.memory.used` measures JVM memory pools rather than process RSS or virtual memory, and `jvm.cpu.time` does not separate user and system CPU time. |\n+System metrics now always use the previous v3-preview conventions and schema 1.44.0,",
+      "id": "PRRT_kwDODJKVX86pxwiD",
+      "opened": "2026-10-07T06:05:07Z",
+      "path": "instrumentation/oshi-5.0/README.md",
+      "replies": [],
+      "reviewed": "9354d102156213a6d940330be72c68582881ac7b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20422#discussion_r4203630259"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-07T21:00:34Z",
+      "hunk": "@@ -50,3 +50,21 @@ observables.forEach(observable -> {\n     }\n });\n ```\n+\n+## Migrating to 3.0\n+\n+The deprecated `SystemMetrics.registerObservers(Meter)` overload has been removed.\n+Pass the owning `OpenTelemetry` instance instead so the instrumentation can set its\n+scope, version, and schema:\n+\n+```java\n+// Before\n+SystemMetrics.registerObservers(openTelemetry.getMeter(\"application\"));\n+\n+// After\n+List<AutoCloseable> observables = SystemMetrics.registerObservers(openTelemetry);\n+```\n+\n+Continue closing the returned observers when they are no longer needed.\n+The deprecated `ProcessMetrics` class has also been removed. See the\n+[system metric and process metric migration notes](../README.md#migrating-to-30).",
+      "id": "PRRT_kwDODJKVX86qGCYX",
+      "opened": "2026-10-07T21:00:34Z",
+      "path": "instrumentation/oshi-5.0/library/README.md",
+      "replies": [],
+      "reviewed": "2e6531fc651d3c2b98ee73c0e735243d90dc0010",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20422#discussion_r4211933094"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-07T21:37:19Z",
+      "hunk": "@@ -1,10 +1,19 @@\n # OSHI Instrumentation\n \n-## Settings for the OSHI instrumentation\n+## Current metrics\n \n-| System property                                          | Type    | Default | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |\n-| -------------------------------------------------------- | ------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |\n-| `otel.instrumentation.oshi.experimental-metrics.enabled` | Boolean | `false` | Deprecated. Outside v3 preview, enable the `runtime.java.memory` and `runtime.java.cpu_time` process metrics. This setting is ignored when `otel.instrumentation.common.v3-preview=true`. Will be removed in 3.0. Use the standard JVM metrics `jvm.memory.used` and `jvm.cpu.time` instead. These are not exact replacements: `jvm.memory.used` measures JVM memory pools rather than process RSS or virtual memory, and `jvm.cpu.time` does not separate user and system CPU time. |\n+System metrics use schema 1.44.0 conventions. Both the library and agent use\n+the instrumentation scope `io.opentelemetry.oshi-5.0`.\n+\n+Network packet counts use `system.network.packet.count`. Count units are `{packet}`,\n+`{error}`, and `{operation}` for packets, errors, and disk operations, respectively.\n+Memory metrics use `system.memory.state`; network I/O and errors use `network.interface.name`\n+and `network.io.direction`. Packet counts use `system.device`\n+and `network.io.direction`; disk metrics use `system.device` and `disk.io.direction`.\n+\n+Standard JVM metrics are available separately:\n+`jvm.memory.used` measures JVM memory pools, not process RSS or virtual memory, and\n+`jvm.cpu.time` measures total JVM CPU time without splitting user and system CPU time.",
+      "id": "PRRT_kwDODJKVX86qGzFs",
+      "opened": "2026-10-07T21:37:19Z",
+      "path": "instrumentation/oshi-5.0/README.md",
+      "replies": [],
+      "reviewed": "c47c4280169a6cbb0149df7a9e13b3aebf2e9a8f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20422#discussion_r4212251063"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\nSystem metrics use schema 1.44.0 conventions.\n```",
+      "created": "2026-10-07T21:38:51Z",
+      "hunk": "@@ -1,10 +1,15 @@\n # OSHI Instrumentation\n \n-## Settings for the OSHI instrumentation\n+## Current metrics\n \n-| System property                                          | Type    | Default | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |\n-| -------------------------------------------------------- | ------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |\n-| `otel.instrumentation.oshi.experimental-metrics.enabled` | Boolean | `false` | Deprecated. Outside v3 preview, enable the `runtime.java.memory` and `runtime.java.cpu_time` process metrics. This setting is ignored when `otel.instrumentation.common.v3-preview=true`. Will be removed in 3.0. Use the standard JVM metrics `jvm.memory.used` and `jvm.cpu.time` instead. These are not exact replacements: `jvm.memory.used` measures JVM memory pools rather than process RSS or virtual memory, and `jvm.cpu.time` does not separate user and system CPU time. |\n+System metrics use schema 1.44.0 conventions. Both the library and agent use\n+the instrumentation scope `io.opentelemetry.oshi-5.0`.",
+      "id": "PRRT_kwDODJKVX86qG09D",
+      "opened": "2026-10-07T21:38:51Z",
+      "path": "instrumentation/oshi-5.0/README.md",
+      "replies": [],
+      "reviewed": "712c4a2a096a23bb9a75720bdbd12070253a2256",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20422#discussion_r4212263506"
+    }
+  ]
+}

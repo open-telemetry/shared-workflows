@@ -1,0 +1,52 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "6b6b46431c40e3945011bddff1f2550b411f2b36079182b28a4ac3dfdd592d90",
+  "input_digest": "52b2342e7c3659c0043cea8f75e25d7760cf6b9fd8a39f08ce458a4cb7ad2490",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fc3ad123265fbf57076af01c31cc9a7c0d48fd6d/.github/workflows/auto-update-otel-sdk.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9e0ac1dc1bd12ce711b9d06f87c127674c082ab8/.github/workflows/auto-update-otel-sdk.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/bf249db94e2fbc3c876aff194144bf2ab553cad9"
+      ],
+      "id": "PRRT_kwDODJKVX860xMYS",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fc3ad123265fbf57076af01c31cc9a7c0d48fd6d/.github/scripts/test_update_sdk_workflow.py",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fc3ad123265fbf57076af01c31cc9a7c0d48fd6d/.github/workflows/build-common.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9e0ac1dc1bd12ce711b9d06f87c127674c082ab8/.github/scripts/test_update_sdk_workflow.py",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9e0ac1dc1bd12ce711b9d06f87c127674c082ab8/.github/workflows/build-common.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e18d813417baa17e205d2269eba7664af6319944"
+      ],
+      "id": "PRRT_kwDODJKVX860xUuV",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX860xdSa",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX860xMYS",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bf249db94e2fbc3c876aff194144bf2ab553cad9/.github/workflows/auto-update-otel-sdk.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9e0ac1dc1bd12ce711b9d06f87c127674c082ab8/.github/workflows/auto-update-otel-sdk.yml"
+      ],
+      "id": "PRRT_kwDODJKVX860ximZ",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

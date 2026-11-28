@@ -1,0 +1,172 @@
+{
+  "head": "6a620cf8ed47bff0d69436c056bc3cfaa1cab394",
+  "merge": "d777b28220f23f06fcf011d5c395dda8b0b0e629",
+  "merged": "2026-11-20T00:47:13Z",
+  "missing_roots": 0,
+  "number": 21358,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Fix one remaining behavior regression on this PR directly. Work on its verified same-repository head branch `copilot/renovate-java-runtime-images`. Keep that branch; if GitHub assigns a follow-up branch, keep the platform-assigned branch. Do not start further tasks or request an additional PR.\n\nThe five Jib consumers now error on a missing `targetJDK` entry, and `smoke-tests/images/java-runtime-images.properties` stops at 27. Meanwhile `.github/workflows/reusable-pr-smoke-test-images.yml` and `.github/workflows/reusable-publish-smoke-test-images.yml` pass `LATEST_JAVA_VERSION` to those consumers; Renovate independently advances both `27 # renovate(java-version)` markers. The next normal feature bump can therefore select a major with no entry and break both image build and publish. Copilot review on head f8a00aafdb1a1c5fa9972a5eda66bc1866a8cdc3 had no findings; the issue above comes from tracing the reviewed diff to its existing callers.\n\nKeep the automatically advancing latest-JDK case working without a human editing a separate mapping on every release. Ensure any image CI selects still has an explicit Renovate-managed reference and resolves to the same JDK major as the workflows and image tags. Consider deriving the relevant selectors and image reference from the same Renovate-managed source, or updating all associated fields atomically via Renovate. Keep existing fixed-major entries and their digest-pin automation, the currently selected tags/digests and test runtime majors, and existing intentional historical fixtures. Do not hand-bump any image, opt fixed matrix entries into major upgrades, or depend on the independent Temurin comparator PR. Validate that the simulated next feature-version update selects an extractable matching image and that the current selectors/builds and shared-file rebuild triggers still work. Keep the fix narrow.",
+      "created": "2026-11-19T18:06:51Z",
+      "hunk": "@@ -0,0 +1,7 @@\n+# Shared Jib base images, keyed by targetJDK. Keep tags literal so Renovate can pin and update them.\n+8=eclipse-temurin:8\n+11=eclipse-temurin:11\n+17=eclipse-temurin:17\n+21=eclipse-temurin:21\n+25=eclipse-temurin:25\n+27=eclipse-temurin:27",
+      "id": "PRRT_kwDODJKVX865o-Qv",
+      "opened": "2026-11-19T18:06:51Z",
+      "path": "smoke-tests/images/java-runtime-images.properties",
+      "replies": [
+        {
+          "at": "2026-11-19T18:16:12Z",
+          "body": "Fixed in `452c425f`. Both reusable workflows now derive the latest JDK from the shared image mapping, and Renovate updates its selector, mapping key, and image tag atomically. Fixed-major pins remain unchanged. The simulated 27→28 update and all five Jib configurations passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21358#discussion_r4633107008"
+        }
+      ],
+      "reviewed": "f8a00aafdb1a1c5fa9972a5eda66bc1866a8cdc3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21358#discussion_r4633003073"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] Renovate's RE2 engine rejects this [lookbehind](https://github.com/renovatebot/renovate/blob/34d4f5ee1e339cb0a1d690b48fb4df963238fc41/lib/modules/platform/github/massage-markdown-links.ts#L12-L17) and the [backreferences](https://github.com/renovatebot/renovate/blob/34d4f5ee1e339cb0a1d690b48fb4df963238fc41/lib/modules/manager/custom/regex/readme.md#L100-L100) at line 531. These patterns therefore cannot discover or digest-pin the six shared images, and automated latest-runtime updates stop working. Replace the lookbehind with `\\b` and the backreferences with independent `\\d+` matches; the existing replacement template keeps the latest-version fields synchronized.",
+      "created": "2026-11-19T18:24:00Z",
+      "hunk": "@@ -470,11 +501,36 @@\n       datasourceTemplate: 'docker',\n       managerFilePatterns: [\n         '**/build.gradle.kts',\n+        '**/*.java',\n+      ],\n+      matchStrings: [\n+        '\"(?<depName>eclipse-temurin|ibm-semeru-runtimes|ibmjava):(?<currentValue>(?:open-)?\\\\d[\\\\w.-]*)(?:@(?<currentDigest>sha256:[0-9a-f]+))?\"',\n+      ],\n+      autoReplaceStringTemplate: '\"{{{depName}}}:{{{newValue}}}{{#if newDigest}}@{{{newDigest}}}{{/if}}\"',\n+    },\n+    {\n+      customType: 'regex',\n+      datasourceTemplate: 'docker',\n+      managerFilePatterns: [\n+        'smoke-tests/images/java-runtime-images.properties',\n+      ],\n+      matchStrings: [\n+        '(?<!\\\\d)(?<targetJDK>8|11|17|21|25)=(?<depName>eclipse-temurin):(?<currentValue>\\\\d[\\\\w.-]*)(?:@(?<currentDigest>sha256:[0-9a-f]+))?',",
+      "id": "PRRT_kwDODJKVX865paFl",
+      "opened": "2026-11-19T18:24:01Z",
+      "path": ".github/renovate.json5",
+      "replies": [
+        {
+          "at": "2026-11-19T19:07:24Z",
+          "body": "Fixed in 025bea2ab221. The fixed and latest entries now have separate, line-anchored RE2 patterns without lookbehind or backreferences.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21358#discussion_r4633692831"
+        }
+      ],
+      "reviewed": "452c425fc7659f909dd28eb80951af89915d980f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21358#discussion_r4633191704"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Fix the remaining extraction and update issues on this PR directly on its existing same-repository head branch `copilot/renovate-java-runtime-images`. Keep that branch; if GitHub assigns a follow-up branch, keep the platform-assigned branch. Do not start further tasks or request any additional PRs.\n\nThe review confirmed that both properties-file managers use unsupported RE2 syntax: negative lookbehind in the fixed entries and named backreferences in the latest entry. Remove both, with no overlapping or false matches. A single explicit latest-role property with consumers deriving the Java major from its image tag is one way to avoid repeated fields; choose the smallest maintainable solution. Use the actual Renovate extractor/config validator with RE2, not Python/JavaScript-native regex or an extraction-only simulation. Confirm the current six shared images are extracted once each and an initial digest pin and a later digest update produce a reference the workflows and all relevant Gradle consumers can still read.\n\nThere is a second concrete blocker on the same path: the `eclipse-temurin-latest` alias still has `packageName: eclipse-temurin`, so Renovate's inherited Java LTS `allowedVersions` rule rejects the next feature major even though the PR sets `enabled: true` for major updates. Override the filter only for the explicit moving latest dependency and keep full rolling-tag version semantics; leave the fixed 8/11/17/21/25 entries, other deps, digest pinning, and branch-specific compatibility unchanged. Exercise actual Renovate update lookup/replacement with an available next non-LTS major in a controlled fixture and verify the resulting workflows use and publish the matching Jib runtime. The latest row must stay extractable after that next update. Do not change any current image tag or digest, move fixed test majors, depend on the separate Temurin comparator PR, or change unrelated CI Java policies. Report which Renovate engine checks ran and any environmental limits.",
+      "created": "2026-11-19T18:30:45Z",
+      "hunk": "@@ -470,11 +501,36 @@\n       datasourceTemplate: 'docker',\n       managerFilePatterns: [\n         '**/build.gradle.kts',\n+        '**/*.java',\n+      ],\n+      matchStrings: [\n+        '\"(?<depName>eclipse-temurin|ibm-semeru-runtimes|ibmjava):(?<currentValue>(?:open-)?\\\\d[\\\\w.-]*)(?:@(?<currentDigest>sha256:[0-9a-f]+))?\"',\n+      ],\n+      autoReplaceStringTemplate: '\"{{{depName}}}:{{{newValue}}}{{#if newDigest}}@{{{newDigest}}}{{/if}}\"',\n+    },\n+    {\n+      customType: 'regex',\n+      datasourceTemplate: 'docker',\n+      managerFilePatterns: [\n+        'smoke-tests/images/java-runtime-images.properties',\n+      ],\n+      matchStrings: [\n+        '(?<!\\\\d)(?<targetJDK>8|11|17|21|25)=(?<depName>eclipse-temurin):(?<currentValue>\\\\d[\\\\w.-]*)(?:@(?<currentDigest>sha256:[0-9a-f]+))?',",
+      "id": "PRRT_kwDODJKVX865pmV4",
+      "opened": "2026-11-19T18:30:45Z",
+      "path": ".github/renovate.json5",
+      "replies": [
+        {
+          "at": "2026-11-19T18:50:24Z",
+          "body": "Fixed in `025bea2a`. Renovate 44.254.0 on Node 24 passed config validation, RE2 extraction of six unique references, local Docker lookup from 26 to 27 despite the LTS-only fixture, and engine replacements for an initial digest pin, that major update, and a later digest refresh. All five `jibBuildTar` tasks passed with `targetJDK=27`, and the workflow selector resolved 27. The full-repository local run could not fetch `github>grafana/flint#v0.22.15`, so the actual engine checks used a controlled local fixture; Docker Hub’s tag-list API returned 403 once, but manifest and digest lookup succeeded.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21358#discussion_r4633497413"
+        }
+      ],
+      "reviewed": "452c425fc7659f909dd28eb80951af89915d980f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21358#discussion_r4633274165"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Simplify this PR directly on its existing same-repository head branch `copilot/renovate-java-runtime-images`, preserving the extraction and latest-JDK fixes delivered in `025bea2a`. Keep the branch assigned by GitHub Copilot cloud agent; do not rename it or create a replacement branch. If the platform assigns a follow-up branch, keep that branch. Do not request an additional PR or dispatch other tasks.\n\nMove the six shared Jib runtime references from `smoke-tests/images/java-runtime-images.properties` into root `gradle.properties`, using descriptive keys such as `smokeTestJavaImage8` for fixed majors and a separate explicit latest-role key. Remove the extra properties file and the five repeated `Properties` imports/file loaders in grpc, play, quarkus, security-manager, and spring-boot builds. Use Gradle Provider property lookup, for example `providers.gradleProperty(\"smokeTestJavaImage$targetJDK\").get()` for a fixed entry. Preserve the moving-latest selection as well: both reusable build/publish workflows must derive the selected major from the same latest image reference, and all consumers must resolve that matching image after a future feature release. Keep a clear failure for unsupported majors rather than silently selecting a different runtime. Retain the current defaults and Play compiler cap.\n\nConsolidate compatible runtime-image regex managers in `.github/renovate.json5` rather than duplicating extraction and replacement logic for quoted Java/Gradle literals and fixed properties. Keep a dedicated moving-latest manager if necessary for its distinct dependency identity and update policy. Use only Renovate RE2-supported syntax and avoid duplicate extraction, including the latest property. Remove redundant `pinDigests: true` package rules already supplied for the Docker datasource by the existing `config:best-practices` preset. Combine the moving-latest package rules where their matching/semantics permit, but retain its explicit major-update enablement and LTS-filter override.\n\nUpdate all ten PR-build/main-publish workflow path filters to root `gradle.properties`, and update both reusable workflows' latest-image reads to that source. Broader rebuilds for unrelated root-property changes are an accepted tradeoff. Preserve all existing image tags and digests, fixed test majors, runtime variants, historical fixtures, the separate moving-latest identity, and branch-specific compatibility. Do not depend on the independent Temurin comparator PR or change unrelated Java policies.\n\nValidate with the actual Renovate config validator, RE2 extractor and update/replacement engine, not just native JavaScript/Python regex. Confirm the six shared references are each extracted exactly once, ordinary quoted literals remain discovered, historical fixtures are untouched, and initial digest pinning, digest refresh, and a next non-LTS feature-major update remain extractable and select/publish matching runtime majors. Run narrow relevant Gradle/configuration checks for the five consumers and inspect build/publish trigger wiring; report environmental limits honestly. Keep the simplification smaller than the existing implementation and avoid unrelated refactors.",
+      "created": "2026-11-19T18:57:35Z",
+      "hunk": "@@ -0,0 +1,8 @@\n+# Fixed Jib base images are keyed by targetJDK; latest is the moving smoke-test runtime.\n+# Keep tags literal so Renovate can pin and update them.\n+8=eclipse-temurin:8",
+      "id": "PRRT_kwDODJKVX865qTWy",
+      "opened": "2026-11-19T18:57:35Z",
+      "path": "smoke-tests/images/java-runtime-images.properties",
+      "replies": [
+        {
+          "at": "2026-11-19T19:19:39Z",
+          "body": "Implemented in `3d098539`. The six image references now live in root `gradle.properties`; the five builds use Gradle property providers, the two reusable workflows read the latest reference there, and all ten workflow filters watch the root file. The quoted/fixed-reference managers are consolidated while latest retains its separate identity and update rules. Renovate 44.254.0 with RE2 validated and extracted six shared references once plus 23 quoted literals; its replacement engine passed digest pinning, refresh, and Java 27→28. All five Jib builds passed at current latest and fixed defaults, and the simulated Java 28 selector passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21358#discussion_r4633841074"
+        }
+      ],
+      "reviewed": "025bea2ab2215d7b18784f01f6d83870467daa2e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21358#discussion_r4633579903"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] When Renovate pins `latest`, this expression reads the digest hash instead of the Java tag and can fail the latest-runtime build with `Unsupported targetJDK: 27`. Strip the digest before extracting the tag. Apply the same fix in `smoke-tests/images/play/build.gradle.kts:47`, `smoke-tests/images/quarkus/build.gradle.kts:41`, `smoke-tests/images/security-manager/build.gradle.kts:29`, and `smoke-tests/images/spring-boot/build.gradle.kts:43`.",
+      "created": "2026-11-19T19:02:39Z",
+      "hunk": "@@ -29,6 +30,16 @@ val targetJDK = project.findProperty(\"targetJDK\") ?: \"11\"\n val tag = findProperty(\"tag\")\n   ?: DateTimeFormatter.ofPattern(\"yyyyMMdd.HHmmSS\").format(LocalDateTime.now())\n \n+val runtimeImages = Properties().apply {\n+  rootProject.file(\"smoke-tests/images/java-runtime-images.properties\").inputStream().use { load(it) }\n+}\n+val latestRuntimeImage = runtimeImages.getProperty(\"latest\")\n+val fromImage = runtimeImages.getProperty(targetJDK.toString())\n+  ?: latestRuntimeImage?.takeIf {\n+    it.substringAfterLast(':').substringBefore('@').takeWhile(Char::isDigit) == targetJDK.toString()",
+      "id": "PRRT_kwDODJKVX865qbyB",
+      "opened": "2026-11-19T19:02:39Z",
+      "path": "smoke-tests/images/grpc/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-19T19:51:03Z",
+          "body": "Fixed in 81e7f4793a3b. All five Jib consumers now strip the digest before extracting the image tag, so pinned latest images resolve to the requested Java major.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21358#discussion_r4634221008"
+        }
+      ],
+      "reviewed": "025bea2ab2215d7b18784f01f6d83870467daa2e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21358#discussion_r4633637983"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] For a digest-pinned latest image such as `eclipse-temurin:27@sha256:aaaa…`, this extracts the digest instead of `27`, causing the latest-runtime build to fail with `Unsupported targetJDK: 27`. Strip the digest before extracting the tag. Apply the same change under `smoke-tests/images/` in `grpc/build.gradle.kts:35`, `play/build.gradle.kts:43`, `quarkus/build.gradle.kts:37`, and `security-manager/build.gradle.kts:25`.",
+      "created": "2026-11-19T19:28:57Z",
+      "hunk": "@@ -33,6 +33,13 @@ val targetJDK = project.findProperty(\"targetJDK\") ?: \"17\"\n val tag = findProperty(\"tag\")\n   ?: DateTimeFormatter.ofPattern(\"yyyyMMdd.HHmmSS\").format(LocalDateTime.now())\n \n+val latestRuntimeImage = providers.gradleProperty(\"smokeTestJavaImageLatest\").get()\n+val fromImage = providers.gradleProperty(\"smokeTestJavaImage$targetJDK\").orNull\n+  ?: latestRuntimeImage.takeIf {\n+    it.substringAfterLast(':').substringBefore('@').takeWhile(Char::isDigit) == targetJDK.toString()",
+      "id": "PRRT_kwDODJKVX865rKp8",
+      "opened": "2026-11-19T19:28:57Z",
+      "path": "smoke-tests/images/spring-boot/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-19T19:51:03Z",
+          "body": "Fixed in 81e7f4793a3b. The tag parser now removes the digest first in all five builds, preserving the full pinned reference when its Java major matches targetJDK.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21358#discussion_r4634221037"
+        }
+      ],
+      "reviewed": "3d09853953b93e48352e8fd380edea20929abf19",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21358#discussion_r4633959555"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Fix the digest-pinned latest-runtime selection on this PR directly on its existing same-repository head branch `copilot/renovate-java-runtime-images`. Keep the branch assigned by GitHub Copilot cloud agent; do not rename it or create a replacement branch. Keep any platform-assigned follow-up branch if GitHub creates one. Do not request an additional PR or dispatch other tasks.\n\nThe simplification is delivered in `3d098539`, but all five Jib builds call `substringAfterLast(':')` before `substringBefore('@')` when selecting the moving latest image. For `eclipse-temurin:27@sha256:aaaa...`, the last colon is the digest separator, so the code reads the hash instead of Java 27 and throws `Unsupported targetJDK: 27`. This is also the defect in Copilot review 5981884123 and the duplicate earlier finding 5981431015. Fix it in `smoke-tests/images/{grpc,play,quarkus,security-manager,spring-boot}/build.gradle.kts` by stripping the digest before extracting the tag. Keep the fix surgical, preserve the property-provider simplification, fixed-major precedence, unsupported-major failure, current image references and all other behavior. Do not add a general abstraction for this small correction.\n\nVerify actual Gradle configuration for all five consumers with tag-only and digest-pinned latest images at Java 27 and a simulated next feature major. Include digest hashes beginning with a letter and a digit so accidentally parsing a hash cannot pass. Use project-property overrides and narrow configuration assertions on the selected full Jib base-image reference, not merely a separate reimplementation of the parser or attempts to pull a nonexistent future image. Verify an unmatched targetJDK is still rejected and ordinary fixed entries remain unchanged. Preserve both reusable workflows' agreement with the selected major. Report the executed checks and any environmental limits.",
+      "created": "2026-11-19T19:34:49Z",
+      "hunk": "@@ -33,6 +33,13 @@ val targetJDK = project.findProperty(\"targetJDK\") ?: \"17\"\n val tag = findProperty(\"tag\")\n   ?: DateTimeFormatter.ofPattern(\"yyyyMMdd.HHmmSS\").format(LocalDateTime.now())\n \n+val latestRuntimeImage = providers.gradleProperty(\"smokeTestJavaImageLatest\").get()\n+val fromImage = providers.gradleProperty(\"smokeTestJavaImage$targetJDK\").orNull\n+  ?: latestRuntimeImage.takeIf {\n+    it.substringAfterLast(':').substringBefore('@').takeWhile(Char::isDigit) == targetJDK.toString()",
+      "id": "PRRT_kwDODJKVX865rVA9",
+      "opened": "2026-11-19T19:34:49Z",
+      "path": "smoke-tests/images/spring-boot/build.gradle.kts",
+      "replies": [],
+      "reviewed": "3d09853953b93e48352e8fd380edea20929abf19",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21358#discussion_r4634030197"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Simplify this PR to a Renovate-config-only change, directly on its existing same-repository head branch `copilot/renovate-java-runtime-images`. Keep the branch assigned by GitHub Copilot cloud agent; do not rename it or create a replacement branch. Keep any platform-assigned follow-up branch if GitHub creates one. Do not request an additional PR or dispatch other tasks.\n\nDecision: do not digest-pin or centrally manage the five Jib base images. On `main`, the Jib builds already use floating `eclipse-temurin:$targetJDK` tags, and the latest JDK used by the image workflows is already Renovate-managed through `LATEST_JAVA_VERSION: 27 # renovate(java-version)`. The shared `gradle.properties` map, Gradle selection logic, `eclipse-temurin-latest` alias, workflow parsing and path filters exist only to pin those Jib images, which is not worth the complexity.\n\nRequired changes: (1) Revert these files to exactly their `main` content: root `gradle.properties`; `smoke-tests/images/{grpc,play,quarkus,security-manager,spring-boot}/build.gradle.kts`; `.github/workflows/reusable-pr-smoke-test-images.yml`; `.github/workflows/reusable-publish-smoke-test-images.yml`; and the ten `.github/workflows/{pr,publish}-smoke-test-{grpc,play,quarkus,security-manager,spring-boot}-images.yml` callers. After this, the PR diff must touch only `.github/renovate.json5`. (2) In `.github/renovate.json5`, remove both `eclipse-temurin-latest` package rules and the dedicated `smokeTestJavaImageLatest` custom manager. (3) Keep `ibmjava` in the existing rule that disables major updates for `eclipse-temurin`. (4) Reduce the docker custom regex manager to only the quoted-literal case: `managerFilePatterns` `**/build.gradle.kts` and `**/*.java` (drop `gradle.properties`); a single matchString `\"(?<depName>eclipse-temurin|ibm-semeru-runtimes|ibmjava):(?<currentValue>(?:open-)?\\d[\\w.-]*)(?:@(?<currentDigest>sha256:[0-9a-f]+))?\"`; and `autoReplaceStringTemplate` `\"{{{depName}}}:{{{newValue}}}{{#if newDigest}}@{{{newDigest}}}{{/if}}\"` with no `depType` conditionals. Remove the now-stale comment about preserving the fixed property key. Keep the patterns RE2-compatible (no lookbehind or backreferences).\n\nAcceptance criteria: `gh pr diff`-equivalent diff against `main` changes only `.github/renovate.json5`; Renovate config validates (e.g. `npx --yes --package renovate renovate-config-validator .github/renovate.json5`); a Renovate dry run or equivalent extraction check shows the quoted Java/Gradle runtime literals are discovered (tag-only and digest-pinned), Jib's interpolated `\"eclipse-temurin:$targetJDK\"` is not matched, and no `eclipse-temurin-latest` dependency remains. Report the checks you ran and any environmental limits.",
+      "created": "2026-11-19T20:07:51Z",
+      "hunk": "@@ -470,11 +491,29 @@\n       datasourceTemplate: 'docker',\n       managerFilePatterns: [\n         '**/build.gradle.kts',\n+        '**/*.java',\n+        '/^gradle\\\\.properties$/',\n+      ],\n+      // Preserve the fixed property key in the same replacement template as quoted literals.\n+      matchStrings: [\n+        '\"(?<depName>eclipse-temurin|ibm-semeru-runtimes|ibmjava):(?<currentValue>(?:open-)?\\\\d[\\\\w.-]*)(?:@(?<currentDigest>sha256:[0-9a-f]+))?\"',",
+      "id": "PRRT_kwDODJKVX865sO8y",
+      "opened": "2026-11-19T20:07:51Z",
+      "path": ".github/renovate.json5",
+      "replies": [
+        {
+          "at": "2026-11-19T20:15:14Z",
+          "body": "Simplified the PR to the requested Renovate-config-only diff in `6a620cf8`. Renovate config validation passed, and Renovate 42.99.0’s RE2 extractor confirmed tag-only and digest-pinned quoted literals are matched, interpolated Jib tags are excluded, and the latest alias is gone. The full local dry run could not fetch the inherited `grafana/flint` preset. CodeQL reported no alerts.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21358#discussion_r4634505777"
+        }
+      ],
+      "reviewed": "81e7f4793a3bcd5800cb0b4e011e84bbfccb19e8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21358#discussion_r4634420981"
+    }
+  ]
+}

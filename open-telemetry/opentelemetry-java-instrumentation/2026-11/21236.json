@@ -1,0 +1,82 @@
+{
+  "head": "001b50c0ae5759c4a2c730df2f34e2942e4d73f3",
+  "merge": "2026b88c2c054a067bcf3258ac3e1913569c1560",
+  "merged": "2026-11-07T08:18:00Z",
+  "missing_roots": 0,
+  "number": 21236,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the smaller Spring test change selected by the user. Target the existing head repository open-telemetry/opentelemetry-java-instrumentation and branch copilot/assigned-branch-name.\n\nIn instrumentation/spring/spring-webmvc/spring-webmvc-6.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/webmvc/v6_0/boot/SpringBootBasedTest.java, remove loginWithMissingOrInvalidCsrfTokenIsForbidden, the REJECTED_LOGIN constant, the expectedHttpRoute override added solely for that constant, and imports that become unused.\n\nKeep CSRF enabled in SecurityConfig.java. Keep the POST LOGIN request override and prepareLoginHeaders helper, including obtaining a real CSRF token and its matching session cookie and waiting for the setup GET trace before clearing captured data. Existing inherited login/password-encoding and HTTP instrumentation tests must still exercise authentication successfully. The goal is to avoid testing Spring Security's CSRF rejection behavior in this instrumentation fixture, not to replace the real token exchange with fixed tokens or login exemptions.\n\nLeave the Muzzle/provider-parsing changes and other unrelated PR changes untouched. Keep the scope to removing the rejection test and its now-unused support. Run relevant existing tests for the retained login/password-encoding and instrumentation behavior, and report any validation blocker.\n\nKeep the branch assigned by GitHub Copilot cloud agent. Do not rename it or create a replacement branch. If the platform creates a follow-up branch, keep that platform-assigned branch.",
+      "created": "2026-11-07T02:55:07Z",
+      "hunk": "@@ -67,6 +82,74 @@ protected ConfigurableApplicationContext setupServer() {\n     return context;\n   }\n \n+  @Override\n+  protected AggregatedHttpRequest request(ServerEndpoint endpoint, String method) {\n+    AggregatedHttpRequest request = super.request(endpoint, method);\n+    if (endpoint != LOGIN || !\"POST\".equals(method)) {\n+      return request;\n+    }\n+    return AggregatedHttpRequest.of(prepareLoginHeaders(request.headers().toBuilder()).build());\n+  }\n+\n+  private RequestHeadersBuilder prepareLoginHeaders(RequestHeadersBuilder headers) {\n+    AggregatedHttpResponse loginPage =\n+        client.execute(super.request(LOGIN, \"GET\")).aggregate().join();\n+    assertThat(loginPage.status().code()).isEqualTo(200);\n+    String sessionCookie =\n+        loginPage.headers().getAll(HttpHeaderNames.SET_COOKIE).stream()\n+            .filter(cookie -> cookie.startsWith(\"JSESSIONID=\"))\n+            .map(cookie -> cookie.split(\";\", 2)[0])\n+            .findFirst()\n+            .orElseThrow();\n+    Matcher csrfToken =\n+        Pattern.compile(\"name=\\\"_csrf\\\"[^>]*value=\\\"([^\\\"]+)\\\"\").matcher(loginPage.contentUtf8());\n+    assertThat(csrfToken.find()).isTrue();\n+\n+    // Receiving the page does not guarantee its server span has finished exporting.\n+    testing.waitForTraces(1);\n+    testing.clearData();\n+\n+    return headers\n+        .set(HttpHeaderNames.COOKIE, sessionCookie)\n+        .set(\"X-CSRF-TOKEN\", csrfToken.group(1));\n+  }\n+\n+  @Override\n+  public String expectedHttpRoute(ServerEndpoint endpoint, String method) {\n+    if (endpoint == REJECTED_LOGIN) {\n+      return getContextPath() + \"/error\";\n+    }\n+    return super.expectedHttpRoute(endpoint, method);\n+  }\n+\n+  @ParameterizedTest\n+  @ValueSource(strings = {\"\", \"invalid\"})\n+  void loginWithMissingOrInvalidCsrfTokenIsForbidden(String csrfToken) {",
+      "id": "PRRT_kwDODJKVX860xSVZ",
+      "opened": "2026-11-07T02:55:07Z",
+      "path": "instrumentation/spring/spring-webmvc/spring-webmvc-6.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/webmvc/v6_0/boot/SpringBootBasedTest.java",
+      "replies": [
+        {
+          "at": "2026-11-07T03:03:11Z",
+          "body": "Removed the CSRF rejection test and its route-specific support while retaining the CSRF-enabled security configuration and real token/session login setup. Focused test run passed (28 tests, 2 skipped, 0 failures). Commit: `a0723a0b`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21236#discussion_r4499765132"
+        }
+      ],
+      "reviewed": "d2d3b050e8d30c22b04b069ad3cd8172ef0f1b05",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21236#discussion_r4499733382"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly by substantially simplifying the added Muzzle parsing tests in muzzle/src/test/java/io/opentelemetry/javaagent/tooling/muzzle/ReferenceCollectorTest.java. Target the existing head repository open-telemetry/opentelemetry-java-instrumentation and branch copilot/assigned-branch-name.\n\nThe user wants less test machinery and duplication because the existing resource-format tests and instrumentation builds already cover compatibility with real provider files. Retain focused coverage of the new parser behavior rather than removing all new tests.\n\nKeep a small malformed-provider test with representative cases for traversal, slash-separated names, and an invalid dotted name. Verify rejection occurs before any provider-class resource lookup. Keep compact coverage for trimming whitespace and handling Java SPI comments, including the distinction that AWS interceptor files do not support those comments.\n\nRemove generated provider-class bytecode, the extensive Unicode/keyword valid-name matrix, repeated helper-ordering assertions in the new parsing tests, and the cross-product of each malformed name with all seven resource-path forms. Preserve the existing shouldCollectHelperClassesFromResourceFile coverage of all supported resource formats and its helper-ordering checks. A small in-memory resource/recording classloader is useful for checking the resource-lookup boundary, but remove its ASM class-generation support and use existing helper classes for successful parsing cases. Keep the implementation and test setup as small as the retained requirements allow; remove imports and support made unused by this cleanup.\n\nDo not change production ReferenceCollector behavior or the Spring CSRF fixture changes. This assignment is a test-only simplification, not a new parser design or broader cleanup. Run the relevant existing Muzzle tests and report any validation blocker.\n\nKeep the branch assigned by GitHub Copilot cloud agent. Do not rename it or create a replacement branch. If the platform creates a follow-up branch, keep that platform-assigned branch.",
+      "created": "2026-11-07T03:21:08Z",
+      "hunk": "@@ -326,15 +334,155 @@ private static List<Arguments> shouldCollectHelperClassesFromResourceFile() {\n             \"com/amazonaws/services/testservice/testsubservice/request.handler2s\"));\n   }\n \n+  @ParameterizedTest\n+  @MethodSource(\"shouldCollectHelperClassesFromResourceFile\")\n+  void shouldTrimProviderNames(",
+      "id": "PRRT_kwDODJKVX860xhbq",
+      "opened": "2026-11-07T03:21:08Z",
+      "path": "muzzle/src/test/java/io/opentelemetry/javaagent/tooling/muzzle/ReferenceCollectorTest.java",
+      "replies": [
+        {
+          "at": "2026-11-07T03:27:47Z",
+          "body": "Simplified the provider parsing tests as requested, kept the resource-format coverage and lookup-boundary assertion, and removed the generated bytecode machinery. Focused Muzzle tests and `:muzzle:spotlessCheck` pass. Commit: `bffa02f4`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21236#discussion_r4499858253"
+        }
+      ],
+      "reviewed": "a0723a0b8d1efd7b3aeb200a7f6d0b9311b4864a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21236#discussion_r4499835291"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to narrow the Muzzle change to provider-name validation, without adding new provider-file parsing features. Target the existing head repository open-telemetry/opentelemetry-java-instrumentation and branch copilot/assigned-branch-name.\n\nThe user explicitly confirmed that adding Java SPI comment or whitespace support was not an intentional goal. In muzzle/src/main/java/io/opentelemetry/javaagent/tooling/muzzle/ReferenceCollector.java, remove the newly added javaSpi flag, comment-stripping branch, whitespace trimming, and line-number bookkeeping. Preserve the existing main-branch handling of provider-file contents: skip empty lines, but do not trim, normalize, or strip comments. Keep the readLine-until-null loop improvement.\n\nKeep the current Java-identifier regex and reject malformed nonempty provider names before any provider-class resource lookup. Continue throwing MuzzleCompilationException, with a concise diagnostic containing the provider resource path and rejected value, but no line number. Keep the change limited to this validation instead of redesigning the parser or weakening its allowlist.\n\nIn muzzle/src/test/java/io/opentelemetry/javaagent/tooling/muzzle/ReferenceCollectorTest.java, remove the new trimming and comment-handling tests, including shouldTrimProviderNames, shouldStripJavaSpiComments, and shouldNotStripAwsComments. Retain the focused malformed-name rejection test and its assertion that rejection occurs before provider-class resource lookup; update its expected diagnostic to the simpler error. Preserve the existing resource-format/helper-ordering tests. Remove any imports or support made unused by these removals, but do not add replacement parsing features or a broad new test matrix.\n\nLeave the Spring CSRF fixture changes and unrelated PR code untouched. Run the narrowest applicable spotlessApply task directly before relevant Muzzle tests, without a preliminary spotlessCheck, and report any validation blocker.\n\nKeep the branch assigned by GitHub Copilot cloud agent. Do not rename it or create a replacement branch. If the platform creates a follow-up branch, keep that platform-assigned branch.",
+      "created": "2026-11-07T03:47:03Z",
+      "hunk": "@@ -80,13 +84,34 @@ public void collectReferencesFromResource(HelperResource helperResource) {\n     }\n \n     List<String> spiImplementations = new ArrayList<>();\n+    boolean javaSpi = helperResource.getApplicationPath().startsWith(\"META-INF/services/\");",
+      "id": "PRRT_kwDODJKVX860xvHq",
+      "opened": "2026-11-07T03:47:03Z",
+      "path": "muzzle/src/main/java/io/opentelemetry/javaagent/tooling/muzzle/ReferenceCollector.java",
+      "replies": [],
+      "reviewed": "bffa02f4b7ba568ba46cd2ae265e1e623b474e38",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21236#discussion_r4499926045"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I assume that this is to appease codeql? Maybe we should try to configure codeql to skip tests?",
+      "created": "2026-11-07T08:17:49Z",
+      "hunk": "@@ -33,8 +32,7 @@ SavingAuthenticationProvider savingAuthenticationProvider() {\n   SecurityFilterChain apiWebSecurity(\n       HttpSecurity http, SavingAuthenticationProvider savingAuthenticationProvider)\n       throws Exception {\n-    return http.csrf(AbstractHttpConfigurer::disable)\n-        .securityMatcher(\"/basicsecured/**\")\n+    return http.securityMatcher(\"/basicsecured/**\")",
+      "id": "PRRT_kwDODJKVX860z7_b",
+      "opened": "2026-11-07T08:17:49Z",
+      "path": "instrumentation/spring/spring-webmvc/spring-webmvc-6.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/webmvc/v6_0/boot/SecurityConfig.java",
+      "replies": [],
+      "reviewed": "001b50c0ae5759c4a2c730df2f34e2942e4d73f3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21236#discussion_r4500858937"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "bced724cfce877d67268bcc4a36f580a8cf7aa4a83718fc717dcbe3a497c2574",
+  "input_digest": "e51f3c9e5fbd3ffdd9ce77aae6b3a49d7232a2ccef27344c0e28d4721ea31a95",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d8551788392b9bb42bf5f2a37c6b4c8029c8cf6a/instrumentation/pekko/pekko-http-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/18fbed01dcb943bd65cd7db581425ee457ad81e1/instrumentation/pekko/pekko-http-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/5d3cf174ec0afe9bb40f56aac8767ab7ebcfb786"
+      ],
+      "id": "PRRT_kwDODJKVX860gzKK",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9d7c9437630d1129296c5e066fc85f03503c5366/instrumentation/pekko/pekko-actor-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkoactor/v1_0/PekkoMailboxInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9d7c9437630d1129296c5e066fc85f03503c5366/instrumentation/pekko/pekko-actor-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkoactor/v1_0/PekkoActorInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/18fbed01dcb943bd65cd7db581425ee457ad81e1/instrumentation/pekko/pekko-actor-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkoactor/v1_0/PekkoMailboxInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/18fbed01dcb943bd65cd7db581425ee457ad81e1/instrumentation/pekko/pekko-actor-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkoactor/v1_0/PekkoActorInstrumentationModule.java"
+      ],
+      "id": "PRRT_kwDODJKVX860iLHh",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "id": "PRRT_kwDODJKVX860iMm5",
+      "kind": null,
+      "status": "other"
+    }
+  ]
+}

@@ -1,0 +1,229 @@
+{
+  "head": "934e1a87fc4842d48bb250a94180918a20738b73",
+  "merge": "e7f88efaa68ca228d8ad18b1ab0fd05a8b79eb30",
+  "merged": "2026-10-18T18:17:28Z",
+  "missing_roots": 0,
+  "number": 20645,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Please rename this task and its variable from `testInterceptors` to `testReceiveTelemetry`. The other collection tasks are named after telemetry profiles, while `testInterceptors` describes the test implementation. `testReceiveTelemetry` also matches the existing Kafka Connect convention. Update the `check` dependency and the task entry in `.github/scripts/instrumentations.sh`. Keep the selected tests and profile configuration unchanged.",
+      "created": "2026-10-16T15:49:03Z",
+      "hunk": "@@ -22,19 +22,68 @@ tasks {\n     systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)\n   }\n \n+  val testDefaultTelemetry = register<Test>(\"testDefaultTelemetry\") {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+\n+    filter {\n+      includeTestsMatching(\"InterceptorsDefaultTest\")\n+    }\n+  }\n+\n+  val testInterceptors = register<Test>(\"testInterceptors\") {",
+      "id": "PRRT_kwDODJKVX86tRet7",
+      "opened": "2026-10-16T15:49:03Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-16T15:55:21Z",
+          "body": "Renamed the task and variable to `testReceiveTelemetry` and updated `check` plus the collection script. The selected tests and profile configuration are unchanged. Commit: `d17da59e`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20645#discussion_r4296583985"
+        }
+      ],
+      "reviewed": "8fdeb89684161fcff174d9dbc1cbd1be80b8ade1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20645#discussion_r4296522873"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] These tasks collect successful operations only through interceptors, which omit `messaging.client.operation.duration` (`AbstractInterceptorsTest:133`) and producer partition/offset attributes. The remaining wrapper collection runs only `testConsumerError`, which has no metric assertions; metadata metrics are captured through `waitAndAssertMetrics`. Regenerating the catalog therefore drops supported wrapper telemetry. Include successful-wrapper representatives with matching default/optional builder settings and metric assertions in the collection tasks, without restoring the mixed full suite.",
+      "created": "2026-10-16T16:05:49Z",
+      "hunk": "@@ -181,7 +181,9 @@ readonly INSTRUMENTATIONS=(\n   \"jsp-2.3:javaagent:test\"\n   \"jsp-2.3:javaagent:testExperimental\"\n   \"jfinal-3.2:javaagent:test\"\n-  \"kafka:kafka-clients:kafka-clients-2.6:library:test\"\n+  \"kafka:kafka-clients:kafka-clients-2.6:library:testDefaultTelemetry\"\n+  \"kafka:kafka-clients:kafka-clients-2.6:library:testReceiveTelemetry\"\n+  \"kafka:kafka-clients:kafka-clients-2.6:library:testExperimental\"",
+      "id": "PRRT_kwDODJKVX86tR2oI",
+      "opened": "2026-10-16T16:05:50Z",
+      "path": ".github/scripts/instrumentations.sh",
+      "replies": [
+        {
+          "at": "2026-10-17T02:32:30Z",
+          "body": "Addressed in f8e754e2. The default, receive/header, and experimental collection tasks now run successful wrapper operations alongside interceptors. The wrapper assertions collect `messaging.client.operation.duration` and cover producer partition/offset attributes, without restoring the mixed full-suite collection.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20645#discussion_r4300927291"
+        }
+      ],
+      "reviewed": "ce43a181cd4bc002cba1361345b9fb8466263177",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20645#discussion_r4296680902"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Please rework this PR's test-profile organization using the guidance developed in #20649, including its review discussion and updates to `instrumentation-docs/readme.md` and `.github/agents/knowledge/testing-experimental-flags.md`. Keep the useful default/receive/experimental/exception-log profile split and existing behavioral assertions; this is a fixture and task-wiring refactor, not a production behavior change.\n\n- Make the ordinary baseline tests use library builder defaults, and move optional builder settings into named test variants. Where a fixture needs a switch, use explicitly test-only properties, such as `test.captureExperimentalSpanAttributes`, and pass the selected values through the library builder. Avoid layering collection-only duplicate tasks over a mixed-configuration baseline. Ordinary `Test` tasks sharing existing sources with fixed filters are fine; separate source sets are not required.\n- Label programmatically configured profiles with actual `KafkaTelemetryBuilder` calls, including receive telemetry, experimental attributes, and the applied header selector. Do not label these library settings with equivalent javaagent properties or test-only flags. Inline each complete, comma-separated `metadataConfig` label in its task. Leave default profiles unlabeled. Keep `otel.semconv.exception.signal.preview=logs` as a property condition, since shared production code genuinely reads it.\n- Collect representative successful operations through both wrappers and interceptors under matching profiles. Address the existing review finding that the current interceptor-only successful-operation selection loses wrapper `messaging.client.operation.duration` metrics and producer partition/offset attributes. Preserve the metric assertions that feed collection; collecting only `WrapperTest.testConsumerError` is insufficient.\n- Preserve behavioral and regression coverage, including exception-log coverage for relevant profiles. Keep mixed-configuration regression scenarios in `check` but outside collected profiles. Test selection must stay fixed whether or not metadata collection is enabled. Update `check` and `.github/scripts/instrumentations.sh` to match the resulting real test variants.\n\nKeep this focused on Kafka 2.6 library fixtures and collection wiring. The AWS-specific agent-versus-library extension detection is not needed for these library-only fixtures. Run the relevant focused checks and verify the collected telemetry retains supported wrapper and interceptor signals.\n\nPlease also update this PR's description to frame the change as the Kafka follow-up to the test-profile and collection guidance in #20649. Describe the final profiles and wrapper/interceptor coverage, remove claims that become stale, preserve the relevant #20546 and #20416 references, and retain the repository template. Do not present #20649's AWS/OkHttp changes as part of this PR.",
+      "created": "2026-10-17T02:03:52Z",
+      "hunk": "@@ -22,19 +22,68 @@ tasks {\n     systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)\n   }\n \n+  val testDefaultTelemetry = register<Test>(\"testDefaultTelemetry\") {",
+      "id": "PRRT_kwDODJKVX86tbvjX",
+      "opened": "2026-10-17T02:03:52Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-17T02:26:23Z",
+          "body": "Pushed as `f8e754e2`: baseline fixtures now use builder defaults, and the default, receive/header, and experimental collection tasks exercise successful wrapper and interceptor operations. The exception-log variant and regression checks remain covered; focused tests, metadata collection, and Spotless passed. I couldn't update the PR body because the available browser editing session failed to connect.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20645#discussion_r4300907731"
+        }
+      ],
+      "reviewed": "ce43a181cd4bc002cba1361345b9fb8466263177",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20645#discussion_r4300838043"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Testing] @copilot Please treat these synthetic Kafka headers as baseline test-fixture setup, not as a published telemetry configuration profile.\n\nThe agent tests already capture synthetic messaging headers without a `metadataConfig` condition. The metadata analyzer filters attributes containing `Test-Message`, `Test_Message`, or `test_message`, but preserves the `when` label. Ecosystem Explorer displays that label verbatim, so these nested `setHeaders(IncludeExclude.builder()...)` expressions would advertise test selectors as requirements for telemetry whose synthetic header attributes have been removed.\n\nPlease update this PR as follows:\n\n- Configure the synthetic header selector as ordinary fixture setup for both wrapper and interceptor tests, including the baseline profile, and retain the corresponding header assertions.\n- Remove `test.captureMessagingHeaders` and its branching if their only purpose is separating collection profiles. Do not introduce a replacement capture-only collection variant or empty baseline override.\n- Remove `KafkaTelemetryBuilder.setHeaders(...)` from both `metadataConfig` labels. Keep the receive-telemetry builder condition, the experimental-attributes builder condition where applicable, and the genuine shared exception-log property condition.\n- Preserve meaningful default, receive-telemetry, experimental-attribute, and exception-log profiles, normal regression coverage, and existing focused selector/default-behavior coverage. The fixture exception does not change production defaults or exempt arbitrary builder customization from accurate metadata labels.\n\nFor example, the experimental label should be `KafkaTelemetryBuilder.setMessagingReceiveTelemetryEnabled(true),KafkaTelemetryBuilder.setCaptureExperimentalSpanAttributes(true)`, with no synthetic header selectors. Do not replace the header builder expression with agent property names that do not configure this library builder.\n\nRun the focused wrapper/interceptor profiles and collect representative metadata. Verify that raw telemetry still contains the synthetic header attributes, generated telemetry filters them out, published `when` labels contain no synthetic selectors, and real opt-in telemetry stays separate from default telemetry. Check the generated labels against the explorer's verbatim display behavior; no explorer code change is needed.\n\nThe shared guidance correction, AWS profile alignment, and metadata-filtering regression coverage are assigned separately on #20649.",
+      "created": "2026-10-17T03:31:09Z",
+      "hunk": "@@ -22,19 +22,77 @@ tasks {\n     systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)\n   }\n \n+  val testDefaultTelemetry = register<Test>(\"testDefaultTelemetry\") {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+\n+    filter {\n+      includeTestsMatching(\"io.opentelemetry.instrumentation.kafkaclients.v2_6.InterceptorsTest.testInterceptors\")\n+      includeTestsMatching(\"io.opentelemetry.instrumentation.kafkaclients.v2_6.WrapperTest.testWrappers\")\n+    }\n+  }\n+\n+  val testReceiveTelemetry = register<Test>(\"testReceiveTelemetry\") {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+\n+    filter {\n+      includeTestsMatching(\"io.opentelemetry.instrumentation.kafkaclients.v2_6.InterceptorsTest.testInterceptors\")\n+      includeTestsMatching(\"io.opentelemetry.instrumentation.kafkaclients.v2_6.WrapperTest.testWrappers\")\n+    }\n+    systemProperty(\"test.messagingReceiveTelemetryEnabled\", \"true\")\n+    systemProperty(\"test.captureMessagingHeaders\", \"true\")\n+    systemProperty(\n+      \"metadataConfig\",\n+      \"KafkaTelemetryBuilder.setMessagingReceiveTelemetryEnabled(true),\" +\n+        \"KafkaTelemetryBuilder.setHeaders(IncludeExclude.builder().setIncluded(\\\"Test-Message-*\\\")\" +",
+      "id": "PRRT_kwDODJKVX86tcZCd",
+      "opened": "2026-10-17T03:31:09Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-17T03:39:28Z",
+          "body": "Pushed as `COMMIT_HASH`: synthetic headers are now unconditional fixture setup in wrapper and interceptor builders, and header assertions remain enabled in the baseline. The capture switch and header expressions were removed from all metadata labels. Focused profile collection passed; raw telemetry retains header attributes, and the existing analyzer filtering excludes them from generated telemetry while labels remain free of synthetic selectors.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20645#discussion_r4301141835"
+        }
+      ],
+      "reviewed": "f8e754e2dcecb0cf37987a5728366337201c1fa7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20645#discussion_r4301111198"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] `testConsumerError` now skips the ordinary `test` JVM because receive telemetry is disabled. Both receive-enabled success profiles exclude it, so it runs only in `testExceptionSignalLogs`, where exception span events are disabled. Include it in `testReceiveTelemetry` to preserve the existing default exception-as-span-event assertions.",
+      "created": "2026-10-17T03:54:14Z",
+      "hunk": "@@ -22,19 +22,71 @@ tasks {\n     systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)\n   }\n \n+  val testDefaultTelemetry = register<Test>(\"testDefaultTelemetry\") {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+\n+    filter {\n+      includeTestsMatching(\"io.opentelemetry.instrumentation.kafkaclients.v2_6.InterceptorsTest.testInterceptors\")\n+      includeTestsMatching(\"io.opentelemetry.instrumentation.kafkaclients.v2_6.WrapperTest.testWrappers\")\n+    }\n+  }\n+\n+  val testReceiveTelemetry = register<Test>(\"testReceiveTelemetry\") {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+\n+    filter {\n+      includeTestsMatching(\"io.opentelemetry.instrumentation.kafkaclients.v2_6.InterceptorsTest.testInterceptors\")\n+      includeTestsMatching(\"io.opentelemetry.instrumentation.kafkaclients.v2_6.WrapperTest.testWrappers\")",
+      "id": "PRRT_kwDODJKVX86tcoK_",
+      "opened": "2026-10-17T03:54:15Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/build.gradle.kts",
+      "replies": [],
+      "reviewed": "2b6739d57d7151592512353dde80a3453f2b75fa",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20645#discussion_r4301209550"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Replacing collection of `:library:test` with this success-only filter excludes `WrapperSendExceptionTest.producerSpanEndedWhenSendThrowsSynchronously`. That test uses builder defaults and exports a producer span with `error.type`. The other collected profiles contain no failed sends, and the logs profile fails only a consumer poll, so regenerated producer metadata loses this supported attribute. Include the existing failed-send test in this default profile.",
+      "created": "2026-10-17T03:54:14Z",
+      "hunk": "@@ -22,19 +22,71 @@ tasks {\n     systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)\n   }\n \n+  val testDefaultTelemetry = register<Test>(\"testDefaultTelemetry\") {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+\n+    filter {\n+      includeTestsMatching(\"io.opentelemetry.instrumentation.kafkaclients.v2_6.InterceptorsTest.testInterceptors\")\n+      includeTestsMatching(\"io.opentelemetry.instrumentation.kafkaclients.v2_6.WrapperTest.testWrappers\")",
+      "id": "PRRT_kwDODJKVX86tcoKu",
+      "opened": "2026-10-17T03:54:15Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/build.gradle.kts",
+      "replies": [],
+      "reviewed": "2b6739d57d7151592512353dde80a3453f2b75fa",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20645#discussion_r4301209507"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Both successful-operation fixtures selected here unconditionally call `KafkaTelemetryBuilder.setHeaders(...)`, so `testDefaultTelemetry` records header-enabled telemetry under `default`, although the builder default captures no headers. The receive and experimental profiles also omit this applied setting from their labels. This leaves #20546's library profile separation incomplete; the shared synthetic-header exception applies only to javaagent fixtures. Gate capture and its expectations in both `AbstractWrapperTest` and `InterceptorsTest`, leave it off for the baseline, and label header-enabled profiles with the actual builder configuration.",
+      "created": "2026-10-17T04:41:07Z",
+      "hunk": "@@ -22,19 +22,73 @@ tasks {\n     systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)\n   }\n \n+  val testDefaultTelemetry = register<Test>(\"testDefaultTelemetry\") {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+\n+    filter {\n+      includeTestsMatching(\"io.opentelemetry.instrumentation.kafkaclients.v2_6.InterceptorsTest.testInterceptors\")\n+      includeTestsMatching(\"io.opentelemetry.instrumentation.kafkaclients.v2_6.WrapperTest.testWrappers\")",
+      "id": "PRRT_kwDODJKVX86tdJQL",
+      "opened": "2026-10-17T04:41:08Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-17T05:23:00Z",
+          "body": "Addressed in af73a6414e74ec5ebc167db10f4a4632e6c2c4eb.\n\nBoth fixtures now read test.captureMessagingHeaders, call setHeaders only when enabled, and use the same flag for their existing exact header assertions. testDefaultTelemetry leaves the flag and metadataConfig unset. The named receive and experimental profiles enable capture and include KafkaTelemetryBuilder.setHeaders(IncludeExclude.builder().setIncluded(\"Test-Message-*\").setExcluded(\"*-Excluded-Header\").build()) in their labels. Builder defaults and instrumentation-docs/readme.md explicitly establish that the synthetic-header exemption is javaagent-only. Runtime fixture probes confirm headers are absent by default and captured/excluded correctly when enabled.\n\n<!-- copilot-loop:adcc7d1e161f9fdcdc898b194d7b1f54cec207ac28f1c91239ae028d1d09f677:4301415524:79b997b17a8247bb8ff27befb375dde4 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20645#discussion_r4301538944"
+        }
+      ],
+      "reviewed": "f3054ae2fca167dda019488af98508351fb74068",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20645#discussion_r4301415524"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Replacing the inherited parameterized test with a JVM flag removes the experimental-attribute cases for `WrapperPropagationDisabledTest` and `WrapperSuppressReceiveSpansTest`: the ordinary suite leaves the flag off, and `testExperimental` excludes both classes. Restore those regression cases in a separate task wired into `check`, without a metadata label or collection entry. This preserves their previous coverage without mixing regression telemetry into the collected profiles.",
+      "created": "2026-10-17T04:41:08Z",
+      "hunk": "@@ -22,19 +22,73 @@ tasks {\n     systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)\n   }\n \n+  val testDefaultTelemetry = register<Test>(\"testDefaultTelemetry\") {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+\n+    filter {\n+      includeTestsMatching(\"io.opentelemetry.instrumentation.kafkaclients.v2_6.InterceptorsTest.testInterceptors\")\n+      includeTestsMatching(\"io.opentelemetry.instrumentation.kafkaclients.v2_6.WrapperTest.testWrappers\")\n+      includeTestsMatching(\"io.opentelemetry.instrumentation.kafkaclients.v2_6.WrapperSendExceptionTest.producerSpanEndedWhenSendThrowsSynchronously\")\n+    }\n+  }\n+\n+  val testReceiveTelemetry = register<Test>(\"testReceiveTelemetry\") {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+\n+    filter {\n+      includeTestsMatching(\"io.opentelemetry.instrumentation.kafkaclients.v2_6.InterceptorsTest.testInterceptors\")\n+      includeTestsMatching(\"io.opentelemetry.instrumentation.kafkaclients.v2_6.WrapperTest.testWrappers\")\n+      includeTestsMatching(\"io.opentelemetry.instrumentation.kafkaclients.v2_6.WrapperTest.testConsumerError\")\n+    }\n+    systemProperty(\"test.messagingReceiveTelemetryEnabled\", \"true\")\n+    systemProperty(\n+      \"metadataConfig\",\n+      \"KafkaTelemetryBuilder.setMessagingReceiveTelemetryEnabled(true)\"\n+    )\n+  }\n+\n+  val testExperimental = register<Test>(\"testExperimental\") {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+\n+    filter {\n+      includeTestsMatching(\"io.opentelemetry.instrumentation.kafkaclients.v2_6.InterceptorsTest.testInterceptors\")\n+      includeTestsMatching(\"io.opentelemetry.instrumentation.kafkaclients.v2_6.WrapperTest.testWrappers\")\n+    }\n+    systemProperty(\"test.messagingReceiveTelemetryEnabled\", \"true\")\n+    systemProperty(\"test.captureExperimentalSpanAttributes\", \"true\")\n+    systemProperty(\n+      \"metadataConfig\",\n+      \"KafkaTelemetryBuilder.setMessagingReceiveTelemetryEnabled(true),\" +\n+        \"KafkaTelemetryBuilder.setCaptureExperimentalSpanAttributes(true)\"\n+    )\n+  }\n+\n   val testExceptionSignalLogs = register<Test>(\"testExceptionSignalLogs\") {\n     testClassesDirs = sourceSets.test.get().output.classesDirs\n     classpath = sourceSets.test.get().runtimeClasspath\n \n     filter {\n-      includeTestsMatching(\"WrapperTest\")\n+      includeTestsMatching(\"io.opentelemetry.instrumentation.kafkaclients.v2_6.WrapperTest.testConsumerError\")\n     }\n+    systemProperty(\"test.messagingReceiveTelemetryEnabled\", \"true\")\n     jvmArgs(\"-Dotel.semconv.exception.signal.preview=logs\")\n-    systemProperty(\"metadataConfig\", \"otel.semconv.exception.signal.preview=logs\")\n+    systemProperty(\n+      \"metadataConfig\",\n+      \"KafkaTelemetryBuilder.setMessagingReceiveTelemetryEnabled(true),\" +\n+        \"otel.semconv.exception.signal.preview=logs\"\n+    )\n   }\n \n   check {\n-    dependsOn(testExceptionSignalLogs)\n+    dependsOn(\n+      testDefaultTelemetry,\n+      testReceiveTelemetry,\n+      testExperimental,\n+      testExceptionSignalLogs,\n+    )",
+      "id": "PRRT_kwDODJKVX86tdJQZ",
+      "opened": "2026-10-17T04:41:08Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-17T05:23:55Z",
+          "body": "Addressed in 7ed336e62fbc22bd0c2fb5d8ccb6891d62b53a9b.\n\nAdded testExperimentalRegression selecting precisely the inherited testWrappers methods in WrapperPropagationDisabledTest and WrapperSuppressReceiveSpansTest. It enables experimental attributes and header capture, restoring the original true/true parameterized cases shown in the pre-PR AbstractWrapperTest, leaves receive telemetry at its false default, and is included in check with test classes/runtime classpath but no metadataConfig or collection-script entry. Gradle configuration assertions, test discovery, and broker-free fixture checks verify these settings.\n\n<!-- copilot-loop:adcc7d1e161f9fdcdc898b194d7b1f54cec207ac28f1c91239ae028d1d09f677:4301415542:378a2cb450534a6a9d4505bc2ba25e17 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20645#discussion_r4301541449"
+        }
+      ],
+      "reviewed": "f3054ae2fca167dda019488af98508351fb74068",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20645#discussion_r4301415542"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "since these aren't excluded in the default test tasks won't they be executed there anyway? Is this separate test task needed? Is this separation for metadata collection?",
+      "created": "2026-10-17T06:53:01Z",
+      "hunk": "@@ -22,19 +22,92 @@ tasks {\n     systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)\n   }\n \n+  val testDefaultTelemetry = register<Test>(\"testDefaultTelemetry\") {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+\n+    filter {",
+      "id": "PRRT_kwDODJKVX86teDvj",
+      "opened": "2026-10-17T06:53:00Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-17T18:48:13Z",
+          "body": "fixed in 934e1a87fc4",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20645#discussion_r4304001721"
+        }
+      ],
+      "reviewed": "7ed336e62fbc22bd0c2fb5d8ccb6891d62b53a9b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20645#discussion_r4301797746"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "should these be here?",
+      "created": "2026-10-17T06:54:26Z",
+      "hunk": "@@ -22,19 +22,92 @@ tasks {\n     systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)\n   }\n \n+  val testDefaultTelemetry = register<Test>(\"testDefaultTelemetry\") {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+\n+    filter {\n+      includeTestsMatching(\"io.opentelemetry.instrumentation.kafkaclients.v2_6.InterceptorsTest.testInterceptors\")\n+      includeTestsMatching(\"io.opentelemetry.instrumentation.kafkaclients.v2_6.WrapperTest.testWrappers\")\n+      includeTestsMatching(\"io.opentelemetry.instrumentation.kafkaclients.v2_6.WrapperSendExceptionTest.producerSpanEndedWhenSendThrowsSynchronously\")\n+    }\n+  }\n+\n+  val testReceiveTelemetry = register<Test>(\"testReceiveTelemetry\") {\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+\n+    filter {\n+      includeTestsMatching(\"io.opentelemetry.instrumentation.kafkaclients.v2_6.InterceptorsTest.testInterceptors\")\n+      includeTestsMatching(\"io.opentelemetry.instrumentation.kafkaclients.v2_6.WrapperTest.testWrappers\")\n+      includeTestsMatching(\"io.opentelemetry.instrumentation.kafkaclients.v2_6.WrapperTest.testConsumerError\")\n+    }\n+    systemProperty(\"test.messagingReceiveTelemetryEnabled\", \"true\")\n+    systemProperty(\"test.captureMessagingHeaders\", \"true\")\n+    systemProperty(\n+      \"metadataConfig\",\n+      \"KafkaTelemetryBuilder.setMessagingReceiveTelemetryEnabled(true),\" +\n+        \"KafkaTelemetryBuilder.setHeaders(IncludeExclude.builder().setIncluded(\\\"Test-Message-*\\\")\" +\n+        \".setExcluded(\\\"*-Excluded-Header\\\").build())\"",
+      "id": "PRRT_kwDODJKVX86teESy",
+      "opened": "2026-10-17T06:54:26Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-17T18:43:42Z",
+          "body": "nope, I documented correct practice in #20649, but forgot to update here\r\n\r\n934e1a87fc4842d48bb250a94180918a20738b73",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20645#discussion_r4303986222"
+        }
+      ],
+      "reviewed": "7ed336e62fbc22bd0c2fb5d8ccb6891d62b53a9b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20645#discussion_r4301801317"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The current diff reintroduces unconditional header capture in both this helper and `InterceptorsTest.createKafkaTelemetry()`, undoing the earlier conditional-capture fix. Ordinary `test` therefore collects header-enabled telemetry under `default`, and the receive/experimental labels omit the applied header setting. `KafkaTelemetryBuilder` defaults to no captured headers; `instrumentation-docs/readme.md:41–47` limits the synthetic-header exemption to shared javaagent setup. Restore a test-only capture flag and matching header assertions in both fixtures, leave capture disabled for the baseline, and label header-enabled optional profiles with the actual builder setting.",
+      "created": "2026-10-17T18:53:06Z",
+      "hunk": "@@ -81,10 +70,28 @@ void testWrappers(boolean testHeaders, boolean testExperimental) throws Interrup\n       testing.runWithSpan(\"process child\", () -> {});\n     }\n \n-    assertTraces(testHeaders, testExperimental);\n+    assertTraces(true, CAPTURE_EXPERIMENTAL_SPAN_ATTRIBUTES);\n+  }\n+\n+  protected KafkaTelemetryBuilder kafkaTelemetryBuilder() {\n+    KafkaTelemetryBuilder telemetryBuilder =\n+        KafkaTelemetry.builder(testing.getOpenTelemetry())\n+            .setHeaders(\n+                IncludeExclude.builder()\n+                    .setIncluded(\"Test-Message-*\")\n+                    .setExcluded(\"*-Excluded-Header\")\n+                    .build());",
+      "id": "PRRT_kwDODJKVX86tjSz7",
+      "opened": "2026-10-17T18:53:07Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/test/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/AbstractWrapperTest.java",
+      "replies": [
+        {
+          "at": "2026-10-17T20:50:16Z",
+          "body": "Keeping synthetic header capture unconditional here. #20649 explicitly extends the synthetic-header exemption to plain-library and library-autoconfigure fixtures, including capture configured through library builders. The analyzer already filters `Test-Message-*` attributes from generated telemetry inventories, so these fixture selectors do not need a separate capture flag or metadata condition.\n\nThe documentation quoted here predates that clarification. #20649 should land first, then this PR can merge main to pick up the updated guidance; the existing profile labels should stay as they are.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20645#discussion_r4304449162"
+        }
+      ],
+      "reviewed": "934e1a87fc4842d48bb250a94180918a20738b73",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20645#discussion_r4304019195"
+    }
+  ]
+}

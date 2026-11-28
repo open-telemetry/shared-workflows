@@ -1,0 +1,41 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "447b126067d23ab0e59cadaab5b3a8b1e74f98fe7d232f01fb6285b1ea1428d8",
+  "input_digest": "3921f95f8a6c95bf55ec3c64c62d0450103394348acfa140fbde2ce9127b7b5c",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/923ba334882040735c25253127f12855e8e1c9d4/.github/instructions/instrumentation-gradle.instructions.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6f61b4b1ee2c524f39bd330a23bd9fea7ceff00e/.github/instructions/instrumentation-gradle.instructions.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/923ba334882040735c25253127f12855e8e1c9d4/instrumentation/mongo/mongo-3.1/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6f61b4b1ee2c524f39bd330a23bd9fea7ceff00e/instrumentation/mongo/mongo-3.1/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/923ba334882040735c25253127f12855e8e1c9d4/instrumentation/nats/nats-2.17/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6f61b4b1ee2c524f39bd330a23bd9fea7ceff00e/instrumentation/nats/nats-2.17/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/923ba334882040735c25253127f12855e8e1c9d4/instrumentation/nats/nats-2.17/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6f61b4b1ee2c524f39bd330a23bd9fea7ceff00e/instrumentation/nats/nats-2.17/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f683c824a9ee6c73a70ea00cd90cc4f8874a9724"
+      ],
+      "id": "PRRT_kwDODJKVX86v8a1m",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5412a59e5ddcf115c04894d01850c395549ef9d1/instrumentation/kafka/kafka-streams-0.11/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5412a59e5ddcf115c04894d01850c395549ef9d1/instrumentation/vertx/vertx-sql-client/vertx-sql-client-5.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6f61b4b1ee2c524f39bd330a23bd9fea7ceff00e/instrumentation/kafka/kafka-streams-0.11/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6f61b4b1ee2c524f39bd330a23bd9fea7ceff00e/instrumentation/vertx/vertx-sql-client/vertx-sql-client-5.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f1ee8794c14cf2a2c1711fe9c4d187f800bda71c"
+      ],
+      "id": "PRRT_kwDODJKVX86v8lTM",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "head": "d28d56e11ec761dba87182f5968efff7561b5af5",
+  "merge": "a8b619a2681e7f9a6a923d3f42b5a4c1853af26c",
+  "merged": "2026-10-16T15:51:26Z",
+  "missing_roots": 0,
+  "number": 898,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This regression test exercises only synchronous non-streaming `generate_content`, but the changed flag controls four distinct call sites: sync/async and streaming/non-streaming. A mistake in any of the other three branches could still replace the caller's config unnoticed. Please cover all four as required by `.github/instructions/instrumentation.instructions.md#tests`; placing the pass-through assertion on the inherited `NonStreamingTestCase` would reuse the existing matrix across those paths.",
+      "created": "2026-10-14T06:47:26Z",
+      "hunk": "@@ -153,3 +153,28 @@ def test_can_supply_allow_list_via_instrumentor_constructor(self):\n                 \"gcp.gen_ai.operation.config.automatic_function_calling.ignore_call_history\"\n             ]\n         )\n+\n+    def test_invalid_config_dict_passed_through_to_generate_content(self):",
+      "id": "PRRT_kwDOSbspP86sMcb_",
+      "opened": "2026-10-14T06:47:26Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/generate_content/test_config_span_attributes.py",
+      "replies": [],
+      "reviewed": "e8654ae03fca77ac4cd9603b98974842538fdcd8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/898#discussion_r4267617554"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "it'd be extremely noisy if someone passes config we can't recognize - we'd write warning on every call.\n\nPresumably SDK itself would complain loudly if it's really invalid.\n\n\n```suggestion\n            _logger.debug(\n```",
+      "created": "2026-10-15T22:05:29Z",
+      "hunk": "@@ -394,7 +397,11 @@ def _wrapped_config_with_tools(\n         try:\n             config = GenerateContentConfig.model_validate(config)\n         except Exception:\n-            return GenerateContentConfig(), True\n+            _logger.warning(",
+      "id": "PRRT_kwDOSbspP86s--1L",
+      "opened": "2026-10-15T22:05:59Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/generate_content.py",
+      "replies": [],
+      "reviewed": "fbe135825b12151fd0ac29d00d32e5fe902373c1",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/898#discussion_r4288751413"
+    }
+  ]
+}

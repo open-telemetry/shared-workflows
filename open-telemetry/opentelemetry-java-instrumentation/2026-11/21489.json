@@ -1,0 +1,199 @@
+{
+  "head": "734a8e3bf9f6139eb625054efb761db3b63f3dce",
+  "merge": "b34ea8c288570ee8c7dff25fba8a02debd06790e",
+  "merged": "2026-11-26T10:02:41Z",
+  "missing_roots": 0,
+  "number": 21489,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "`testing` is an instance `@RegisterExtension` field, and the class uses JUnit's default `PER_METHOD` lifecycle. In that setup, JUnit doesn't call class-level callbacks for the extension, so `InstrumentationExtension.beforeAll`/`afterAll` never run. That means `AgentTestRunner.beforeTestClass()` never resets the listener. `afterTestClass()` is also skipped, so the checks for instrumentation errors, advice failures, muzzle failures, and ignored-but-transformed classes don't run, and the metadata flush is skipped. `java-tests.instructions.md` says the extension must be registered \"so JUnit invokes its class-level callbacks\". The neighboring `AkkaActorTest` uses `@TestInstance(PER_CLASS)` for this reason.",
+      "created": "2026-11-25T17:39:28Z",
+      "hunk": "@@ -7,13 +7,21 @@ package io.opentelemetry.instrumentation.akkaactor\n \n import akka.pattern.after\n import io.opentelemetry.api.GlobalOpenTelemetry\n-import io.opentelemetry.api.trace.Span\n+import io.opentelemetry.instrumentation.testing.junit.{\n+  AgentInstrumentationExtension,\n+  InstrumentationExtension\n+}\n+import io.opentelemetry.sdk.testing.assertj.{SpanDataAssert, TraceAssert}\n import org.assertj.core.api.Assertions.assertThat\n import org.junit.jupiter.api.Test\n+import org.junit.jupiter.api.extension.RegisterExtension\n+import java.util.function.Consumer\n import scala.concurrent.{Await, Future}\n import scala.concurrent.duration.DurationInt\n \n class AkkaSchedulerTest {\n+  @RegisterExtension val testing: InstrumentationExtension =",
+      "id": "PRRT_kwDODJKVX868BxnL",
+      "opened": "2026-11-25T17:39:28Z",
+      "path": "instrumentation/akka/akka-actor-2.3/javaagent/src/test/scala/io/opentelemetry/instrumentation/akkaactor/AkkaSchedulerTest.scala",
+      "replies": [
+        {
+          "at": "2026-11-25T17:56:44Z",
+          "body": "Added `@TestInstance(PER_CLASS)` to `AkkaSchedulerTest` so JUnit runs the extension's `beforeAll` and `afterAll` callbacks.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21489#discussion_r4698811091"
+        }
+      ],
+      "reviewed": "7cd008f9b95e4b45ae7375d3ac0833d5b1f43a7c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21489#discussion_r4698608438"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "This has the same problem as `AkkaSchedulerTest`. The instance `@RegisterExtension` field is used with the default `PER_METHOD` lifecycle, so `beforeAll`/`afterAll` never run. As a result, `AgentTestRunner` skips its class-level reset and the instrumentation-error, advice-failure and muzzle checks. Use `PER_CLASS`, as `PekkoActorTest` does.",
+      "created": "2026-11-25T17:39:28Z",
+      "hunk": "@@ -6,15 +6,23 @@\n package io.opentelemetry.javaagent.instrumentation.pekkoactor.v1_0\n \n import io.opentelemetry.api.GlobalOpenTelemetry\n-import io.opentelemetry.api.trace.Span\n+import io.opentelemetry.instrumentation.testing.junit.{\n+  AgentInstrumentationExtension,\n+  InstrumentationExtension\n+}\n+import io.opentelemetry.sdk.testing.assertj.{SpanDataAssert, TraceAssert}\n import org.apache.pekko.actor.ActorSystem\n import org.apache.pekko.pattern.after\n import org.assertj.core.api.Assertions.assertThat\n import org.junit.jupiter.api.Test\n+import org.junit.jupiter.api.extension.RegisterExtension\n+import java.util.function.Consumer\n import scala.concurrent.{Await, Future}\n import scala.concurrent.duration.DurationInt\n \n class PekkoSchedulerTest {\n+  @RegisterExtension val testing: InstrumentationExtension =",
+      "id": "PRRT_kwDODJKVX868BxnW",
+      "opened": "2026-11-25T17:39:28Z",
+      "path": "instrumentation/pekko/pekko-actor-1.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/pekkoactor/v1_0/PekkoSchedulerTest.scala",
+      "replies": [
+        {
+          "at": "2026-11-25T17:56:44Z",
+          "body": "Added `@TestInstance(PER_CLASS)` to `PekkoSchedulerTest` so the agent runner resets and checks instrumentation state for this class.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21489#discussion_r4698811084"
+        }
+      ],
+      "reviewed": "7cd008f9b95e4b45ae7375d3ac0833d5b1f43a7c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21489#discussion_r4698608452"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "The span order here is deterministic, so there's no need for the unordered assertion. The producer advice starts the send span before calling `send`. The wrapped `onCompletion` can only run after that. `TelemetryDataUtil` orders sibling spans by start time, so the order is always `parent`, `send`, `onCompletion`. Using `InAnyOrder` drops the order check, which `java-tests.instructions.md` says to keep when execution order is deterministic. Keep `hasSpansSatisfyingExactly` and the new callback assertion.\n\n```suggestion\n        trace.hasSpansSatisfyingExactly(\n```",
+      "created": "2026-11-25T17:39:28Z",
+      "hunk": "@@ -278,7 +274,7 @@ private static void assertSendTelemetry(\n       String messageId) {\n     testing.waitAndAssertTraces(trace -> {\n       if (hasParentSpan) {\n-        trace.hasSpansSatisfyingExactly(\n+        trace.hasSpansSatisfyingExactlyInAnyOrder(",
+      "id": "PRRT_kwDODJKVX868BxnZ",
+      "opened": "2026-11-25T17:39:28Z",
+      "path": "instrumentation/jms/jms-1.1/javaagent/src/jms2Test/java/io/opentelemetry/javaagent/instrumentation/jms/v1_1/Jms2InstrumentationTest.java",
+      "replies": [
+        {
+          "at": "2026-11-25T17:56:44Z",
+          "body": "Restored the ordered assertion for `parent`, `send`, and `onCompletion`. The completion span still has to be a child of `parent`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21489#discussion_r4698811117"
+        }
+      ],
+      "reviewed": "7cd008f9b95e4b45ae7375d3ac0833d5b1f43a7c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21489#discussion_r4698608461"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "This is the same as in `Jms2InstrumentationTest`. The send span always starts before `onCompletion`, so the order is deterministic and the ordered assertion should stay.\n\n```suggestion\n        trace.hasSpansSatisfyingExactly(\n```",
+      "created": "2026-11-25T17:39:28Z",
+      "hunk": "@@ -204,7 +200,7 @@ private static void assertSendTelemetry(\n       String messageId) {\n     testing.waitAndAssertTraces(trace -> {\n       if (hasParentSpan) {\n-        trace.hasSpansSatisfyingExactly(\n+        trace.hasSpansSatisfyingExactlyInAnyOrder(",
+      "id": "PRRT_kwDODJKVX868Bxnk",
+      "opened": "2026-11-25T17:39:28Z",
+      "path": "instrumentation/jms/jms-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jms/v3_0/Jms3InstrumentationTest.java",
+      "replies": [
+        {
+          "at": "2026-11-25T17:56:44Z",
+          "body": "Restored `hasSpansSatisfyingExactly` here too. The send advice starts the span before the provider can invoke the listener.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21489#discussion_r4698811076"
+        }
+      ],
+      "reviewed": "7cd008f9b95e4b45ae7375d3ac0833d5b1f43a7c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21489#discussion_r4698608481"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "[Simplification] `waitAndAssertTraces` keeps retrying the full assertion until the `wakeup` trace is exported, so `callbackCompleted` is a second synchronization mechanism that isn't needed. You can delete its declaration (line 33), the `callbackCompleted.complete(null)` call in the callback (line 63), and this `get`. Keep `ready`, because it's needed to obtain the callback.",
+      "created": "2026-11-25T17:39:28Z",
+      "hunk": "@@ -73,7 +72,10 @@ public void preStart() {\n       AsyncCallback<String> callback = ready.get(10, SECONDS);\n       testing.runWithSpan(\"request\", () -> callback.invoke(\"wake up\"));\n \n-      assertThat(callbackHasSpan.get(10, SECONDS)).isFalse();\n+      callbackCompleted.get(10, SECONDS);",
+      "id": "PRRT_kwDODJKVX868Bxnu",
+      "opened": "2026-11-25T17:39:28Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/PekkoStreamAsyncInputTest.java",
+      "replies": [
+        {
+          "at": "2026-11-25T17:56:44Z",
+          "body": "Removed `callbackCompleted`. The trace assertion waits for `wakeup`, and `ready` still hands the callback back to the test.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21489#discussion_r4698811063"
+        }
+      ],
+      "reviewed": "7cd008f9b95e4b45ae7375d3ac0833d5b1f43a7c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21489#discussion_r4698608496"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "[Simplification] `assertListenerSpans()` already waits until the `listener` span is exported, so `listenerCompleted` isn't needed. You can remove the declaration (line 85), shorten the listener to `(message, session) -> testing.runWithSpan(\"listener\", () -> {})`, and delete this `get`. If nothing else uses `CompletableFuture`, remove its import too. Keep `consumerCreated`, because it waits for the consumer to be set up before the send.",
+      "created": "2026-11-25T17:39:28Z",
+      "hunk": "@@ -105,32 +106,28 @@ void receivesMessagesInSpringListener() throws Exception {\n     template.setPubSubDomain(true);\n     testing.runWithSpan(\"parent\", () -> template.convertAndSend(DESTINATION_NAME, \"a message\"));\n \n-    SpanContext processContext = listenerContext.get(10, SECONDS);\n-    assertThat(processContext.isValid()).isTrue();\n-\n-    assertListenerSpans(processContext);\n+    listenerCompleted.get(10, SECONDS);",
+      "id": "PRRT_kwDODJKVX868Bxnz",
+      "opened": "2026-11-25T17:39:28Z",
+      "path": "instrumentation/spring/spring-jms/spring-jms-2.0/javaagent/src/version20Test/java/io/opentelemetry/javaagent/instrumentation/spring/jms/v2_0/SpringJmsBaselineTest.java",
+      "replies": [
+        {
+          "at": "2026-11-25T17:56:44Z",
+          "body": "Removed `listenerCompleted` and its import. `assertListenerSpans()` waits for the listener span, and `consumerCreated` still gates the send.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21489#discussion_r4698811089"
+        }
+      ],
+      "reviewed": "7cd008f9b95e4b45ae7375d3ac0833d5b1f43a7c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21489#discussion_r4698608502"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "[Simplification] You can stream `trace.actual()` directly instead of indexing with `IntStream.range(0, 7)`. That removes the hard-coded `7` and the separate `trace.hasSize(7)`. The span count is still checked, because `hasSpansSatisfyingExactlyInAnyOrder` below rejects extra or missing spans. This file has no other `IntStream` usage, so also remove `import java.util.stream.IntStream;`.\n\n```suggestion\n      SpanData parentSpan = trace.getSpan(0);\n      SpanData nettyClientSpan =\n          trace.actual().stream()\n              .filter(span -> span.getKind() == CLIENT)\n              .findFirst()\n              .orElseThrow(AssertionError::new);\n```",
+      "created": "2026-11-25T18:27:12Z",
+      "hunk": "@@ -166,32 +160,36 @@ void shouldExposeContextToHttpClientCallbacks() throws InterruptedException {\n     assertThat(latch.await(10, SECONDS)).isTrue();\n \n     testing.waitAndAssertTraces(trace -> {\n+      trace.hasSize(7);\n       SpanData parentSpan = trace.getSpan(0);\n-      SpanData nettyClientSpan = trace.getSpan(1);\n-\n-      trace.hasSpansSatisfyingExactly(\n+      SpanData nettyClientSpan =\n+          IntStream.range(0, 7)\n+              .mapToObj(trace::getSpan)\n+              .filter(span -> span.getKind() == CLIENT)\n+              .findFirst()\n+              .orElseThrow(AssertionError::new);",
+      "id": "PRRT_kwDODJKVX868DB5A",
+      "opened": "2026-11-25T18:27:11Z",
+      "path": "instrumentation/reactor/reactor-netty/reactor-netty-0.9/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/reactornetty/v0_9/AbstractReactorNettyHttpClientTest.java",
+      "replies": [
+        {
+          "at": "2026-11-25T18:54:17Z",
+          "body": "Updated the 0.9 test in 2312d89518e to stream `trace.actual()` directly. The exact-match assertion still checks the span count, so I removed the separate size check and the unused `IntStream` import.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21489#discussion_r4699459028"
+        }
+      ],
+      "reviewed": "86f6b10cdd22716399700b49eac36f7c27995e0c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21489#discussion_r4699152619"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "[Simplification] This is the same change as in the 0.9 test. Streaming `trace.actual()` removes the hard-coded `7` and the redundant `trace.hasSize(7)`, because `hasSpansSatisfyingExactlyInAnyOrder` already checks the span count. Keep the `IntStream` import, which is still used elsewhere in this file.\n\n```suggestion\n      SpanData parentSpan = trace.getSpan(0);\n      SpanData nettyClientSpan =\n          trace.actual().stream()\n              .filter(span -> span.getKind() == CLIENT)\n              .findFirst()\n              .orElseThrow(AssertionError::new);\n```",
+      "created": "2026-11-25T18:27:12Z",
+      "hunk": "@@ -172,35 +165,39 @@ void shouldExposeContextToHttpClientCallbacks() throws InterruptedException {\n                 })\n                 .block());\n \n-    latch.await(10, SECONDS);\n+    assertThat(latch.await(10, SECONDS)).isTrue();\n \n     testing.waitAndAssertTraces(trace -> {\n+      trace.hasSize(7);\n       SpanData parentSpan = trace.getSpan(0);\n-      SpanData nettyClientSpan = trace.getSpan(1);\n-\n-      trace.hasSpansSatisfyingExactly(\n+      SpanData nettyClientSpan =\n+          IntStream.range(0, 7)\n+              .mapToObj(trace::getSpan)\n+              .filter(span -> span.getKind() == CLIENT)\n+              .findFirst()\n+              .orElseThrow(AssertionError::new);",
+      "id": "PRRT_kwDODJKVX868DB5U",
+      "opened": "2026-11-25T18:27:11Z",
+      "path": "instrumentation/reactor/reactor-netty/reactor-netty-1.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/reactornetty/v1_0/AbstractReactorNettyHttpClientTest.java",
+      "replies": [
+        {
+          "at": "2026-11-25T18:54:16Z",
+          "body": "Updated the 1.0 test in 2312d89518e to stream `trace.actual()` and let the exact-match assertion check the count. The connection leak test still uses `IntStream`, so I kept the import.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21489#discussion_r4699458963"
+        }
+      ],
+      "reviewed": "86f6b10cdd22716399700b49eac36f7c27995e0c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21489#discussion_r4699152649"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Shrink this existing draft PR to the deletion-only subset that removes redundant direct callback-span checks. Work on open-telemetry/opentelemetry-java-instrumentation branch `copilot/initial-mechanical-test-cleanup` and update this PR directly with an additive commit. Keep the GitHub-assigned branch and any platform-assigned follow-up branch if GitHub creates one; do not rename a branch, rewrite history, open another PR, or dispatch follow-up work. Preserve the draft state and the base branch.\n\nKeep the current patch unchanged in exactly these five test files: MCP SDK 0.14 `McpCallbackContextTest.java` and `McpSseClientTest.java`; Redisson common 3.0 `AbstractRedissonAsyncClientTest.java`; RocketMQ 4.8 `AbstractRocketMqClientTest.java`; and Spring Rabbit 1.1 `SpringRabbitRegistrationTest.java`. These five files already have exported-span assertions for the same callbacks. Preserve the existing probes, their parent/root assertions, and the remaining context, baggage, and restoration assertions.\n\nRemove this PR's changes from the other twelve test files: Akka `AkkaSchedulerTest.scala`; Pekko `PekkoSchedulerTest.scala` and `PekkoStreamAsyncInputTest.java`; gRPC 1.6 library `GrpcTest.java`; JMS `Jms2InstrumentationTest.java` and `Jms3InstrumentationTest.java`; Spring JMS `SpringJmsBaselineTest.java`; Reactor 3.1 `AbstractReactorCoreTest.java`; both Reactor Netty 0.9 and 1.0 `AbstractReactorNettyHttpClientTest.java` files; and `AbstractRxJava2Test.java` and `AbstractRxJava3Test.java`. Restore only changes introduced by this PR, using the branch's merge base with the PR base, not the current tip of main. Do not change production code or the test guidance in #21487.\n\nBefore handing back, verify the PR diff shows exactly those five test files with 13 deleted lines and no added lines. Run focused applicable tests for the five retained files if available, and report any validation blocker. The broader probe conversions are deferred, not part of this assignment.",
+      "created": "2026-11-26T03:45:02Z",
+      "hunk": "@@ -133,7 +133,6 @@ protected void hookOnComplete() {\n       assertThat(callbackContext.get().get(key)).isEqualTo(\"custom\");\n       assertThat(Baggage.fromContext(callbackContext.get()).getEntryValue(\"tenant\"))\n           .isEqualTo(\"caller\");\n-      assertThat(Span.fromContext(callbackContext.get()).getSpanContext().isValid()).isFalse();",
+      "id": "PRRT_kwDODJKVX868NTxD",
+      "opened": "2026-11-26T03:45:01Z",
+      "path": "instrumentation/mcp-java-sdk-0.14/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/mcpsdk/v0_14/McpCallbackContextTest.java",
+      "replies": [
+        {
+          "at": "2026-11-26T03:54:23Z",
+          "body": "Restored the 12 deferred files to the PR merge-base and kept the final diff to the five requested test files with 13 deletions only. Focused tests passed. Commit: `734a8e3b`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21489#discussion_r4703706122"
+        }
+      ],
+      "reviewed": "0742fbd2d13228a88c13821ed750c2fe07d0a4bb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21489#discussion_r4703653755"
+    }
+  ]
+}

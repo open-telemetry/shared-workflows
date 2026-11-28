@@ -1,0 +1,25 @@
+{
+  "head": "6de85dcce1ca986526469cef08b0d47c1dcd64a8",
+  "merge": "7d63417d74bc00ca04fe717126cb49ea7d5a75e6",
+  "merged": "2026-10-07T09:31:17Z",
+  "missing_roots": 0,
+  "number": 20432,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Naming] This exception is intentionally unused, so the repository catch-parameter convention requires `ignored`; the longer type-derived name obscures that the catch is only the compatibility fallback. The same reflective fallback pattern uses `ignored` in `instrumentation/logback/logback-appender-1.0/library/src/test/java/io/opentelemetry/instrumentation/logback/appender/v1_0/Helper.java:28`.",
+      "created": "2026-10-07T07:55:01Z",
+      "hunk": "@@ -616,7 +616,13 @@ private static void setField(Object target, String name, Object value)\n \n   private static void triggerListener(ConsumerBase<String> dispatcher) {\n     try {\n-      Method method = ConsumerBase.class.getDeclaredMethod(\"triggerListener\");\n+      Method method;\n+      try {\n+        // added in 4.2.5\n+        method = ConsumerBase.class.getDeclaredMethod(\"drainListener\");\n+      } catch (NoSuchMethodException noSuchMethodException) {",
+      "id": "PRRT_kwDODJKVX86pzuCk",
+      "opened": "2026-10-07T07:55:02Z",
+      "path": "instrumentation/pulsar/pulsar-2.8/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/pulsar/v2_8/PulsarClientSuppressReceiveSpansTest.java",
+      "replies": [],
+      "reviewed": "714ef26cc0436dd0694f4ae3b5a0b7bb8d983e11",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20432#discussion_r4204425243"
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "head": "b24bc312292ceb461a466240f589172a29156db8",
+  "merge": "260c5c3a007fcbe8a9ed0163b285c6ae02fc16f0",
+  "merged": "2026-10-20T09:56:57Z",
+  "missing_roots": 0,
+  "number": 20748,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Simplify the tests added to `muzzle/src/test/java/io/opentelemetry/javaagent/tooling/muzzle/AdviceInspectorTest.java` in this PR. Update this PR directly, not a separate follow-up PR.\n\nKeep one focused classification test with exactly one assertion for each result: `ALL_NON_INLINE`, default `ALL_INLINE` with omitted `inline`, `MIXED`, and `NO_ADVICE`. Keep the mixed fixture with `@Advice.OnMethodEnter(inline = false)` and an exit annotation that omits `inline = false`; distinguishing this from `NO_ADVICE` is the essential negative coverage that the packaged-agent inventory cannot supply.\n\nRemove `noAdviceSelectionFallbacks()`, its injected-helper anonymous module, the separate `ExplicitInlineAdvice` fixture and assertion, and the redundant no-advice variant. Keep one no-advice case, using the existing `NoAdvice` fixture. Retain the original selection tests and the small helpers needed by the surviving classification test.\n\nThis is a narrow test simplification. Leave production `AdviceInspector`, runtime selection behavior, the packaged-agent regression guard, documented infrastructure exceptions, PR title/body, and draft status unchanged. Do not add build tasks, new APIs, unrelated coverage, or changes to #20730. Run the narrow existing Spotless apply task and `AdviceInspectorTest` validation. Do not post replies or request another review.",
+      "created": "2026-10-20T03:02:19Z",
+      "hunk": "@@ -65,6 +66,52 @@ public List<TypeInstrumentation> typeInstrumentations() {\n         .isFalse();\n   }\n \n+  @Test\n+  void declaredAdviceModes() {",
+      "id": "PRRT_kwDODJKVX86uLuRb",
+      "opened": "2026-10-20T03:02:19Z",
+      "path": "muzzle/src/test/java/io/opentelemetry/javaagent/tooling/muzzle/AdviceInspectorTest.java",
+      "replies": [],
+      "reviewed": "c14bfad43a1b4e5fda007b4fa28b03f93c3a51c9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20748#discussion_r4321037552"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Fix the Java 8, 11, and 17 CI failures in `MuzzleBytecodeTransformTest.builtInAdviceModes()` by reusing `SafeServiceLoader.load` through the agent classloader. Update this PR directly, not a separate follow-up PR.\n\nThe new loop at `javaagent/src/test/java/io/opentelemetry/javaagent/muzzle/MuzzleBytecodeTransformTest.java` uses raw `ServiceLoader.load(instrumentationModuleClass, agentClassLoader)`. Iteration throws `UnsupportedClassVersionError` before the advice-mode assertions. On Java 8 and 11 the first incompatible provider is `ActivejHttpServerInstrumentationModule`, compiled for Java 17. On Java 17 it is Avaje Jex `JexInstrumentationModule`, compiled for Java 21. These failures repeat in `:javaagent:test`; the Java 21, 25, and 27 jobs passed. Representative failed jobs in run 39362628852 attempt 2 are 118443521439, 118443521528, and 118443521498.\n\nLoad `io.opentelemetry.javaagent.tooling.SafeServiceLoader` using the existing agent classloader and invoke its public static `load(Class, ClassLoader)` method reflectively with `instrumentationModuleClass` and `agentClassLoader`. Iterate the returned compatible providers. This existing helper already handles unsupported class versions on both Java 8 and newer JVMs, and production `InstrumentationLoader` uses it. Preserve enumeration of compatible disabled modules and modules whose target libraries are absent. Preserve the positive module count, empty mixed-mode assertion, exact class-loader/lambda all-inline allowlist, and advice classification coverage on newer JDKs. Do not add a blanket exception catch, skip the entire test on older JDKs, hard-code provider exclusions, or change production loading or advice selection behavior.\n\nKeep the fix narrow. Leave unrelated Couchbase `BUCKET_NOT_AVAILABLE` timeout flakes, other PRs, and the existing PR draft/ready state unchanged. Follow repository formatting and validation guidance, run the narrow existing Spotless apply task and targeted `MuzzleBytecodeTransformTest` validation, and verify the older-JDK failure path when toolchains are available. State any validation blocker accurately. Do not post replies or request another review.",
+      "created": "2026-10-20T04:46:30Z",
+      "hunk": "@@ -8,15 +8,61 @@\n import static org.assertj.core.api.Assertions.assertThat;\n \n import io.opentelemetry.javaagent.IntegrationTestUtils;\n+import java.lang.reflect.Constructor;\n import java.lang.reflect.Field;\n import java.lang.reflect.Method;\n import java.util.ArrayList;\n import java.util.List;\n import java.util.ServiceLoader;\n+import java.util.Set;\n+import java.util.TreeSet;\n import org.junit.jupiter.api.Test;\n \n class MuzzleBytecodeTransformTest {\n \n+  @Test\n+  void builtInAdviceModes() throws Exception {\n+    ClassLoader agentClassLoader = IntegrationTestUtils.getAgentClassLoader();\n+    Class<?> instrumentationModuleClass =\n+        agentClassLoader.loadClass(\n+            \"io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule\");\n+    Class<?> inspectorClass =\n+        agentClassLoader.loadClass(\"io.opentelemetry.javaagent.tooling.muzzle.AdviceInspector\");\n+    Constructor<?> constructor = inspectorClass.getConstructors()[0];\n+    // Resolve Byte Buddy through the constructor to account for agent package relocation.\n+    Class<?> locatorClass = constructor.getParameterTypes()[0];\n+    Object locator =\n+        agentClassLoader\n+            .loadClass(locatorClass.getName() + \"$ForClassLoader\")\n+            .getMethod(\"of\", ClassLoader.class)\n+            .invoke(null, agentClassLoader);\n+    Object inspector = constructor.newInstance(locator);\n+    Method inspect = inspectorClass.getMethod(\"inspect\", instrumentationModuleClass);\n+    Set<String> mixedModules = new TreeSet<>();\n+    Set<String> allInlineModules = new TreeSet<>();\n+    int moduleCount = 0;\n+    // Enumerate providers directly, including disabled modules and absent target libraries.\n+    for (Object module : ServiceLoader.load(instrumentationModuleClass, agentClassLoader)) {",
+      "id": "PRRT_kwDODJKVX86uM6iK",
+      "opened": "2026-10-20T04:46:29Z",
+      "path": "javaagent/src/test/java/io/opentelemetry/javaagent/muzzle/MuzzleBytecodeTransformTest.java",
+      "replies": [
+        {
+          "at": "2026-10-20T05:01:38Z",
+          "body": "Updated in b24bc312. The targeted test passes on Java 8, 11, 17, and 25.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20748#discussion_r4321622725"
+        }
+      ],
+      "reviewed": "c060649c90ca025458a23617dac2309dc28b3773",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20748#discussion_r4321551158"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Could consider enabling non-inline mode for mixed. This would allow inlining trivial advice that doesn't depend on helpers. Idk whether that would be useful, probably not too much. Currently when we can't tell what advice there are we default to inline to remain compatible with existing extensions. Since we don't expect there to be old extensions using non-inline advice there shouldn't be any compatibility concerns with these.",
+      "created": "2026-10-20T09:56:36Z",
+      "hunk": "@@ -65,6 +50,39 @@ public void applyTransformer(AgentBuilder.Transformer transformer) {}\n   @Nullable\n   public Boolean useIsolatedAdvice(\n       InstrumentationModule instrumentationModule, Collection<String> adviceClassNames) {\n+    AdviceMode mode = inspect(adviceClassNames);\n+    if (mode == AdviceMode.MIXED) {\n+      return null;",
+      "id": "PRRT_kwDODJKVX86uSAX3",
+      "opened": "2026-10-20T09:56:36Z",
+      "path": "muzzle/src/main/java/io/opentelemetry/javaagent/tooling/muzzle/AdviceInspector.java",
+      "replies": [],
+      "reviewed": "b24bc312292ceb461a466240f589172a29156db8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20748#discussion_r4323712175"
+    }
+  ]
+}

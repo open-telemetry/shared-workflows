@@ -1,0 +1,33 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "16ac6c385249eb7157b9a4deef10ab6ada4e6556dbe20ab7d8b8db3380ca3e31",
+  "input_digest": "9eddd6ce5eda5b428d21935853a894c9a3e5d3fc360a66c91b925a8db125b115",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/79b8da4e82200984d1be2779a045e00ec76425c6/instrumentation/resources/library/src/test/java/io/opentelemetry/instrumentation/resources/ResourceProviderRegistrationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b17de97bda1796493bb1c6f83eda86eeb6610b60/instrumentation/resources/library/src/test/java/io/opentelemetry/instrumentation/resources/ResourceProviderRegistrationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/020fcb3ca437dd661078f2ef47599b6530968fa5"
+      ],
+      "id": "PRRT_kwDODJKVX86vyz6N",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/020fcb3ca437dd661078f2ef47599b6530968fa5/instrumentation/resources/library/src/test/java/io/opentelemetry/instrumentation/resources/ResourceProviderRegistrationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b17de97bda1796493bb1c6f83eda86eeb6610b60/instrumentation/resources/library/src/test/java/io/opentelemetry/instrumentation/resources/ResourceProviderRegistrationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/48d8b0ae73b880a43ac60cf14e3120fab34932c8"
+      ],
+      "id": "PRRT_kwDODJKVX86vzFi3",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

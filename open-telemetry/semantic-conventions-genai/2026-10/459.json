@@ -1,0 +1,157 @@
+{
+  "head": "46ef34f88f06938f7c5a7dad046c24b52e78cb44",
+  "merge": "cb10b70c15c099ccab144e8316d934c9699da0fd",
+  "merged": "2026-10-05T19:16:49Z",
+  "missing_roots": 0,
+  "number": 459,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The changelog entry is missing a trailing newline (commonly required by POSIX tooling and many linters). Add a final newline at end of file to avoid formatting/tooling issues.",
+      "created": "2026-08-18T09:31:37Z",
+      "hunk": "@@ -0,0 +1 @@\n+Clarify content-upload hook behavior for failed GenAI operations.",
+      "id": "PRRT_kwDOSUeMrM6aDiL7",
+      "opened": "2026-08-18T09:31:37Z",
+      "path": "changelog.d/459.clarification.md",
+      "replies": [
+        {
+          "at": "2026-08-20T19:02:04Z",
+          "body": "Verified: the changelog fragment ends with a newline.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/459#discussion_r3824519852"
+        }
+      ],
+      "reviewed": "2144dd278cc257ae71f0f995011fdf331737e283",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/459#discussion_r3802816064"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This adds important normative behavior, but it’s ambiguous what qualifies as a \\\"failed operation\\\" (e.g., provider returns HTTP 200 with an error object, tool-call failure mid-stream, client-side timeout/cancel, validation error before request is sent). Consider adding a short definition or a couple of explicit examples to avoid inconsistent implementations and to clarify whether cancellations/timeouts are treated as failures for this requirement.",
+      "created": "2026-08-18T09:31:37Z",
+      "hunk": "@@ -1268,6 +1268,11 @@ of the span sampling decision with:\n   and before they are serialized to JSON string;\n - the span instance\n \n+For an operation that fails, the hook SHOULD receive the instructions and inputs\n+available to the instrumentation. It SHOULD receive outputs only when the provider\n+returned them, including partial streamed output. Instrumentations SHOULD NOT\n+synthesize output content for a failed operation.",
+      "id": "PRRT_kwDOSUeMrM6aDiLV",
+      "opened": "2026-08-18T09:31:37Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [
+        {
+          "at": "2026-08-20T19:02:03Z",
+          "body": "Addressed in 6411e6. The guidance now applies when the operation ends in an error, matching existing span error semantics.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/459#discussion_r3824519623"
+        }
+      ],
+      "reviewed": "2144dd278cc257ae71f0f995011fdf331737e283",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/459#discussion_r3802815997"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`changelog.d/README.md` reserves the `+` prefix for a fragment written before a pull request number exists, and Towncrier renders no pull request link for one. Rename this to `459.clarification.md`.",
+      "created": "2026-08-20T21:26:41Z",
+      "hunk": "@@ -0,0 +1 @@\n+Clarify content-upload hook behavior for failed GenAI operations.",
+      "id": "PRRT_kwDOSUeMrM6a9vA0",
+      "opened": "2026-08-20T21:29:39Z",
+      "path": "changelog.d/459.clarification.md",
+      "replies": [
+        {
+          "at": "2026-08-21T06:07:06Z",
+          "body": "Addressed in d0cbae8. Renamed the fragment to 459.clarification.md.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/459#discussion_r3827688617"
+        }
+      ],
+      "reviewed": "6411e6e268aad5e9ced6ceb9330c07be2af15662",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/459#discussion_r3825480137"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "This section covers every GenAI operation, including ones with no provider such as `execute_tool` and the internal `invoke_agent` span. Read literally, this forbids passing the partial output a locally executed tool or in-process agent produced before it failed.\n```suggestion\nFor an operation that ends in an error, the hook SHOULD receive the instructions and inputs\navailable to the instrumentation. It SHOULD receive outputs only when the operation\nproduced them, including partial streamed output. Instrumentations SHOULD NOT\nsynthesize output content for a failed operation.\n```",
+      "created": "2026-08-20T21:26:41Z",
+      "hunk": "@@ -1268,6 +1268,11 @@ of the span sampling decision with:\n   and before they are serialized to JSON string;\n - the span instance\n \n+For an operation that ends in an error, the hook SHOULD receive the instructions and inputs\n+available to the instrumentation. It SHOULD receive outputs only when the provider\n+returned them, including partial streamed output. Instrumentations SHOULD NOT\n+synthesize output content for a failed operation.",
+      "id": "PRRT_kwDOSUeMrM6a9vA5",
+      "opened": "2026-08-20T21:29:39Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [
+        {
+          "at": "2026-08-21T06:07:07Z",
+          "body": "Addressed in d0cbae8. The guidance now permits outputs produced by any operation, including partial streamed output.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/459#discussion_r3827688730"
+        }
+      ],
+      "reviewed": "6411e6e268aad5e9ced6ceb9330c07be2af15662",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/459#discussion_r3825480141"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "In the PR description, `Fixes #56` closes that issue on merge, but #56 also asks what to record in `gen_ai.system_instructions`, `gen_ai.input.messages`, and `gen_ai.output.messages` when a request fails, and `Recording content on attributes` still says nothing about it. Use `Part of #56` instead.",
+      "created": "2026-08-20T21:26:41Z",
+      "hunk": "@@ -0,0 +1 @@\n+Clarify content-upload hook behavior for failed GenAI operations.",
+      "id": "PRRT_kwDOSUeMrM6a9vAu",
+      "opened": "2026-08-20T21:29:39Z",
+      "path": "changelog.d/459.clarification.md",
+      "replies": [
+        {
+          "at": "2026-08-21T06:07:05Z",
+          "body": "Addressed. The PR description now says Part of #56.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/459#discussion_r3827688451"
+        }
+      ],
+      "reviewed": "6411e6e268aad5e9ced6ceb9330c07be2af15662",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/459#discussion_r3825480130"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "I like the clarification!\n\nThe upload hook and input/output messages attributes should have exactly the same behavior.\n\nCould we document that hook captures whatever we'd capture on attributes and make sure their documentation covers error case. ",
+      "created": "2026-08-21T13:21:09Z",
+      "hunk": "@@ -1268,6 +1268,11 @@ of the span sampling decision with:\n   and before they are serialized to JSON string;\n - the span instance\n \n+For an operation that ends in an error, the hook SHOULD receive the instructions and inputs",
+      "id": "PRRT_kwDOSUeMrM6bKjPj",
+      "opened": "2026-08-21T13:21:09Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [
+        {
+          "at": "2026-08-27T23:41:46Z",
+          "body": "Addressed in 2739820. The content-attribute section now defines failed-operation capture behavior, and the upload hook is specified to receive the same content the instrumentation would record.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/459#discussion_r3876702249"
+        }
+      ],
+      "reviewed": "d0cbae88af43517de707e6ed1d3b90499a518a9f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/459#discussion_r3830506582"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "> It SHOULD record outputs only when the operation produced them, including\npartial streamed output. Instrumentation SHOULD NOT synthesize output content\nfor a failed operation.\n\nI believe belongs in the yaml on the attribute definition. \n\nhttps://github.com/open-telemetry/semantic-conventions-genai/blob/1fd10229b05da294e313426fbb5824e0f8b6f628/model/gen-ai/registry.yaml#L931\n\nThen all we need to mention for the hook is that hook receives whatever goes on attributes, no additional context necessary",
+      "created": "2026-09-01T00:12:30Z",
+      "hunk": "@@ -1253,6 +1253,12 @@ recorded in its structured form on events.\n Instrumentation MAY provide a configuration option allowing to truncate properties\n such as individual message contents, preserving JSON structure.\n \n+When configured to record these attributes for an operation that ends in an\n+error, instrumentation SHOULD record the instructions and inputs available to\n+it. It SHOULD record outputs only when the operation produced them, including\n+partial streamed output. Instrumentation SHOULD NOT synthesize output content\n+for a failed operation.",
+      "id": "PRRT_kwDOSUeMrM6d7EGX",
+      "opened": "2026-09-01T00:12:30Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [
+        {
+          "at": "2026-09-02T14:12:27Z",
+          "body": "Addressed in edb903c. Moved the failed-operation output rule to the `gen_ai.output.messages` attribute definition and simplified the hook guidance to receive the content the instrumentation would record.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/459#discussion_r3915023576"
+        }
+      ],
+      "reviewed": "2739820b729e9f1c241031e16ccc797ac62dc1a4",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/459#discussion_r3899591775"
+    }
+  ]
+}

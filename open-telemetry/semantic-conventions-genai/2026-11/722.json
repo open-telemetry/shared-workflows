@@ -1,0 +1,52 @@
+{
+  "head": "65a7d6e603aec6a2b8bcd6098021328f8ae7625d",
+  "merge": "d94f5ad30911d102107e88acdf2ce65b17dda9dd",
+  "merged": "2026-11-24T22:05:17Z",
+  "missing_roots": 0,
+  "number": 722,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The span-specific overrides in `model/gen-ai/spans.yaml:332-335` and `824-827` still say it is NOT RECOMMENDED to populate `description` and `parameters` by default and suggest a separate opt-in. That guidance remains published in `gen-ai-realtime.md` and `gen-ai-agent-spans.md`, leaving those operations with the extra content restriction this PR removes elsewhere. Please remove that paragraph from both overrides and regenerate the docs so the shared content-capture setting has consistent behavior across operations.",
+      "created": "2026-11-24T19:09:35Z",
+      "hunk": "@@ -548,15 +543,14 @@ The content capture configuration governs the following attributes and their rep\n - [`gen_ai.input.messages`](/docs/registry/attributes/gen-ai.md#gen-ai-input-messages)\n - [`gen_ai.output.messages`](/docs/registry/attributes/gen-ai.md#gen-ai-output-messages)\n - [`gen_ai.system_instructions`](/docs/registry/attributes/gen-ai.md#gen-ai-system-instructions)\n+- [`gen_ai.tool.definitions`](/docs/registry/attributes/gen-ai.md#gen-ai-tool-definitions)",
+      "id": "PRRT_kwDOSUeMrM67ivaT",
+      "opened": "2026-11-24T19:09:35Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [
+        {
+          "at": "2026-11-24T21:00:06Z",
+          "body": "Removed the separate guidance to omit descriptions and parameter schemas from both span notes and regenerated the docs. Both notes now link to the shared content-capture guidance.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/722#discussion_r4686474252"
+        }
+      ],
+      "reviewed": "dd693026856a0bc27f9ba1bcbe4cbcf5c679f834",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/722#discussion_r4685157749"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "This PR removes the old \"NOT RECOMMENDED by default\" exception for `parameters`. With content capture enabled, the general rule \"Instrumentations SHOULD populate fields when values are available\" now covers parameter schemas too. Not every reference scenario follows that yet. In `reference/scenarios/langchain/scenario.py:81-84`, `gen_ai.tool.definitions` on the `invoke_agent` span still records only `type`, `name` and `description`. The `@tool`-decorated `get_weather(location: str)` is passed to `create_agent(tools=[get_weather])`, and LangChain exposes its argument schema on the tool object (for example, `get_weather.tool_call_schema.model_json_schema()` or `convert_to_openai_tool(get_weather)[\"function\"][\"parameters\"]`). Other framework scenarios (crewai, pydantic-ai, openai-agents) already fill in `parameters` from their runtime tool objects. Under the repo's reference-evaluation guidance, a scenario that could emit a field but doesn't should be flagged. Please populate `parameters` from the LangChain tool so this scenario matches the updated convention.",
+      "created": "2026-11-24T21:21:14Z",
+      "hunk": "@@ -490,19 +490,13 @@ class FunctionToolDefinition(BaseModel):\n     name: Optional[str] = Field(default=None, description=\"The name of the tool.\")\n     description: Optional[str] = Field(\n         default=None,\n-        description=(\n-            \"The description of the tool. \"\n-            \"Since this attribute could be large, it's NOT RECOMMENDED to be populated by default. \"\n-            \"Instrumentations MAY provide a way to enable populating this property.\"\n-        ),\n+        description=\"The description of the tool.\",\n     )\n     parameters: Optional[JsonSchemaDraft7Dict] = Field(\n         default=None,\n         description=(\n             \"JSON Schema document describing the parameters accepted by the tool. \"\n-            \"The value MUST conform to JSON Schema draft-07. \"\n-            \"Since this attribute could be large, it's NOT RECOMMENDED to be populated by default. \"\n-            \"Instrumentations MAY provide a way to enable populating this property.\"\n+            \"The value MUST conform to JSON Schema draft-07.\"",
+      "id": "PRRT_kwDOSUeMrM67mS9H",
+      "opened": "2026-11-24T21:21:14Z",
+      "path": "docs/gen-ai/non-normative/models.py",
+      "replies": [
+        {
+          "at": "2026-11-24T22:00:31Z",
+          "body": "The LangChain `invoke_agent` example now records `parameters` from `get_weather.tool_call_schema.model_json_schema()` on `gen_ai.tool.definitions`. The README notes that the example assumes content capture is enabled.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/722#discussion_r4687132440"
+        }
+      ],
+      "reviewed": "cc3c85efb8514f1434b1741939e47e154957863d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/722#discussion_r4686715746"
+    }
+  ]
+}

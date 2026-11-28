@@ -1,0 +1,52 @@
+{
+  "head": "af3c1d20958b611c27940aa00a6249a1b37453df",
+  "merge": "833408c0316f333ffc3e720cf494deb459d9ae97",
+  "merged": "2026-11-17T05:10:07Z",
+  "missing_roots": 0,
+  "number": 1094,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "An error escaping `activate()` on an invocation attached at creation or by `with invocation:` leaves its ended span current: `fail()` detaches the lifetime token before the activation token is restored. Subsequent caller spans can therefore inherit the ended operation as their parent. Unwind all activation tokens before detaching the lifetime attachment, and add context-restoration tests for both attachment modes and nested activations.",
+      "created": "2026-11-14T05:10:15Z",
+      "hunk": "@@ -341,14 +337,23 @@ def suspend(self) -> None:\n     def activate(self) -> Iterator[None]:\n         \"\"\"Make this invocation's span the current span inside the block.\n \n-        Restores the previous context on exit. A no-op once the invocation has finished.\n+        Restores the previous context on exit. An exception escaping the block\n+        fails the invocation; leaving the block normally does not stop it. A\n+        no-op once the invocation has finished.\n         \"\"\"\n         if self._finished:\n             yield\n             return\n         token = attach(self.context)\n         try:\n             yield\n+        # Stream wrappers read inside this block: end of iteration and\n+        # generator close are not failures.\n+        except (StopIteration, StopAsyncIteration, GeneratorExit):\n+            raise\n+        except BaseException as error:\n+            self.fail(error)",
+      "id": "PRRT_kwDOSbspP863ZJQI",
+      "opened": "2026-11-14T05:10:15Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [
+        {
+          "at": "2026-11-14T05:23:28Z",
+          "body": "Fixed in c4f988876: `activate()` no longer attaches an invocation that is already attached, so `fail()` has nothing to detach out of order. Added `test_error_in_activate_restores_caller_context` (17e72c8ef) for attached-on-create, `with`, and nested activations.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1094#discussion_r4571654166"
+        }
+      ],
+      "reviewed": "6311add44994266c218edde0d38f38bd6fd55f62",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1094#discussion_r4571611421"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "For a default-attached invocation, an error escaping `activate()` while a child span is current calls `fail()` before the child's context token unwinds. This removes the child's current context, and exiting the child then restores the ended invocation instead of the caller, causing subsequent spans to inherit the wrong parent. Preserve attachment ordering for this path and extend `test_finish_inside_child_span_restores_caller_context` to cover attached-on-create invocations.",
+      "created": "2026-11-17T03:32:30Z",
+      "hunk": "@@ -341,16 +340,28 @@ def suspend(self) -> None:\n     def activate(self) -> Iterator[None]:\n         \"\"\"Make this invocation's span the current span inside the block.\n \n-        Restores the previous context on exit. A no-op once the invocation has finished.\n+        Restores the previous context on exit. An exception escaping the block\n+        fails the invocation; leaving the block normally does not stop it. Does\n+        not change the context once the invocation has finished, while it is\n+        attached on creation, or when it does not own a span.\n         \"\"\"\n-        if self._finished:\n-            yield\n-            return\n-        token = attach(self.context)\n+        token = (\n+            attach(self.context)\n+            if self._needs_activation and not self._finished\n+            else None\n+        )\n         try:\n             yield\n+        # Stream wrappers read inside this block: end of iteration and\n+        # generator close are not failures.\n+        except (StopIteration, StopAsyncIteration, GeneratorExit):\n+            raise\n+        except BaseException as error:\n+            self.fail(error)",
+      "id": "PRRT_kwDOSbspP864QfA7",
+      "opened": "2026-11-17T03:32:30Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [
+        {
+          "at": "2026-11-17T04:03:10Z",
+          "body": "Detaching out of order can't be fully fixed once an invocation is finished inside a still-active child: the child restores the context it was started in. Made it best effort in af3c1d2: `stop()`/`fail()` (including via `activate()`) skip the detach when another scope is current, so the child scope keeps its context. Added `test_finish_attached_invocation_inside_child_span_keeps_child_current`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1094#discussion_r4595142281"
+        }
+      ],
+      "reviewed": "6fecbf608d73c2d5efc2916d10cef6d3e83c07c7",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1094#discussion_r4594948503"
+    }
+  ]
+}

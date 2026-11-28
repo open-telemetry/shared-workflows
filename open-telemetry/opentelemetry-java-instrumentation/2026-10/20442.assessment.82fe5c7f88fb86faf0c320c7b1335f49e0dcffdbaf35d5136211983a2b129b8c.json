@@ -1,0 +1,35 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "ddabde3415537f997a0a7253d07a7daa1f90fc0d78ade3ae4a02961950394a80",
+  "input_digest": "82fe5c7f88fb86faf0c320c7b1335f49e0dcffdbaf35d5136211983a2b129b8c",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1ae2e501454a2aad36fe57e801b4eda8cd60f91e/instrumentation/opentelemetry-api/opentelemetry-api-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7e2db50673c71761c609275552958a3d5c79ca78/instrumentation/opentelemetry-api/opentelemetry-api-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1ae2e501454a2aad36fe57e801b4eda8cd60f91e/instrumentation/opentelemetry-api/opentelemetry-api-1.0/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_0/trace/SpanBridgeTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7e2db50673c71761c609275552958a3d5c79ca78/instrumentation/opentelemetry-api/opentelemetry-api-1.0/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_0/trace/SpanBridgeTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1ae2e501454a2aad36fe57e801b4eda8cd60f91e/build-logic/conventions/src/main/kotlin/otel.javaagent-instrumentation.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7e2db50673c71761c609275552958a3d5c79ca78/build-logic/conventions/src/main/kotlin/otel.javaagent-instrumentation.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86qYMjN",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1ae2e501454a2aad36fe57e801b4eda8cd60f91e/instrumentation/opentelemetry-api/opentelemetry-api-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7e2db50673c71761c609275552958a3d5c79ca78/instrumentation/opentelemetry-api/opentelemetry-api-1.0/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86qYMkd",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

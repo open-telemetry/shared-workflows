@@ -1,0 +1,25 @@
+{
+  "head": "4c1291d54e493f7f7a8a387dd220e1247a353d5b",
+  "merge": "4c37781af7e9988e6cfa3aa0201749c33eecf1ad",
+  "merged": "2026-10-12T05:36:08Z",
+  "missing_roots": 0,
+  "number": 20495,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Bind this in-process server directly to port `0`. Because `HttpServer.create` owns the socket immediately, probing with `findOpenPort()` introduces an avoidable check-then-bind race; the existing `getAddress().getPort()` call already retrieves the OS-assigned port.",
+      "created": "2026-10-10T21:54:26Z",
+      "hunk": "@@ -49,12 +54,36 @@ private static IJobHandler createGroovyHandler() {\n \n   @BeforeAll\n   static void start() throws Exception {\n+    adminServer = HttpServer.create(new InetSocketAddress(\"localhost\", findOpenPort()), 0);",
+      "id": "PRRT_kwDODJKVX86rIF79",
+      "opened": "2026-10-10T21:54:27Z",
+      "path": "instrumentation/xxl-job/xxl-job-2.3.0/javaagent/src/xxlJob33Test/java/io/opentelemetry/javaagent/instrumentation/xxljob/v3_3_0/XxlJobTest.java",
+      "replies": [],
+      "reviewed": "e00090f6018c193099924395c0f5714525378698",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20495#discussion_r4239338031"
+    }
+  ]
+}

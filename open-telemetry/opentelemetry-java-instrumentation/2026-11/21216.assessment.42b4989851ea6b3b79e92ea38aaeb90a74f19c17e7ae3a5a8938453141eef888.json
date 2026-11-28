@@ -1,0 +1,68 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "0ce704b992891868501ebd16f277969ddb38ded2289052e880ab56523e706ac9",
+  "input_digest": "42b4989851ea6b3b79e92ea38aaeb90a74f19c17e7ae3a5a8938453141eef888",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cb5d7541dbbbcc8c0c10dc6cb7259ed01ef5f411/instrumentation/rabbitmq-2.7/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/df0416ec9b20ca354a4868edcc5d1c0266f1ae03/instrumentation/rabbitmq-2.7/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/678ffc8620f299e3690880a3c32438825cf32c37"
+      ],
+      "id": "PRRT_kwDODJKVX860SFHh",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/678ffc8620f299e3690880a3c32438825cf32c37/instrumentation/spring/spring-pulsar-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/df0416ec9b20ca354a4868edcc5d1c0266f1ae03/instrumentation/spring/spring-pulsar-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e0f842f16a4b43426f21050291cc8d1348f90708"
+      ],
+      "id": "PRRT_kwDODJKVX860VXCL",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e0f842f16a4b43426f21050291cc8d1348f90708/instrumentation/vertx/vertx-kafka-client-3.6/vertx-kafka-client-3.6-testing/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e0f842f16a4b43426f21050291cc8d1348f90708/instrumentation/vertx/vertx-kafka-client-3.6/vertx-kafka-client-4-testing/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e0f842f16a4b43426f21050291cc8d1348f90708/instrumentation/vertx/vertx-kafka-client-3.6/vertx-kafka-client-5-testing/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/df0416ec9b20ca354a4868edcc5d1c0266f1ae03/instrumentation/vertx/vertx-kafka-client-3.6/vertx-kafka-client-3.6-testing/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/df0416ec9b20ca354a4868edcc5d1c0266f1ae03/instrumentation/vertx/vertx-kafka-client-3.6/vertx-kafka-client-4-testing/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/df0416ec9b20ca354a4868edcc5d1c0266f1ae03/instrumentation/vertx/vertx-kafka-client-3.6/vertx-kafka-client-5-testing/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/5eb5f01c4e6eacbfbf5168a9644b154ff1b2a2df"
+      ],
+      "id": "PRRT_kwDODJKVX860Vx8q",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX860WFlI",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5eb5f01c4e6eacbfbf5168a9644b154ff1b2a2df/instrumentation/vertx/vertx-kafka-client-3.6/vertx-kafka-client-4-testing/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5eb5f01c4e6eacbfbf5168a9644b154ff1b2a2df/instrumentation/vertx/vertx-kafka-client-3.6/vertx-kafka-client-5-testing/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/df0416ec9b20ca354a4868edcc5d1c0266f1ae03/instrumentation/vertx/vertx-kafka-client-3.6/vertx-kafka-client-4-testing/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/df0416ec9b20ca354a4868edcc5d1c0266f1ae03/instrumentation/vertx/vertx-kafka-client-3.6/vertx-kafka-client-5-testing/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/99a8935db8c08ba960ce8e045b6040c98327cd5e"
+      ],
+      "id": "PRRT_kwDODJKVX860WILI",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

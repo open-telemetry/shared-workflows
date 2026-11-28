@@ -1,0 +1,70 @@
+{
+  "head": "5ebcc6ba4b6efec77712d6a1cacb9304caed31d9",
+  "merge": "11d63b03ff2d431adfd4e3c93fdfd3e918598747",
+  "merged": "2026-10-09T02:19:07Z",
+  "missing_roots": 0,
+  "number": 853,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "hectorhdzg"
+      },
+      "body": "Could this test use the shared instrument context manager? If an assertion fails before uninstrument() is called, the Google SDK remains instrumented and could affect later tests. The shared helper would guarantee cleanup while still allowing the singleton to be recreated inside the test",
+      "created": "2026-10-06T17:56:38Z",
+      "hunk": "@@ -60,3 +60,31 @@ def test_co_filename_on_wrapped_functions(\n         ), (\n             f\"Expected opentelemetry/instrumentation/google_genai removed from {co_filename} upon uninstrument\"\n         )\n+\n+\n+def test_uninstrument_after_reinstantiation(\n+    tracer_provider, logger_provider, meter_provider\n+):\n+    inst = GoogleGenAiSdkInstrumentor()\n+    inst.instrument(",
+      "id": "PRRT_kwDOSbspP86pmBrt",
+      "opened": "2026-10-06T17:56:38Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/test_instrumentor.py",
+      "replies": [],
+      "reviewed": "02911d2bfea98729f9a5e88069ae469580f5880e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/853#discussion_r4198730187"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "hectorhdzg"
+      },
+      "body": "This bug affects the generate-content, interactions, and embeddings snapshots, but the test only checks generate_content. Could it also verify that the embeddings and interactions methods are restored after recreating the instrumentor?",
+      "created": "2026-10-06T17:56:54Z",
+      "hunk": "@@ -60,3 +60,31 @@ def test_co_filename_on_wrapped_functions(\n         ), (\n             f\"Expected opentelemetry/instrumentation/google_genai removed from {co_filename} upon uninstrument\"\n         )\n+\n+\n+def test_uninstrument_after_reinstantiation(\n+    tracer_provider, logger_provider, meter_provider\n+):\n+    inst = GoogleGenAiSdkInstrumentor()\n+    inst.instrument(\n+        tracer_provider=tracer_provider,\n+        logger_provider=logger_provider,\n+        meter_provider=meter_provider,\n+    )\n+    assert inst.is_instrumented_by_opentelemetry is True\n+\n+    # Re-instantiating the singleton instrumentor runs __init__, which must not\n+    # wipe saved snapshots needed for uninstrumentation.\n+    reinstantiated = GoogleGenAiSdkInstrumentor()\n+    assert reinstantiated.is_instrumented_by_opentelemetry is True\n+\n+    reinstantiated.uninstrument()\n+    assert reinstantiated.is_instrumented_by_opentelemetry is False\n+    assert inst.is_instrumented_by_opentelemetry is False\n+\n+    # Confirm wrapped functions are restored",
+      "id": "PRRT_kwDOSbspP86pmCEI",
+      "opened": "2026-10-06T17:56:54Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/tests/test_instrumentor.py",
+      "replies": [],
+      "reviewed": "02911d2bfea98729f9a5e88069ae469580f5880e",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/853#discussion_r4198732738"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Thanks for tracking this down! A few other instrumentors have the same problem - `__init__` resets state that `_uninstrument` needs:\n\n- `openai` - `_parse_supported = False`, so `parse` stays wrapped\n- `llama-index` - `_span_handler = None`, so the span handler is never removed from the dispatcher\n- `openai-agents` - `_processor = None`, so `_uninstrument` returns early and the processor stays registered\n\nWould you be up for fixing those in a follow-up PR (same pattern + a re-instantiation test each)?",
+      "created": "2026-10-06T23:09:18Z",
+      "hunk": "@@ -31,16 +31,24 @@ class GoogleGenAiSdkInstrumentor(BaseInstrumentor):\n     def __init__(\n         self, generate_content_config_key_allowlist: AllowList | None = None\n     ):\n-        self._generate_content_snapshot = None\n-        self._interactions_snapshot = None\n-        self._embedding_snapshot = None\n-        self._generate_content_config_key_allowlist = (\n-            generate_content_config_key_allowlist\n-            or AllowList.from_env(\n-                \"OTEL_GOOGLE_GENAI_GENERATE_CONTENT_CONFIG_INCLUDES\",\n-                excludes_env_var=\"OTEL_GOOGLE_GENAI_GENERATE_CONTENT_CONFIG_EXCLUDES\",\n+        super().__init__()",
+      "id": "PRRT_kwDOSbspP86psLJo",
+      "opened": "2026-10-06T23:17:25Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/instrumentor.py",
+      "replies": [],
+      "reviewed": "b0739398316a399063d9ad35c800d90d758b89bb",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/853#discussion_r4201288334"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "The `hasattr` checks could be replaced with class-level defaults - same fix, less branching, and the allowlist logic can stay as it was:\n\n```suggestion\n    # BaseInstrumentor is a singleton: __init__ re-runs on the existing instance,\n    # so snapshots live on the class and are never reset here.\n    _generate_content_snapshot: object | None = None\n    _interactions_snapshot: object | None = None\n    _embedding_snapshot: object | None = None\n\n    def __init__(\n        self, generate_content_config_key_allowlist: AllowList | None = None\n    ):\n        super().__init__()\n        self._generate_content_config_key_allowlist = (\n            generate_content_config_key_allowlist\n            or AllowList.from_env(\n                \"OTEL_GOOGLE_GENAI_GENERATE_CONTENT_CONFIG_INCLUDES\",\n                excludes_env_var=\"OTEL_GOOGLE_GENAI_GENERATE_CONTENT_CONFIG_EXCLUDES\",\n            )\n        )\n```",
+      "created": "2026-10-06T23:13:04Z",
+      "hunk": "@@ -31,16 +31,24 @@ class GoogleGenAiSdkInstrumentor(BaseInstrumentor):\n     def __init__(\n         self, generate_content_config_key_allowlist: AllowList | None = None\n     ):\n-        self._generate_content_snapshot = None\n-        self._interactions_snapshot = None\n-        self._embedding_snapshot = None\n-        self._generate_content_config_key_allowlist = (\n-            generate_content_config_key_allowlist\n-            or AllowList.from_env(\n-                \"OTEL_GOOGLE_GENAI_GENERATE_CONTENT_CONFIG_INCLUDES\",\n-                excludes_env_var=\"OTEL_GOOGLE_GENAI_GENERATE_CONTENT_CONFIG_EXCLUDES\",\n+        super().__init__()\n+        if not hasattr(self, \"_generate_content_snapshot\"):\n+            self._generate_content_snapshot = None\n+        if not hasattr(self, \"_interactions_snapshot\"):\n+            self._interactions_snapshot = None\n+        if not hasattr(self, \"_embedding_snapshot\"):\n+            self._embedding_snapshot = None\n+        if (\n+            generate_content_config_key_allowlist is not None\n+            or not hasattr(self, \"_generate_content_config_key_allowlist\")\n+        ):\n+            self._generate_content_config_key_allowlist = (\n+                generate_content_config_key_allowlist\n+                or AllowList.from_env(\n+                    \"OTEL_GOOGLE_GENAI_GENERATE_CONTENT_CONFIG_INCLUDES\",\n+                    excludes_env_var=\"OTEL_GOOGLE_GENAI_GENERATE_CONTENT_CONFIG_EXCLUDES\",\n+                )\n             )",
+      "id": "PRRT_kwDOSbspP86psOeK",
+      "opened": "2026-10-06T23:17:25Z",
+      "path": "instrumentation/opentelemetry-instrumentation-google-genai/src/opentelemetry/instrumentation/google_genai/instrumentor.py",
+      "replies": [],
+      "reviewed": "b0739398316a399063d9ad35c800d90d758b89bb",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/853#discussion_r4201310158"
+    }
+  ]
+}

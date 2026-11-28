@@ -1,0 +1,58 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "e3d5664ddb44ae6021e4fba5dfc4502aeb9b52d9a36cef8b610ee77ed22ba68c",
+  "input_digest": "8ba85349a1d5e4c82645e09e900cbe9dae6e53ba5594bc11f528ced19b9a4471",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/27cd85590cb251060f80a4e16863538ba804a88a/instrumentation/spark-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spark/v2_4/SparkInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c66ac79adc922301f8f2a6a277eb5f4487658058/instrumentation/spark-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spark/v2_4/SparkInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/27cd85590cb251060f80a4e16863538ba804a88a/instrumentation/spark-2.4/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c66ac79adc922301f8f2a6a277eb5f4487658058/instrumentation/spark-2.4/metadata.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/27cd85590cb251060f80a4e16863538ba804a88a/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c66ac79adc922301f8f2a6a277eb5f4487658058/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/de6575ee9fcfab9c8067aeaf235abebc867868df",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/99c4e0e5e707efb4a218c76e298e7f232bf4f04c"
+      ],
+      "id": "PRRT_kwDODJKVX86vUcUf",
+      "kind": "improvement",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/99c4e0e5e707efb4a218c76e298e7f232bf4f04c/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c66ac79adc922301f8f2a6a277eb5f4487658058/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/99c4e0e5e707efb4a218c76e298e7f232bf4f04c/instrumentation/spark-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spark/v2_4/SparkRouteUpdater.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c66ac79adc922301f8f2a6a277eb5f4487658058/instrumentation/spark-2.4/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spark/v2_4/SparkRouteUpdater.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/de6575ee9fcfab9c8067aeaf235abebc867868df"
+      ],
+      "id": "PRRT_kwDODJKVX86vVD8H",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/99c4e0e5e707efb4a218c76e298e7f232bf4f04c/docs/instrumentation-list.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c66ac79adc922301f8f2a6a277eb5f4487658058/docs/instrumentation-list.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/de6575ee9fcfab9c8067aeaf235abebc867868df"
+      ],
+      "id": "PRRT_kwDODJKVX86vVD9V",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86vVNyx",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86vVD8H",
+      "status": "duplicate"
+    }
+  ]
+}

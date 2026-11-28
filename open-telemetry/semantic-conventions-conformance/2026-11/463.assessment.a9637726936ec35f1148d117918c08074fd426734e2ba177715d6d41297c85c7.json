@@ -1,0 +1,36 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "cc738281895366835d353074e394407ceff0450e5d47688715ad2573be38a011",
+  "input_digest": "a9637726936ec35f1148d117918c08074fd426734e2ba177715d6d41297c85c7",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/d9c3c4e0445567ad27fcc06c704f73e97c2e5cf2/scenarios/gen-ai/python/anthropic/opentelemetry-langchain-anthropic/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/d9c3c4e0445567ad27fcc06c704f73e97c2e5cf2/scenarios/gen-ai/python/anthropic/opentelemetry-langchain-anthropic/data.json",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/711f597ab5ab282534edcd9c939c28db2e41d425/scenarios/gen-ai/python/anthropic/opentelemetry-langchain-anthropic/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/711f597ab5ab282534edcd9c939c28db2e41d425/scenarios/gen-ai/python/anthropic/opentelemetry-langchain-anthropic/data.json",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/81dd07824ecccf5b538de2c15f836a30859ffa6b"
+      ],
+      "id": "PRRT_kwDOTuzK5c6zr-ki",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/81dd07824ecccf5b538de2c15f836a30859ffa6b/scenarios/gen-ai/python/anthropic/opentelemetry-langchain-anthropic/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/711f597ab5ab282534edcd9c939c28db2e41d425/scenarios/gen-ai/python/anthropic/opentelemetry-langchain-anthropic/conformance.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/81dd07824ecccf5b538de2c15f836a30859ffa6b/tools/gen-ai/runner/README.md",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/711f597ab5ab282534edcd9c939c28db2e41d425/tools/gen-ai/runner/README.md"
+      ],
+      "id": "PRRT_kwDOTuzK5c61CK4L",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    }
+  ]
+}

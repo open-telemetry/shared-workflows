@@ -1,0 +1,34 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "5fd31e35794e21e5483ac98ac01aca1eb276d1060aa2ab2d0a425dbe011273fa",
+  "input_digest": "f29f0f3f31d51b40f99b4b1fbb63fbf1facbdf56e4f968039b615b942c32906f",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/16bd05cc5f11283e60da5870b883b5a69741fc70/.github/workflows/build-common.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/16bd05cc5f11283e60da5870b883b5a69741fc70/.github/workflows/build-common.yml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7b5713f7905abe16c80110c21992d7db998e7c35/.github/workflows/build-common.yml"
+      ],
+      "id": "PRRT_kwDODJKVX86s7BlH",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3d12005c1124535f125eeab705f7ca41aa5d640b/conventions/src/main/kotlin/io/opentelemetry/instrumentation/gradle/TestSuiteExecutions.kt",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3d12005c1124535f125eeab705f7ca41aa5d640b/conventions/src/test/kotlin/io/opentelemetry/instrumentation/gradle/TestSuiteExecutionsTest.kt",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7b5713f7905abe16c80110c21992d7db998e7c35/conventions/src/main/kotlin/io/opentelemetry/instrumentation/gradle/TestSuiteExecutions.kt",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7b5713f7905abe16c80110c21992d7db998e7c35/conventions/src/test/kotlin/io/opentelemetry/instrumentation/gradle/TestSuiteExecutionsTest.kt"
+      ],
+      "id": "PRRT_kwDODJKVX86s8mbf",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

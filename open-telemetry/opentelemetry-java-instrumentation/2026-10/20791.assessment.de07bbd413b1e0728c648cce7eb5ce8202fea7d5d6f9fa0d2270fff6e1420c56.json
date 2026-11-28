@@ -1,0 +1,289 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "9ee8c9ffea233e1119a232a65eeddc9f35042498df5ec0d3aefae15b6f9ff249",
+  "input_digest": "de07bbd413b1e0728c648cce7eb5ce8202fea7d5d6f9fa0d2270fff6e1420c56",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b1cd5586dee7fe1236e59251655fde0eef6fbe7b/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientError.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/cb03f1eb2111c2d9883287bbaa15f826de49a030"
+      ],
+      "id": "PRRT_kwDODJKVX86un815",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b1cd5586dee7fe1236e59251655fde0eef6fbe7b/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/RespParserInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientError.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/cb03f1eb2111c2d9883287bbaa15f826de49a030"
+      ],
+      "id": "PRRT_kwDODJKVX86un81Y",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b1cd5586dee7fe1236e59251655fde0eef6fbe7b/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/ErrorTypeInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/RedisStandaloneConnectionInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/RespParserInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientError.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/cb03f1eb2111c2d9883287bbaa15f826de49a030"
+      ],
+      "id": "PRRT_kwDODJKVX86un82S",
+      "kind": "bug",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6a1bb50320a3ac9a46dca607007ddab95404fb62/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientError.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientError.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/62ada9a34d76b16972a60014b263ed566198ee31"
+      ],
+      "id": "PRRT_kwDODJKVX86u2Mn0",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/62ada9a34d76b16972a60014b263ed566198ee31/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientErrorTypeTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientErrorTypeTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/testShared/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientErrorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/024b93cca2235b74b651790e2213a8df768c8719",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/d197af247f45598a8533b795729389a3ebf156af"
+      ],
+      "id": "PRRT_kwDODJKVX86u3lVw",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d197af247f45598a8533b795729389a3ebf156af/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/RedisStandaloneConnectionInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d197af247f45598a8533b795729389a3ebf156af/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/ErrorTypeInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d197af247f45598a8533b795729389a3ebf156af/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientError.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d197af247f45598a8533b795729389a3ebf156af/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/RedisStandaloneConnectionInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/ErrorTypeInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientError.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/518d16c04cb69ff362a6995bffb30d6db604c5d2"
+      ],
+      "id": "PRRT_kwDODJKVX86u8XGy",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/518d16c04cb69ff362a6995bffb30d6db604c5d2/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/6ae0f00f4449cad121e64813dde9471aa97d6d04"
+      ],
+      "id": "PRRT_kwDODJKVX86vAL47",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6ae0f00f4449cad121e64813dde9471aa97d6d04/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6ae0f00f4449cad121e64813dde9471aa97d6d04/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/ea60feeb23cf8b070e9adecb907d0c70e8b1ad55"
+      ],
+      "id": "PRRT_kwDODJKVX86vA8ua",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ea60feeb23cf8b070e9adecb907d0c70e8b1ad55/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/RespParserInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/RespParserInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ea60feeb23cf8b070e9adecb907d0c70e8b1ad55/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ea60feeb23cf8b070e9adecb907d0c70e8b1ad55/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientError.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientError.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ea60feeb23cf8b070e9adecb907d0c70e8b1ad55/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/39099ed0befe6b48d3c8d628d8a63172179e8196"
+      ],
+      "id": "PRRT_kwDODJKVX86vWqb5",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/39099ed0befe6b48d3c8d628d8a63172179e8196/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/39099ed0befe6b48d3c8d628d8a63172179e8196/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientError.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/testShared/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientErrorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/02e841499a00cebdbfe91fa3a785f11aed7e19e4"
+      ],
+      "id": "PRRT_kwDODJKVX86vXPO2",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/39099ed0befe6b48d3c8d628d8a63172179e8196/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/39099ed0befe6b48d3c8d628d8a63172179e8196/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientError.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/39099ed0befe6b48d3c8d628d8a63172179e8196/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientError.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/02e841499a00cebdbfe91fa3a785f11aed7e19e4"
+      ],
+      "id": "PRRT_kwDODJKVX86vXSmh",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0f66405f9bd5ddbf8ce0877a5aee46f599908ad6/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0f66405f9bd5ddbf8ce0877a5aee46f599908ad6/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientError.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0f66405f9bd5ddbf8ce0877a5aee46f599908ad6/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientError.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/0e4facf661de5f4f4f57887157e73eeebc4a57df"
+      ],
+      "id": "PRRT_kwDODJKVX86vYDY5",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0e4facf661de5f4f4f57887157e73eeebc4a57df/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/5441ee0bfd1d70ccb91dc11631d2da4d7439e26b"
+      ],
+      "id": "PRRT_kwDODJKVX86vb1iC",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5441ee0bfd1d70ccb91dc11631d2da4d7439e26b/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientError.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientError.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/09803b4c3daea92db970275f386d974504f38a28"
+      ],
+      "id": "PRRT_kwDODJKVX86vcBu0",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86vcGOd",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86vcBu0",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/09803b4c3daea92db970275f386d974504f38a28/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientError.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/09803b4c3daea92db970275f386d974504f38a28/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientError.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/13c86e08a92a33a3537e311e8d8f0c74567671d9"
+      ],
+      "id": "PRRT_kwDODJKVX86vcjpl",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/13c86e08a92a33a3537e311e8d8f0c74567671d9/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientError.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientError.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/a9a847fd6db655a58bb1e55f10d18e3059d6e079"
+      ],
+      "id": "PRRT_kwDODJKVX86vdRhb",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a9a847fd6db655a58bb1e55f10d18e3059d6e079/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientError.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientError.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/4154fc7883dfab10373ab6563fdc4fb663c38ecf"
+      ],
+      "id": "PRRT_kwDODJKVX86vdsfG",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86vecJi",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86velH9",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4154fc7883dfab10373ab6563fdc4fb663c38ecf/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/31dbf4180257d2afb378a9ef740f8fba8a45b329"
+      ],
+      "id": "PRRT_kwDODJKVX86vrJpM",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/31dbf4180257d2afb378a9ef740f8fba8a45b329/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/024b93cca2235b74b651790e2213a8df768c8719/instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedisClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/9e05793a9454fd60fb5c733c2bfa31dff0dbb63d"
+      ],
+      "id": "PRRT_kwDODJKVX86vrynD",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

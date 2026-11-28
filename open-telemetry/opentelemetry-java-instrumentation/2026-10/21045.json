@@ -1,0 +1,112 @@
+{
+  "head": "a5a1cbdd5020b4ca1258995ab308580c814c907a",
+  "merge": "d04aabbd46a31aec973672b65911e4aa54810617",
+  "merged": "2026-10-28T18:46:00Z",
+  "missing_roots": 0,
+  "number": 21045,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-28T05:14:44Z",
+      "hunk": "@@ -4,6 +4,10 @@\n \n ### ⚠️ Breaking changes\n \n+- Remove `RpcMetricsContextCustomizers` and `RpcAttributesGetter.getSystem`, `getService`, and\n+  `getMethod` from the alpha `opentelemetry-instrumentation-api-incubator` artifact.\n+  Implement `getRpcSystemName` and `getRpcMethod` explicitly; `getRpcMethod` returns the fully\n+  qualified method name.\n - Remove `SemconvRpcStabilityUtil` from the alpha `opentelemetry-testing-common` artifact.",
+      "id": "PRRT_kwDODJKVX86w_XqX",
+      "opened": "2026-10-28T05:14:43Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "7561eb3aee01c489c9e88c40e8a50f482284139d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21045#discussion_r4397109938"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "should this go under `Breaking changes to non-stable APIs`?",
+      "created": "2026-10-28T08:42:17Z",
+      "hunk": "@@ -4,7 +4,10 @@\n \n ### ⚠️ Breaking changes\n \n-- Remove `SemconvRpcStabilityUtil` from the alpha `opentelemetry-testing-common` artifact.\n+- Remove `RpcMetricsContextCustomizers` and `RpcAttributesGetter.getSystem`, `getService`, and",
+      "id": "PRRT_kwDODJKVX86xCpca",
+      "opened": "2026-10-28T08:42:17Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "bf589baf967bab5e3cf41d1c3ec752043583e1d0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21045#discussion_r4398497275"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Feels to terse. I like the existing messaging one more\n> - In `opentelemetry-instrumentation-api-incubator`, custom\n  `MessagingAttributesGetter` implementations must implement `getMessageHeaderNames`, returning\n  supported header names or an empty iterable for carriers without supported headers.\n\nTells what the user needs to do and where.",
+      "created": "2026-10-28T08:46:45Z",
+      "hunk": "@@ -4,7 +4,10 @@\n \n ### ⚠️ Breaking changes\n \n-- Remove `SemconvRpcStabilityUtil` from the alpha `opentelemetry-testing-common` artifact.\n+- Remove `RpcMetricsContextCustomizers` and `RpcAttributesGetter.getSystem`, `getService`, and\n+  `getMethod` from the alpha `opentelemetry-instrumentation-api-incubator` artifact.\n+  Implement `getRpcSystemName` and `getRpcMethod` explicitly; `getRpcMethod` returns the fully",
+      "id": "PRRT_kwDODJKVX86xCvom",
+      "opened": "2026-10-28T08:46:45Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "bf589baf967bab5e3cf41d1c3ec752043583e1d0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21045#discussion_r4398538212"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing PR directly to address both of Laurit's changelog comments, discussion_r4398497275 and discussion_r4398538212. Do not create another PR.\n\nIn CHANGELOG.md, move this PR's entry about RpcMetricsContextCustomizers and RpcAttributesGetter API removals from the general Breaking changes section into the existing Unreleased Breaking changes to non-stable APIs section. These APIs are published by the alpha opentelemetry-instrumentation-api-incubator artifact. Keep the separate RPC telemetry behavior/schema/metrics migration entry in the general Breaking changes section.\n\nRewrite the moved entry to lead with the affected users, artifact, and required action, matching the existing MessagingAttributesGetter migration entry. Use two concise bullets with this meaning: \"In opentelemetry-instrumentation-api-incubator, custom RpcAttributesGetter implementations must implement getRpcSystemName and getRpcMethod, returning the RPC system name and fully qualified method name such as my.Service/Method, respectively. The legacy getSystem, getService, and getMethod methods have been removed.\" And: \"In opentelemetry-instrumentation-api-incubator, remove calls to RpcMetricsContextCustomizers.dualEmitContextCustomizer. RPC metrics no longer require this context customizer.\" Format Java identifiers as inline code and use the repository's normal Markdown wrapping.\n\nKeep this change limited to those changelog corrections, preserve unrelated entries and existing API/telemetry behavior, and do not perform additional getter cleanup or schema refactoring. PR #21043 owns the separate shared schema constant work. Use the repository's Markdown tool runner and formatting checks where applicable; no Java build is needed for documentation-only changes. Preserve this PR's existing base branch and draft/ready state. Do not update other PR branches, reply to human review comments, or resolve Laurit's threads. Acceptance: correctly categorized alpha API migration guidance that tells custom implementors and former customizer callers what to change.",
+      "created": "2026-10-28T15:11:07Z",
+      "hunk": "@@ -4,7 +4,10 @@\n \n ### ⚠️ Breaking changes\n \n-- Remove `SemconvRpcStabilityUtil` from the alpha `opentelemetry-testing-common` artifact.\n+- Remove `RpcMetricsContextCustomizers` and `RpcAttributesGetter.getSystem`, `getService`, and",
+      "id": "PRRT_kwDODJKVX86xLyE_",
+      "opened": "2026-10-28T15:11:07Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "cdd37a4aa1b554d938188f80574f8d573246a7a7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21045#discussion_r4402338109"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing PR directly with a scoped integration follow-up for the requested Laurit review fixes. The earlier coding attempt on this PR ended successfully, and its changelog fixes at 69c249677beb0286792f894bc59f2f57c4a932f1 have a clean Copilot review. The parent PR #21043 has now completed the requested schema consolidation at 44cf51db48bb98032e67c2ccb9e3cb1a9d9c8fd9, and GitHub reports this child PR has merge conflicts.\n\nStart from this PR's existing head branch copilot/layer-5-cleanup-shared-api and merge its current base branch copilot/layer-4-remove-legacy-code into it. Do not merge this PR into its base, rebase or force-push, retarget either PR, update the parent branch, or create another PR. Inspect both sides' histories before resolving conflicts and preserve both intended changes.\n\nThe known overlap is instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/internal/RpcSemconvSelection.java: the parent now routes the preview schema through RpcSchemaUrls.SCHEMA_URL, while this PR intentionally deletes the entire legacy selection class. Keep RpcSemconvSelection deleted in this layer, retain the parent's new RpcSchemaUrls helper and its canonical schema 1.44.0, and retain all parent RPC builder/factory migrations to RpcSchemaUrls.SCHEMA_URL. Combine any import conflicts with this PR's removal of obsolete initialization and compatibility code, rather than choosing an entire side.\n\nPreserve both delivered changelog corrections: custom RpcAttributesGetter migration instructions and RpcMetricsContextCustomizers removal guidance stay under Breaking changes to non-stable APIs, while the telemetry behavior migration entry stays under general Breaking changes. Keep this PR's shared alpha API removals and new-convention telemetry behavior unchanged. Limit the follow-up to integrating these already-requested parent and child changes.\n\nBefore pushing, verify the pre-update child head remains on the result's first-parent chain; for an immediate merge commit its first parent must be the old child head and its second parent the parent branch tip. Apply relevant formatting and focused validation where needed. Preserve the existing base and ready state. Do not reply to human review comments or resolve Laurit's threads. Acceptance: the existing child PR contains both requested fixes and the canonical schema helper migrations, preserves the intended shared API deletions, and no longer conflicts with its existing parent branch.",
+      "created": "2026-10-28T15:34:57Z",
+      "hunk": "@@ -347,6 +344,13 @@\n \n ### ⚠️ Breaking changes to non-stable APIs\n \n+- In `opentelemetry-instrumentation-api-incubator`, custom `RpcAttributesGetter` implementations",
+      "id": "PRRT_kwDODJKVX86xMdru",
+      "opened": "2026-10-28T15:34:57Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-10-28T15:45:35Z",
+          "body": "Merged `copilot/layer-4-remove-legacy-code` into this branch in `a5a1cbdd`. The merge keeps `RpcSemconvSelection` deleted, retains the canonical `RpcSchemaUrls` helper and all parent migrations, and preserves both changelog corrections. Formatting and focused Gradle validation passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21045#discussion_r4402756265"
+        }
+      ],
+      "reviewed": "69c249677beb0286792f894bc59f2f57c4a932f1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21045#discussion_r4402627164"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The instruction to remove calls and the explanation that the customizer is no longer required repeat the consequence of removing this API. `CONTRIBUTING.md:15–18` explicitly asks changelog entries to omit obvious consequences and migration instructions that merely restate a change. State the class removal directly in one sentence.",
+      "created": "2026-10-28T15:54:42Z",
+      "hunk": "@@ -347,6 +344,13 @@\n \n ### ⚠️ Breaking changes to non-stable APIs\n \n+- In `opentelemetry-instrumentation-api-incubator`, custom `RpcAttributesGetter` implementations\n+  must implement `getRpcSystemName` and `getRpcMethod`, returning the RPC system name and fully\n+  qualified method name such as `my.Service/Method`, respectively. The legacy `getSystem`,\n+  `getService`, and `getMethod` methods have been removed.\n+- In `opentelemetry-instrumentation-api-incubator`, remove calls to\n+  `RpcMetricsContextCustomizers.dualEmitContextCustomizer`. RPC metrics no longer require this\n+  context customizer.",
+      "id": "PRRT_kwDODJKVX86xNBkJ",
+      "opened": "2026-10-28T15:54:43Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-10-28T15:56:54Z",
+          "body": "The \"no longer require\" sentence is intentional migration guidance: callers should remove the customizer registration without replacing it. This addresses the review request to name the artifact and explain the caller's action, so I'm keeping that wording rather than reducing it to a class-removal notice.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21045#discussion_r4402890157"
+        }
+      ],
+      "reviewed": "a5a1cbdd5020b4ca1258995ab308580c814c907a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21045#discussion_r4402863950"
+    }
+  ]
+}

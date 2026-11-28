@@ -1,0 +1,73 @@
+{
+  "head": "0eb5a4a5fa87417c093bf1ddc247896e510018d0",
+  "merge": "93c7e60995eb466b622502cb563cb4e95547cf64",
+  "merged": "2026-11-05T02:17:22Z",
+  "missing_roots": 0,
+  "number": 668,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Please regenerate and commit `reference/scenarios/openai-agents/data.json` for this new error path. It still has `\"events\": {}` and no `error.type` coverage for execute-tool spans, so a successful run will change the committed output. The scenario CI job explicitly rejects that diff (`.github/workflows/ci.yml:185-191`); hosted CI checks the generated data but does not commit it.",
+      "created": "2026-11-02T01:29:08Z",
+      "hunk": "@@ -134,6 +136,47 @@ async def _capture_create(*args, **kwargs):\n         print(f\"    -> {str(result.final_output)[:60]}\")\n \n \n+async def run_tool_error_reference():\n+    \"\"\"Exercise an SDK tool-argument validation exception.\"\"\"\n+\n+    @function_tool(failure_error_function=None)\n+    def get_weather(location: str) -> str:\n+        \"\"\"Get the current weather for a location.\"\"\"\n+        return f\"Sunny in {location}\"\n+\n+    input_json = '{\"location\": 42}'\n+    tool_context = ToolContext(\n+        context=None,\n+        tool_name=get_weather.name,\n+        tool_call_id=\"\",\n+        tool_arguments=input_json,\n+    )\n+    print(\"  [tool_error] SDK tool-argument validation (reference implementation)\")\n+    with _reference_tracer.start_as_current_span(\n+        f\"execute_tool {get_weather.name}\",\n+        attributes={\n+            \"gen_ai.operation.name\": \"execute_tool\",\n+            \"gen_ai.tool.name\": get_weather.name,\n+            \"gen_ai.tool.type\": \"function\",\n+        },\n+        record_exception=False,\n+    ) as span:\n+        span.set_attribute(\"gen_ai.tool.description\", get_weather.description)\n+        span.set_attribute(\"gen_ai.tool.call.arguments\", input_json)\n+        try:\n+            await get_weather.on_invoke_tool(tool_context, input_json)\n+        except ModelBehaviorError as error:\n+            span.set_status(StatusCode.ERROR, str(error))\n+            span.set_attribute(\"error.type\", f\"{type(error).__module__}.{type(error).__qualname__}\")\n+            reference_event_logger().emit(\n+                event_name=\"gen_ai.execute_tool.exception\",\n+                severity_number=SeverityNumber.WARN,\n+                exception=error,\n+            )",
+      "id": "PRRT_kwDOSUeMrM6ygd7Z",
+      "opened": "2026-11-02T01:29:09Z",
+      "path": "reference/scenarios/openai-agents/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-02T03:28:47Z",
+          "body": "The committed reference/scenarios/openai-agents/data.json already includes gen_ai.execute_tool.exception and error.type coverage for the execute-tool span. The hosted scenario and committed-data freshness checks pass on the current head, ed658dcf. No additional generated-data change is needed.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/668#discussion_r4438675785"
+        }
+      ],
+      "reviewed": "35994f2b57366de323b0ea868808fdd7eb4d8bdd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/668#discussion_r4438204723"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Without an `events` expectation, the conformance runner does not require `gen_ai.execute_tool.exception`, and existing successful tool calls already satisfy the span matcher. Add the event under `events` so the scenario explicitly checks that it emits the new signal rather than relying only on the generated-data comparison.",
+      "created": "2026-11-02T01:29:09Z",
+      "hunk": "@@ -30,3 +30,8 @@ scenarios:\n           keyed_attr: gen_ai.tool.name\n           operation: execute_tool\n         reason: The runner does not recognize the span-name refinements for skill and command tools.\n+    spans:",
+      "id": "PRRT_kwDOSUeMrM6ygd70",
+      "opened": "2026-11-02T01:29:09Z",
+      "path": "reference/scenarios/openai-agents/conformance.yaml",
+      "replies": [
+        {
+          "at": "2026-11-02T03:28:47Z",
+          "body": "I'm keeping this consistent with #658 and #659. The exercised failure is recorded in committed data.json, and CI reruns the scenario and rejects changes to that output. An explicit events expectation would be additional hardening, so I'm leaving conformance.yaml unchanged in this stack.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/668#discussion_r4438675798"
+        }
+      ],
+      "reviewed": "35994f2b57366de323b0ea868808fdd7eb4d8bdd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/668#discussion_r4438204768"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This handler catches errors from the scenario-local `get_weather` call and argument lookup; the Assistants SDK neither invokes the callable nor receives its exception. These events cannot be captured by SDK instrumentation, contrary to `.github/instructions/evaluate-reference.instructions.md:17-31`. Remove the new application-only exception instrumentation and its README claim; the OpenAI Agents scenario can remain the SDK-backed proof.",
+      "created": "2026-11-02T03:40:28Z",
+      "hunk": "@@ -178,7 +181,19 @@ def get_weather(location):\n                         if tool_call_id:\n                             tool_span.set_attribute(\"gen_ai.tool.call.id\", tool_call_id)\n                         tool_span.set_attribute(\"gen_ai.tool.call.arguments\", json.dumps(arguments))\n-                        result = get_weather(arguments[\"location\"])\n+                        try:\n+                            result = get_weather(arguments[\"location\"])",
+      "id": "PRRT_kwDOSUeMrM6yhsk5",
+      "opened": "2026-11-02T03:40:28Z",
+      "path": "reference/scenarios/openai-assistants/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-02T03:52:39Z",
+          "body": "Removed the application-only exception handler in [f06c3d3](https://github.com/open-telemetry/semantic-conventions-genai/commit/f06c3d3c73329c537bbde5d778c8fea9885d2684) and corrected the README's SDK-ownership claim. The existing successful local-tool span and four client SDK exception handlers are unchanged. OpenAI Agents remains the exercised SDK-backed tool failure proof.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/668#discussion_r4438769112"
+        }
+      ],
+      "reviewed": "ed658dcfa778be239d866ddadedc6d3da988b60f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/668#discussion_r4438720624"
+    }
+  ]
+}

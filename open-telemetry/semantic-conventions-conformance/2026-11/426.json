@@ -1,0 +1,31 @@
+{
+  "head": "a69eab5bb6538db5a970692f9c715cf608a3ada1",
+  "merge": "9a298632fc6cd1f23fc9e570a5a94d0fd0bc269c",
+  "merged": "2026-11-02T03:38:31Z",
+  "missing_roots": 0,
+  "number": 426,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This bump also raises the YAML version selected by `scenarios/http/go` through its local `replace`, but that module still requires v3.0.5 and has no v3.0.6 checksums. The `Build Go` job runs `go vet ./...` in that module without relocking first, so it will fail on the stale module metadata. Run `otel-conformance-go relock` and commit the updated scenario `go.mod` and `go.sum` alongside this bump.",
+      "created": "2026-11-02T01:15:09Z",
+      "hunk": "@@ -2,4 +2,4 @@ module github.com/open-telemetry/semantic-conventions-conformance/tools/http/tes\n \n go 1.25.0\n \n-require go.yaml.in/yaml/v3 v3.0.5\n+require go.yaml.in/yaml/v3 v3.0.6",
+      "id": "PRRT_kwDOTuzK5c6ygWnb",
+      "opened": "2026-11-02T01:15:09Z",
+      "path": "tools/http/test-client/go/go.mod",
+      "replies": [
+        {
+          "at": "2026-11-02T03:26:32Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/426/commits/a69eab5bb6538db5a970692f9c715cf608a3ada1",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/426#discussion_r4438665544"
+        }
+      ],
+      "reviewed": "a5c94a58f2dbbd9a2a3c23dc4083bf74099ec800",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/426#discussion_r4438156396"
+    }
+  ]
+}

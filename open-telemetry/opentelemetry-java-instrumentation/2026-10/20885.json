@@ -1,0 +1,73 @@
+{
+  "head": "8f7c1d710aa204757fb338752884968e4ea09887",
+  "merge": "f9a8bef20f310f915d8fcd616ebc06b77020e053",
+  "merged": "2026-10-23T07:44:48Z",
+  "missing_roots": 0,
+  "number": 20885,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to simplify the Spring Scheduling test wiring. The user has chosen to exercise the enhanced-configuration test only in the existing latest-dependency mode rather than maintain dedicated Spring 3.2.3 suites. Keep this PR's existing draft state and base branch; do not create a separate pull request.\n\nIn instrumentation/spring/spring-scheduling-3.1/javaagent/build.gradle.kts, remove the testEnhanced JvmTestSuite, its shared src/test/java source configuration and explicit Spring 3.2.3 dependency, and the testEnhancedExperimental task. Remove their check dependencies. Keep the existing test and testExperimental tasks and keep testExperimental wired into check.\n\nKeep scheduleEnhancedClassTest and its enhanced tag in the ordinary test sources. Exclude that tag only when !otelProps.testLatestDeps, and apply the same condition to both test and testExperimental, preferably using the existing common Test-task configuration rather than duplicate filtering blocks. With -PtestLatestDeps=true, neither task should exclude enhanced, so both default-attribute and experimental-attribute latest-dependency runs execute that test. Do not delete, permanently disable, or replace the enhanced-configuration test. No dedicated coverage at exactly 3.2.3 is required; accepting that loss is the user's explicit simplification decision.\n\nPreserve the restored Spring 3.1.0.RELEASE baseline, baseline-compatible programmatic fixtures, all other scheduling and telemetry assertions, error-handler parentage, bounded cleanup, and the repaired real one-time scheduling test. Keep the production dependency, Muzzle support range, instrumentation identities, and production behavior unchanged. Do not add extra suites or runtime dependencies as a substitute for the removed suites.\n\nRead the applicable repository instructions, run the narrow formatting and feasible baseline/default, baseline/experimental, latest/default, and latest/experimental checks, and inspect actual dependency resolution. Verify that ordinary baseline tests use Spring 3.1.0.RELEASE and skip only the enhanced test, while both latest-dependency tasks really execute the enhanced test. Verify test selections and outputs rather than inferring success from task names. Keep the change scoped to this simplification.",
+      "created": "2026-10-23T03:24:43Z",
+      "hunk": "@@ -15,10 +15,26 @@ muzzle {\n dependencies {\n   bootstrap(project(\":instrumentation:spring:spring-scheduling-3.1:bootstrap\"))\n \n-  // 3.2.3 is the first version with which the tests will run. Lower versions require other\n-  // classes and packages to be imported. Versions 3.1.0+ work with the instrumentation.\n   library(\"org.springframework:spring-context:3.1.0.RELEASE\")\n-  testLibrary(\"org.springframework:spring-context:3.2.3.RELEASE\")\n+}\n+\n+testing {\n+  suites {\n+    // Spring 3.1 needs external CGLIB for @Configuration enhancement.\n+    register<JvmTestSuite>(\"testEnhanced\") {",
+      "id": "PRRT_kwDODJKVX86vdfh6",
+      "opened": "2026-10-23T03:24:43Z",
+      "path": "instrumentation/spring/spring-scheduling-3.1/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-23T03:35:25Z",
+          "body": "Updated in 2f31c60c. Removed the dedicated enhanced suites and made the shared test-task configuration exclude the enhanced tag only outside latest-dependency mode. Verified both baseline tasks run five tests without the enhanced test, while both latest tasks run all six including it; dependency resolution was Spring 3.1.0.RELEASE for baseline and 7.0.9 for latest.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20885#discussion_r4355833355"
+        }
+      ],
+      "reviewed": "d5350d01e5ed1b41822fa4731e429c7df380dab7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20885#discussion_r4355785233"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This filter excludes `scheduleEnhancedClassTest` from both `test` and `testExperimental` in normal builds, but no replacement Spring 3.2.3 suite is registered. Normal `check` therefore loses enhanced-configuration coverage, while latest-dependency runs exercise only the latest Spring runtime, not 3.2.3. Add the version-specific Spring 3.2.3 default and experimental suites described in the PR, share the relevant tests, and wire both into `check`. Restrict this exclusion to the 3.1 baseline tasks so it does not also exclude the replacement suites.",
+      "created": "2026-10-23T03:45:26Z",
+      "hunk": "@@ -15,17 +15,20 @@ muzzle {\n dependencies {\n   bootstrap(project(\":instrumentation:spring:spring-scheduling-3.1:bootstrap\"))\n \n-  // 3.2.3 is the first version with which the tests will run. Lower versions require other\n-  // classes and packages to be imported. Versions 3.1.0+ work with the instrumentation.\n   library(\"org.springframework:spring-context:3.1.0.RELEASE\")\n-  testLibrary(\"org.springframework:spring-context:3.2.3.RELEASE\")\n }\n \n tasks {\n   withType<Test>().configureEach {\n     // required on jdk17\n     jvmArgs(\"--add-opens=java.base/java.lang=ALL-UNNAMED\")\n     jvmArgs(\"-XX:+IgnoreUnrecognizedVMOptions\")\n+\n+    if (!otelProps.testLatestDeps) {\n+      useJUnitPlatform {\n+        excludeTags(\"enhanced\")",
+      "id": "PRRT_kwDODJKVX86vdtjf",
+      "opened": "2026-10-23T03:45:26Z",
+      "path": "instrumentation/spring/spring-scheduling-3.1/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-23T03:47:03Z",
+          "body": "The dedicated Spring 3.2.3 suites were intentionally removed as part of the requested simplification. The enhanced test remains enabled in both `test` and `testExperimental` when `-PtestLatestDeps=true`, while baseline runs exercise Spring 3.1.0.RELEASE. The PR description has been updated to match; restoring separate suites would undo that decision.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20885#discussion_r4355886355"
+        }
+      ],
+      "reviewed": "2f31c60ca77c482e4f246cad9a67df929fe8565c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20885#discussion_r4355878653"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to replace the custom JUnit tag filtering with the repository-conventional test-local assumption. Preserve its draft state and base branch, and do not create another pull request.\n\nIn instrumentation/spring/spring-scheduling-3.1/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/scheduling/v3_1/SpringSchedulingTest.java, put assumeTrue(testLatestDeps()) at the start of scheduleEnhancedClassTest, before creating the Spring context. Use static imports of io.opentelemetry.instrumentation.testing.util.TestLatestDeps.testLatestDeps and org.junit.jupiter.api.Assumptions.assumeTrue. Remove @Tag(\"enhanced\") and the unused Tag import. This is the existing convention used by Spring Integration's MessageProducerSupportInstrumentationTest and Spring Rabbit's SpringRabbitMqTest; do not introduce a new helper or condition annotation.\n\nIn instrumentation/spring/spring-scheduling-3.1/javaagent/build.gradle.kts, remove the conditional useJUnitPlatform/excludeTags block. Forward systemProperty(\"testLatestDeps\", otelProps.testLatestDeps) through the existing common withType<Test>().configureEach block so both test and testExperimental receive it. Leave ordinary JUnit configuration to the existing repository conventions.\n\nPreserve the agreed behavior: both baseline tasks exercise Spring 3.1.0.RELEASE and abort only the enhanced test through its assumption; both latest-dependency tasks execute that test. Do not restore dedicated Spring 3.2.3 suites, tags, custom filters, or extra dependencies. Preserve all other scheduling assertions, experimental attribute modes, one-time task execution, cleanup, task/check wiring, supported versions, and production behavior.\n\nRun the narrow formatter and feasible baseline/default, baseline/experimental, latest/default, and latest/experimental checks. Verify actual test selections and resolved versions, especially that the system property reaches both tasks and the enhanced test really runs in both latest-dependency modes. Report the execution counts and resolved versions concisely in the completion report. Keep this change scoped to these conventions.",
+      "created": "2026-10-23T03:55:10Z",
+      "hunk": "@@ -15,17 +15,20 @@ muzzle {\n dependencies {\n   bootstrap(project(\":instrumentation:spring:spring-scheduling-3.1:bootstrap\"))\n \n-  // 3.2.3 is the first version with which the tests will run. Lower versions require other\n-  // classes and packages to be imported. Versions 3.1.0+ work with the instrumentation.\n   library(\"org.springframework:spring-context:3.1.0.RELEASE\")\n-  testLibrary(\"org.springframework:spring-context:3.2.3.RELEASE\")\n }\n \n tasks {\n   withType<Test>().configureEach {\n     // required on jdk17\n     jvmArgs(\"--add-opens=java.base/java.lang=ALL-UNNAMED\")\n     jvmArgs(\"-XX:+IgnoreUnrecognizedVMOptions\")\n+\n+    if (!otelProps.testLatestDeps) {\n+      useJUnitPlatform {\n+        excludeTags(\"enhanced\")",
+      "id": "PRRT_kwDODJKVX86vd0cr",
+      "opened": "2026-10-23T03:55:10Z",
+      "path": "instrumentation/spring/spring-scheduling-3.1/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-23T04:08:00Z",
+          "body": "Applied in `8f7c1d71`: the enhanced test now uses `assumeTrue(testLatestDeps())`, and both shared test tasks receive the mode property. Baseline/default and baseline/experimental each ran five tests with the enhanced test assumption-aborted; Spring resolved to 3.1.0.RELEASE. Local latest-mode execution was blocked before tests because this runner lacks JDK 27. CI has been triggered for this commit.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20885#discussion_r4355984831"
+        }
+      ],
+      "reviewed": "2f31c60ca77c482e4f246cad9a67df929fe8565c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20885#discussion_r4355924800"
+    }
+  ]
+}

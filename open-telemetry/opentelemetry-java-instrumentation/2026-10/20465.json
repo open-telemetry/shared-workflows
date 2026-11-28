@@ -1,0 +1,55 @@
+{
+  "head": "9b25a2bfcf163b71d0d07d5999e7e3e5c0922da5",
+  "merge": "c0f73c8cf296bd588cada5e3aa7d8769c82821af",
+  "merged": "2026-10-12T07:49:49Z",
+  "missing_roots": 0,
+  "number": 20465,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] This variant confirms that Tomcat 7 honors `otel.instrumentation.servlet.experimental.trace-id-request-attribute.enabled`, but that property is absent from this module's `configuration_refs` above. Users and tooling therefore cannot discover a supported switch from the Tomcat entry. Add the setting to the Tomcat 7 source metadata and regenerate the generated docs.\n\nThis issue also appears on line 18642 of the same file.",
+      "created": "2026-10-09T03:30:42Z",
+      "hunk": "@@ -18681,6 +18509,42 @@ libraries:\n         type: STRING\n       - name: user_agent.original\n         type: STRING\n+  - when: otel.instrumentation.servlet.experimental.trace-id-request-attribute.enabled=true",
+      "id": "PRRT_kwDODJKVX86qoqMV",
+      "opened": "2026-10-09T03:30:43Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "2536352fe65e2591827573bf3d7ebf2e1be2d26a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20465#discussion_r4226352958"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] This is a second definition of the same flat and declarative `request-parameters.excluded` setting; it exists because the servlet metadata documents the emitted key/casing behavior while the Tomcat and Liberty metadata still use the older description. Since all of these modules use the same servlet helper, the generated catalog now exposes inconsistent documentation under opaque duplicate IDs. Align the source metadata descriptions and regenerate this file rather than editing it directly.\n\nThis issue also appears on line 1587 of the same file.",
+      "created": "2026-10-09T03:30:43Z",
+      "hunk": "@@ -1669,7 +1556,16 @@ definitions:\n       default: ''\n       deprecated: true\n       replaced_by: otel.instrumentation.servlet.experimental.request-parameters.included\n-    otel.instrumentation.servlet.experimental.request-parameters.excluded:\n+    otel.instrumentation.servlet.experimental.request-parameters.excluded-7948572c:\n+      name: otel.instrumentation.servlet.experimental.request-parameters.excluded\n+      declarative_name: java.servlet.request_parameters/development.excluded\n+      description: |\n+        A comma-separated list of case-sensitive request parameter name patterns to exclude from span attributes under `servlet.request.parameter.<name>`, preserving the original parameter-name casing. `?` matches one character and `*` matches zero or more characters. Excluded patterns take precedence over included patterns. No request parameters are captured unless an included or excluded pattern is configured; configuring only excluded patterns captures all request parameters that do not match them, which may expose sensitive information.\n+      type: list\n+      default: ''\n+      examples:\n+      - password,*-token\n+    otel.instrumentation.servlet.experimental.request-parameters.excluded-9e7e430a:",
+      "id": "PRRT_kwDODJKVX86qoqNR",
+      "opened": "2026-10-09T03:30:43Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "2536352fe65e2591827573bf3d7ebf2e1be2d26a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20465#discussion_r4226353026"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] `request-parameters.included` is likewise emitted as two hashed definitions solely because its description differs between Servlet metadata and the Tomcat/Liberty copies. This makes one user-facing property appear module-specific and duplicates it in the catalog; unify the source metadata wording and regenerate the generated docs.",
+      "created": "2026-10-12T03:01:49Z",
+      "hunk": "@@ -1688,13 +1452,23 @@ definitions:\n       examples:\n       - request-id\n       - user-*,search-?\n+    otel.instrumentation.servlet.experimental.request-parameters.included-ef49d5de:",
+      "id": "PRRT_kwDODJKVX86rUPNw",
+      "opened": "2026-10-12T03:01:49Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "9b25a2bfcf163b71d0d07d5999e7e3e5c0922da5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20465#discussion_r4244353814"
+    }
+  ]
+}

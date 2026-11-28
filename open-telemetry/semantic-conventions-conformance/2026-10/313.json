@@ -1,0 +1,25 @@
+{
+  "head": "47697ed81b1b219e0b097766f4ab5127ba16f3a7",
+  "merge": "b6e20a2afaddb3edac3c2c1c36aa57aadd6790f9",
+  "merged": "2026-10-14T18:19:09Z",
+  "missing_roots": 0,
+  "number": 313,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The Python upgrade is incomplete: the unit-test matrix still pins Python 3.14 at lines 26 and 29, while the type, scenario, and report jobs now use 3.15. As a result, the PR's advertised Python 3.15 update does not run the repository's unit tests on 3.15. Update both matrix entries to 3.15 (or add equivalent 3.15 legs).",
+      "created": "2026-10-13T04:25:12Z",
+      "hunk": "@@ -208,7 +208,7 @@ jobs:\n       - name: Set up Python\n         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0\n         with:\n-          python-version: \"3.14\"\n+          python-version: \"3.15\"",
+      "id": "PRRT_kwDOTuzK5c6rtYi-",
+      "opened": "2026-10-13T04:25:12Z",
+      "path": ".github/workflows/runner.yml",
+      "replies": [],
+      "reviewed": "7e1696ab190628504bb89d81932177db2718df7b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/313#discussion_r4254717982"
+    }
+  ]
+}

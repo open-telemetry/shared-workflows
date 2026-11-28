@@ -1,0 +1,25 @@
+{
+  "head": "3c62ff9ab950200a5915bf081e670a52ee64c702",
+  "merge": "29ea5b6023c16adb1aa816bc44f0ab5d213105fc",
+  "merged": "2026-10-01T14:22:15Z",
+  "missing_roots": 0,
+  "number": 234,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Updating this constant without updating `tests/test_database_backends.py:217` leaves `test_the_image_is_pinned_by_digest` asserting `mariadb:11.8.9-noble`, so the test suite will fail. Update that expected tag to `mariadb:12.3.3-noble` in this PR.",
+      "created": "2026-09-21T05:55:55Z",
+      "hunk": "@@ -14,7 +14,7 @@\n MARIADB_PASSWORD = \"conformance\"\n MARIADB_PORT = 3306\n # renovate: datasource=docker depName=mariadb versioning=docker\n-MARIADB_IMAGE = \"mariadb:11.8.9-noble@sha256:79d59758afc91b89b120b0a8904d637f5a3b3e1c4900f29b740d6d46c72fef68\"\n+MARIADB_IMAGE = \"mariadb:12.3.3-noble@sha256:805c8e104bd563d5bfa24fadd3f31cd419ea859cb5277f32b5dbf2db714f9ed1\"",
+      "id": "PRRT_kwDOTuzK5c6kPzzP",
+      "opened": "2026-09-21T05:55:56Z",
+      "path": "tools/database/runner/src/database_conformance/_mariadb.py",
+      "replies": [],
+      "reviewed": "b6088d750edba81f0a8c93c339fbc15d87383e38",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/234#discussion_r4059577893"
+    }
+  ]
+}

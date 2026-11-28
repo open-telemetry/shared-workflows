@@ -1,0 +1,1048 @@
+{
+  "head": "f3e972cb71d36b7f35e04b996f3888f16cbf3ca1",
+  "merge": "aa3b7f4394245fec260013898049780975a407a4",
+  "merged": "2026-11-05T04:51:54Z",
+  "missing_roots": 0,
+  "number": 571,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "No reference scenario emits either the new span or metric, so the change does not establish that a real library can bound a turn, suppress nested turns, or obtain aggregate token usage. Existing scenarios such as Google ADK, CrewAI, LangChain, OpenAI Agents, and Pydantic AI already wrap suitable top-level library calls. Update representative scenarios and their READMEs/data to emit `gen_ai.handle_turn.internal` and `gen_ai.handle_turn.duration` from values available through those library APIs.\n\nThis issue also appears in the following locations of the same file:\n- line 22\n- line 36",
+      "created": "2026-10-05T19:13:54Z",
+      "hunk": "@@ -0,0 +1,121 @@\n+file_format: definition/2\n+spans:\n+  - type: gen_ai.handle_turn.internal",
+      "id": "PRRT_kwDOSUeMrM6pLWcX",
+      "opened": "2026-10-05T19:13:55Z",
+      "path": "model/gen-ai/turn.yaml",
+      "replies": [
+        {
+          "at": "2026-10-07T12:22:23Z",
+          "body": "Outdated after the rework",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4206802559"
+        },
+        {
+          "at": "2026-10-07T12:51:31Z",
+          "body": "Reference scenarios will follow once the turn definition settles (alongside the companion `semantic-conventions-conformance` update for `gen_ai.invocation.internal`).",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4207089526"
+        }
+      ],
+      "reviewed": "9dc8b21c2765bb03c0aaecfe475d33da6c82c668",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4187785993"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This adds a required constant label to a fixed-operation metric. The fixed `gen_ai.invoke_workflow.duration` and `gen_ai.invoke_agent.duration` metrics at `model/gen-ai/metrics.yaml:97-173` omit `gen_ai.operation.name`; only generic client metrics include it through `metric_attributes.gen_ai`. Remove it here as well to avoid a redundant label and keep the fixed-operation metrics consistent.",
+      "created": "2026-10-05T19:13:55Z",
+      "hunk": "@@ -0,0 +1,121 @@\n+file_format: definition/2\n+spans:\n+  - type: gen_ai.handle_turn.internal\n+    requirement_level: recommended\n+    kind: internal\n+    name:\n+      note: >\n+        **Span name** SHOULD be `handle_turn {gen_ai.main_agent.name}` if `gen_ai.main_agent.name`\n+        is readily available. When it is not available, it SHOULD be `handle_turn`.\n+    brief: >\n+      Represents handling of one request to the agentic system.\n+    note: |\n+      The `gen_ai.operation.name` SHOULD be `handle_turn`.\n+\n+      The turn span is the outermost GenAI operation in a process. It covers everything done\n+      to handle a single request to the agentic system, including agent invocations, workflows,\n+      inference, tool calls, retrieval, and memory operations, as well as handoffs between\n+      several agents. When a turn invokes a remote agent running in another process (for example,\n+      via a `gen_ai.invoke_agent.client` span), that remote process starts its own `handle_turn`\n+      span for the request it handles.\n+\n+      Instrumentations SHOULD report a turn span when they can reliably bound a request to the\n+      agentic system and no other GenAI turn operation is present in the context. Instrumentations\n+      MAY provide a configuration option to disable reporting the `handle_turn` span and turn\n+      metrics.\n+\n+      Operations internal to handling a request are not turns and SHOULD NOT be reported as such.\n+      This includes inference, tool calls, retrieval, and memory operations, as well as invocations\n+      of sub-agents and nested workflows, regardless of whether the instrumentation that reports\n+      them can observe the enclosing turn.\n+\n+      **Span kind** is always `INTERNAL`. The turn is a logical boundary, not a transport one.\n+      When the agentic system is reached over a network protocol, the protocol instrumentation\n+      reports the `SERVER` span and the turn span is nested under it.\n+\n+      The entity that owns the turn may be an agent, a workflow, or an application-specific\n+      entry point. `gen_ai.main_agent.name` identifies it in all cases; `gen_ai.agent.name` and\n+      `gen_ai.workflow.name` describe what is serving the turn when applicable.\n+\n+      The turn span is reported independently of what handles the request. When a single agent\n+      handles it end to end, the `invoke_agent` span for that agent is reported as a child of the\n+      turn span and the two have the same duration. When a workflow handles it end to end, the\n+      turn span carries `gen_ai.workflow.name` and no separate `invoke_workflow` span is reported\n+      for that top-level workflow.\n+\n+      Token usage attributes (`gen_ai.usage.*`) on the turn span represent the total token usage\n+      across all model and remote agent calls within the turn, including sub-agent invocations.\n+      Remote agent invocations (`gen_ai.invoke_agent.client`) are included when the remote service\n+      reports token usage in its response; otherwise, their token usage is only recorded in the\n+      remote process's own turn.\n+    stability: development\n+    entity_associations:\n+      - \"gen_ai.main_agent\"\n+    attributes:\n+      - ref_group: attributes.gen_ai.error\n+      - ref_group: attributes.gen_ai.usage\n+      - ref: gen_ai.operation.name\n+        requirement_level: required\n+        sampling_relevant: true\n+      - ref: gen_ai.main_agent.name\n+        requirement_level:\n+          conditionally_required: When available.\n+        sampling_relevant: true\n+      - ref: gen_ai.agent.name\n+        brief: The human-readable name of the agent that owns the turn.\n+        requirement_level:\n+          conditionally_required: When the turn is owned by an agent and the name is available.\n+      - ref: gen_ai.workflow.name\n+        requirement_level:\n+          conditionally_required: When the turn is owned by a workflow and the name is available.\n+      - ref: gen_ai.conversation.id\n+        requirement_level:\n+          conditionally_required: If and only if the instrumented library has one readily available, or the user application provides one through OpenTelemetry context or library-specific mechanisms.\n+      - ref: gen_ai.input.messages\n+        requirement_level: opt_in\n+      - ref: gen_ai.output.messages\n+        requirement_level: opt_in\n+\n+metrics:\n+  - name: gen_ai.handle_turn.duration\n+    requirement_level: recommended\n+    annotations:\n+      code_generation:\n+        metric_value_type: double\n+    brief: 'The duration of handling one request to the agentic system.'\n+    note: >\n+      Measured from the point where the agentic system starts handling a request to the point\n+      where it produces its final response or fails.\n+\n+      This is the system-level latency metric: exactly one value is recorded per request in a\n+      process, no matter how many agents, workflows, or inference calls the request fans out into.\n+      Use `gen_ai.invoke_agent.duration` and `gen_ai.invoke_workflow.duration` to measure\n+      individual agent and workflow invocations.\n+\n+      This metric is reported in addition to `gen_ai.invoke_agent.duration` and\n+      `gen_ai.invoke_workflow.duration`, including when a single agent or workflow handles the\n+      request end to end and records the same duration.\n+\n+      This metric SHOULD be reported under the same conditions as the `gen_ai.handle_turn.internal`\n+      span: only when the instrumentation can reliably bound a request to the agentic system and no\n+      other GenAI turn operation is present in the context. This keeps exactly one measurement per\n+      request when several instrumented frameworks or agents are nested. The metric value SHOULD be\n+      the same as the span duration. Instrumentations MAY provide a configuration option to disable\n+      reporting the `handle_turn` span and turn metrics.\n+    instrument: histogram\n+    unit: \"s\"\n+    stability: development\n+    attributes:\n+      - ref_group: attributes.gen_ai.error\n+      - ref: gen_ai.operation.name\n+        requirement_level: required",
+      "id": "PRRT_kwDOSUeMrM6pLWc9",
+      "opened": "2026-10-05T19:13:55Z",
+      "path": "model/gen-ai/turn.yaml",
+      "replies": [
+        {
+          "at": "2026-10-07T12:51:29Z",
+          "body": "Removed `gen_ai.operation.name` from `gen_ai.handle_turn.duration` in 98a8f95a445f5c.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4207089078"
+        }
+      ],
+      "reviewed": "9dc8b21c2765bb03c0aaecfe475d33da6c82c668",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4187786063"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Filtering by `gen_ai.main_agent.name` does not prevent double counting: every nested agent invocation in the same system carries the same main-agent value, so those inclusive durations still aggregate together. Direct end-to-end consumers to `gen_ai.handle_turn.duration`, and reserve `gen_ai.agent.name` filtering for per-agent analysis.",
+      "created": "2026-10-05T19:13:55Z",
+      "hunk": "@@ -138,6 +145,12 @@ metrics:\n       LangChain agents, CrewAI agents) that can reliably bound a single\n       agent invocation.\n \n+      Recorded for every agent invocation at any nesting depth, including when a\n+      single agent serves the entire turn and `gen_ai.handle_turn.duration` is also\n+      recorded. Values are inclusive of nested work, so consumers SHOULD filter by\n+      `gen_ai.agent.name` or `gen_ai.main_agent.name` rather than aggregate across\n+      them. Use `gen_ai.handle_turn.duration` for end-to-end system latency.",
+      "id": "PRRT_kwDOSUeMrM6pLWdX",
+      "opened": "2026-10-05T19:13:55Z",
+      "path": "model/gen-ai/metrics.yaml",
+      "replies": [
+        {
+          "at": "2026-10-07T12:22:26Z",
+          "body": "Outdated after the rework",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4206802958"
+        },
+        {
+          "at": "2026-10-07T12:51:30Z",
+          "body": "Fixed in 98a8f95a445f5c: removed `gen_ai.main_agent.name` from `gen_ai.invoke_agent.duration` and `gen_ai.invoke_workflow.duration`, and updated the note to filter by `gen_ai.agent.name` and direct end-to-end consumers to `gen_ai.handle_turn.duration`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4207089321"
+        }
+      ],
+      "reviewed": "9dc8b21c2765bb03c0aaecfe475d33da6c82c668",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4187786106"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "This applies to the whole PR: the notes are long and mix normative text with justification and explanations (why a context key, cross-process being out of scope, how to detect library state, SDK-internal span names). Could we tighten them to what instrumentations SHOULD/MAY do, keep the examples, and move the rest to the PR description or framework-specific conventions? Same for the `gen_ai.invocation.duration` note and the `handle_turn` brief.\n",
+      "created": "2026-10-09T03:07:12Z",
+      "hunk": "@@ -546,20 +546,72 @@ spans:\n         requirement_level:\n           conditionally_required: When available.\n \n-  - type: gen_ai.invoke_agent.internal\n+  - type: gen_ai.invocation.internal\n     requirement_level: recommended\n     kind: internal\n     name:\n       note: |\n-        **Span name** SHOULD be `invoke_agent {gen_ai.agent.name}` if `gen_ai.agent.name` is readily available.\n-        When `gen_ai.agent.name` is not available, it SHOULD be `invoke_agent`.\n-        Semantic conventions for individual GenAI systems and frameworks MAY specify different span name format.\n+        **Span name** SHOULD be `{gen_ai.operation.name} {gen_ai.agent.name}` or\n+        `{gen_ai.operation.name} {gen_ai.workflow.name}`, naming the invoked agent or workflow\n+        (for `handle_turn`, the entry-point one). When neither name is readily available, the\n+        span name SHOULD be `{gen_ai.operation.name}`.\n+        Semantic conventions for individual GenAI systems and frameworks MAY specify a different\n+        span name format.\n     brief: >\n-      Describes GenAI agent invocation within the same process.\n+      Describes an in-process GenAI turn, workflow, or agent invocation.\n     note: |\n-      The `gen_ai.operation.name` SHOULD be `invoke_agent`.\n+      The `gen_ai.operation.name` SHOULD be one of:\n+\n+      - `handle_turn`: one turn of a GenAI system, that is, one exchange with the caller (input\n+        in, response out). Reported at a framework entrypoint that is a runner distinct from the\n+        agents it runs, or where the framework defines the control flow between agents and an LLM\n+        steers it (handoffs, transfers, swarms, or a manager LLM that routes). It starts when the\n+        framework takes control flow and ends when the framework releases it back to the caller.\n+        `gen_ai.agent.name` or `gen_ai.workflow.name` identifies the entry-point agent or workflow.\n+      - `invoke_workflow`: an application-defined control flow between steps, at any nesting depth\n+        (for example, an application-defined LangGraph\n+        [`StateGraph`](https://reference.langchain.com/python/langgraph/graphs), Microsoft Agent\n+        Framework [`Workflow`](https://learn.microsoft.com/agent-framework/workflows/) built with\n+        `WorkflowBuilder` edges, CrewAI [`Crew`](https://docs.crewai.com/concepts/crews) with\n+        `Process.sequential` or [`Flow`](https://docs.crewai.com/concepts/flows), and ADK\n+        `Workflow`). It SHOULD NOT be reported when the workflow is an internal implementation\n+        detail of another operation or a framework-defined multi-agent pattern.\n+      - `invoke_agent`: a single LLM-steered agent, at any nesting depth (for example, LangChain\n+        [`create_agent`](https://docs.langchain.com/oss/python/langchain/agents), OpenAI Agents\n+        [`Agent`](https://openai.github.io/openai-agents-python/agents/), CrewAI\n+        [`Agent`](https://docs.crewai.com/concepts/agents), Microsoft Agent Framework\n+        [`Agent`](https://learn.microsoft.com/agent-framework/), Pydantic AI `Agent`, and ADK\n+        [`LlmAgent`](https://adk.dev/agents/llm-agents/)).\n+\n+      When the framework entrypoint is itself an application-defined workflow or a single agent, a\n+      separate `handle_turn` span SHOULD NOT be reported; the top-level `invoke_workflow` or\n+      `invoke_agent` span represents the turn. Instrumentations can tell framework-defined\n+      multi-agent patterns from application-defined workflows using library state (for example,\n+      `crew.process`, or the builder or orchestration type that produced the graph or `Workflow`).\n+      Framework-specific semantic conventions SHOULD specify which entrypoints report each\n+      operation.\n \n-      Examples: LangChain agents, CrewAI agents.\n+      Examples of `handle_turn` operations:\n+\n+      - **ADK**: [`Runner.run(...)`](https://adk.dev/runtime/) / `Runner.run_async(...)`\n+      - **OpenAI Agents**: one [`Runner.run(starting_agent=...)`](https://openai.github.io/openai-agents-python/ref/run/#agents.run.Runner.run)\n+        call (the SDK's `task` span, not one agent-loop iteration / SDK `turn` span as in\n+        `max_turns`; `gen_ai.agent.name` is the starting agent, and `RunConfig.workflow_name` is\n+        not recorded on `handle_turn`)\n+      - **LangGraph Swarm**: `create_swarm([...]).compile().invoke(...)`\n+      - **Microsoft Agent Framework**: `HandoffBuilder(participants=[...]).build().run(...)`\n+      - **CrewAI**: `Crew(..., process=Process.hierarchical).kickoff()`\n+      - **AutoGen**: `Swarm([...]).run(...)`\n+\n+      Instrumentations SHOULD propagate an in-process OpenTelemetry context key when a turn begins\n+      so that a `handle_turn` span is never parented (directly or indirectly) by another\n+      `handle_turn` span in the same process (for example, a framework entrypoint invoked inside a\n+      tool or workflow step, such as OpenAI Agents `Agent.as_tool()`, ADK `AgentTool`, or an ADK\n+      runner invoked inside a LangGraph node). Cross-process propagation of turn state is out of\n+      scope.\n+\n+      Instrumentations MAY provide a configuration option to disable reporting the `handle_turn`\n+      span; its `gen_ai.invocation.duration` data point is still recorded.",
+      "id": "PRRT_kwDOSUeMrM6qoYwc",
+      "opened": "2026-10-09T03:54:51Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-10-13T14:46:31Z",
+          "body": "Should be justification free and more terse now.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4260139732"
+        }
+      ],
+      "reviewed": "a27ee83274335df768dc23001f8542f5b8eeca19",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4226239526"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`gen_ai.invocation.is_nested` is required on the metric but missing on the span makes sense to bring to both",
+      "created": "2026-10-09T03:07:12Z",
+      "hunk": "@@ -570,6 +622,15 @@ spans:\n       - ref: gen_ai.request.model\n         sampling_relevant: true\n       - ref: gen_ai.agent.name\n+        brief: >\n+          The human-readable name of the invoked GenAI agent, or the entry-point agent when\n+          `gen_ai.operation.name` is `handle_turn`.\n+        requirement_level:\n+          conditionally_required: When the invoked or entry-point entity is an agent and the name is available.\n+        sampling_relevant: true\n+      - ref: gen_ai.workflow.name\n+        requirement_level:\n+          conditionally_required: When the invoked or entry-point entity is a workflow and the name is available.\n         sampling_relevant: true",
+      "id": "PRRT_kwDOSUeMrM6qoYwq",
+      "opened": "2026-10-09T03:54:51Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-10-09T12:02:24Z",
+          "body": "+1 to putting it on the span too.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4229863396"
+        },
+        {
+          "at": "2026-10-13T14:41:12Z",
+          "body": "Added",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4260077495"
+        }
+      ],
+      "reviewed": "a27ee83274335df768dc23001f8542f5b8eeca19",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4226239544"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "We probably need to discuss naming on the SIG call. Some research ([doc](https://docs.google.com/document/d/1EKIeDgBGXQPGehUigIRLwAUpRGa7-1kXB736EaYuJ2M/edit?tab=t.6cg23pewoc2o)):\n\n- **turn**: OpenAI Agents SDK (`max_turns`) and Anthropic tool runner use it for one model/tool loop iteration, the opposite of this PR. OpenAI Agents API (`/sessions/{id}/turns`) uses it the PR's way.\n- **run**: OpenAI Agents SDK `Runner.run`, Microsoft Agent Framework `agent.run`, ADK `Runner.run_async`, Azure Foundry Agent Service `/threads/{id}/runs`, Google Agent Runtime `/api/run`.\n- **invocation**: ADK `InvocationContext` (user message to final response), Microsoft Agent Framework agents-as-tools, AWS `InvokeAgent` / `InvokeAgentRuntime`, Azure Foundry hosted agents `/invocations`.\n\n\nI think regardless of the noun, it needs to be qualified - turn / run / invocation are all vague. \n\nSo options:\n\n1. Don't qualify. `gen_ai.invocation | turn | run.duration` - not clear if it's related to agentic scenario\n2. Qualify\n    a. `agent_invocation | turn | run` - we're back to agent vs workflow vs wrapper terminology\n    b. `agentic_invocation | turn | run` - more generic, a bit awkward\n\nI'd like to check if we can entertain idea of `agent_invocation` | `invoke_agent` as the span type / metric name. We'd explain it covers workflow and any other wrapper. It'd still have the attribute to distinguish outer vs inner, operation name / span name are flexible and can be anything.\n\nA nice side-effect is that we can keep existing agentic metrics.\n\n\n",
+      "created": "2026-10-09T03:07:13Z",
+      "hunk": "@@ -685,6 +685,10 @@ attributes:\n           value: \"invoke_workflow\"\n           brief: 'Invoke GenAI workflow'\n           stability: development\n+        - id: handle_turn\n+          value: \"handle_turn\"\n+          brief: 'Handle one turn of a GenAI system, from when the agentic framework takes control flow until it releases control flow back to the caller'\n+          stability: development",
+      "id": "PRRT_kwDOSUeMrM6qoYw3",
+      "opened": "2026-10-09T03:54:51Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-10-13T14:48:20Z",
+          "body": "Added a comment [here](https://github.com/open-telemetry/semantic-conventions-genai/pull/571#issuecomment-6145786926) with the naming breakdown\r\n\r\nTl;Dr: \"`handle_turn` had collisions, `handle_conversation_turn` has a small collision with AG2 and fits into `gen_ai.conversation.id`\"",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4260160479"
+        },
+        {
+          "at": "2026-10-27T15:52:33Z",
+          "body": "Stale, removed turn terminology",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4390918680"
+        }
+      ],
+      "reviewed": "a27ee83274335df768dc23001f8542f5b8eeca19",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4226239562"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Let's discuss `is_nested` on the call too, together with the alternative in #385: put `gen_ai.main_agent.name` on nested invocations only. It holds the outermost local agent or workflow name and stays unset on the root.\n\n- Root invocation: no `gen_ai.main_agent.name`, same as `is_nested != true`.\n- Nested invocations also say which root they belong to, so you can break down nested agents, tools and inference calls by root. A boolean can't do that.\n\nTrade-offs: absent attribute is a very subtle signal, it's not obvious unless someone really reads the docs.",
+      "created": "2026-10-09T03:13:20Z",
+      "hunk": "@@ -1087,6 +1091,18 @@ attributes:\n       what `gen_ai.workflow.name` means in the context of that framework.\n     examples: [\"multi_agent_rag\", \"customer_support_pipeline\"]\n     stability: development\n+  - key: gen_ai.invocation.is_nested\n+    type: boolean\n+    brief: >\n+      Whether an in-process GenAI invocation is nested within another\n+      in-process GenAI invocation.\n+    note: |\n+      `false` on the root invocation of a turn in the process: `handle_turn`, or\n+      the top-level `invoke_workflow` or `invoke_agent` when the framework\n+      entrypoint is an application-defined workflow or a single agent. `true`\n+      on every invocation nested inside another in-process invocation.\n+    examples: [false, true]",
+      "id": "PRRT_kwDOSUeMrM6qoc_a",
+      "opened": "2026-10-09T03:54:51Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-10-09T12:02:24Z",
+          "body": " I'd keep an explicit `is_nested` on the span. A missing attribute could mean \"root\" or just \"not set\". Having both would be best. `is_nested` to find the root, and `main_agent.name` to group nested spans by root.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4229857440"
+        },
+        {
+          "at": "2026-10-27T15:54:23Z",
+          "body": "Resolving, because this was refactored out of this PR into a future one, which I'll open after this one is merged",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4390940565"
+        }
+      ],
+      "reviewed": "a27ee83274335df768dc23001f8542f5b8eeca19",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4226266975"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "krisztianfekete"
+      },
+      "body": " The same `gen_ai.usage.*` keys would mean \"total\" on `handle_turn` but \"this call only\" on agent and model spans. Anyone who adds up usage across spans counts the tokens twice. Remote agents make it worse, because the caller's turn and the remote turn both count the same tokens. Could the turn total use different keys? Or could the spec at least say to leave `handle_turn` out when adding up usage?",
+      "created": "2026-10-06T10:00:57Z",
+      "hunk": "@@ -0,0 +1,121 @@\n+file_format: definition/2\n+spans:\n+  - type: gen_ai.handle_turn.internal\n+    requirement_level: recommended\n+    kind: internal\n+    name:\n+      note: >\n+        **Span name** SHOULD be `handle_turn {gen_ai.main_agent.name}` if `gen_ai.main_agent.name`\n+        is readily available. When it is not available, it SHOULD be `handle_turn`.\n+    brief: >\n+      Represents handling of one request to the agentic system.\n+    note: |\n+      The `gen_ai.operation.name` SHOULD be `handle_turn`.\n+\n+      The turn span is the outermost GenAI operation in a process. It covers everything done\n+      to handle a single request to the agentic system, including agent invocations, workflows,\n+      inference, tool calls, retrieval, and memory operations, as well as handoffs between\n+      several agents. When a turn invokes a remote agent running in another process (for example,\n+      via a `gen_ai.invoke_agent.client` span), that remote process starts its own `handle_turn`\n+      span for the request it handles.\n+\n+      Instrumentations SHOULD report a turn span when they can reliably bound a request to the\n+      agentic system and no other GenAI turn operation is present in the context. Instrumentations\n+      MAY provide a configuration option to disable reporting the `handle_turn` span and turn\n+      metrics.\n+\n+      Operations internal to handling a request are not turns and SHOULD NOT be reported as such.\n+      This includes inference, tool calls, retrieval, and memory operations, as well as invocations\n+      of sub-agents and nested workflows, regardless of whether the instrumentation that reports\n+      them can observe the enclosing turn.\n+\n+      **Span kind** is always `INTERNAL`. The turn is a logical boundary, not a transport one.\n+      When the agentic system is reached over a network protocol, the protocol instrumentation\n+      reports the `SERVER` span and the turn span is nested under it.\n+\n+      The entity that owns the turn may be an agent, a workflow, or an application-specific\n+      entry point. `gen_ai.main_agent.name` identifies it in all cases; `gen_ai.agent.name` and\n+      `gen_ai.workflow.name` describe what is serving the turn when applicable.\n+\n+      The turn span is reported independently of what handles the request. When a single agent\n+      handles it end to end, the `invoke_agent` span for that agent is reported as a child of the\n+      turn span and the two have the same duration. When a workflow handles it end to end, the\n+      turn span carries `gen_ai.workflow.name` and no separate `invoke_workflow` span is reported\n+      for that top-level workflow.\n+\n+      Token usage attributes (`gen_ai.usage.*`) on the turn span represent the total token usage",
+      "id": "PRRT_kwDOSUeMrM6paWfk",
+      "opened": "2026-10-09T12:02:24Z",
+      "path": "model/gen-ai/turn.yaml",
+      "replies": [
+        {
+          "at": "2026-10-13T14:50:13Z",
+          "body": "Removed this specialization from this PR.\r\n\r\nIt will be a separate, possibly `gen_ai.conversation_turn.*` set of metrics. Anyway, out of scope for this PR ",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4260182728"
+        }
+      ],
+      "reviewed": "9dc8b21c2765bb03c0aaecfe475d33da6c82c668",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4193953490"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "krisztianfekete"
+      },
+      "body": " How can one library tell that another library already opened a turn? Span attributes can't be read back, and each library keeps its own context key. For example, a platform that opens turns for agents without their own, plus ADK opening one too, would give two turns. Maybe something like a shared context key, for example in opentelemetry-util-genai, would solve this?",
+      "created": "2026-10-06T10:02:16Z",
+      "hunk": "@@ -0,0 +1,121 @@\n+file_format: definition/2\n+spans:\n+  - type: gen_ai.handle_turn.internal\n+    requirement_level: recommended\n+    kind: internal\n+    name:\n+      note: >\n+        **Span name** SHOULD be `handle_turn {gen_ai.main_agent.name}` if `gen_ai.main_agent.name`\n+        is readily available. When it is not available, it SHOULD be `handle_turn`.\n+    brief: >\n+      Represents handling of one request to the agentic system.\n+    note: |\n+      The `gen_ai.operation.name` SHOULD be `handle_turn`.\n+\n+      The turn span is the outermost GenAI operation in a process. It covers everything done\n+      to handle a single request to the agentic system, including agent invocations, workflows,\n+      inference, tool calls, retrieval, and memory operations, as well as handoffs between\n+      several agents. When a turn invokes a remote agent running in another process (for example,\n+      via a `gen_ai.invoke_agent.client` span), that remote process starts its own `handle_turn`\n+      span for the request it handles.\n+\n+      Instrumentations SHOULD report a turn span when they can reliably bound a request to the\n+      agentic system and no other GenAI turn operation is present in the context. Instrumentations\n+      MAY provide a configuration option to disable reporting the `handle_turn` span and turn\n+      metrics.",
+      "id": "PRRT_kwDOSUeMrM6paYSn",
+      "opened": "2026-10-09T12:02:24Z",
+      "path": "model/gen-ai/turn.yaml",
+      "replies": [
+        {
+          "at": "2026-10-13T14:54:51Z",
+          "body": "A shared context key could work, or a non-opaque key could also work.\r\n\r\nThere are some non-opaque context keys in `opentelemetry-util-genai` which we may mimic: https://github.com/open-telemetry/opentelemetry-python-genai/blob/d7f97e33968a6655bda6137929e3f3467edab729/util/opentelemetry-util-genai/src/opentelemetry/util/genai/_inference_invocation.py#L115\r\n\r\nBut, I imagine we can put this off for now. First I'd like this solved within-framework, then cross-framework within-process, and eventually cross-process.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4260237358"
+        },
+        {
+          "at": "2026-10-27T15:52:51Z",
+          "body": "Refactored out of this PR, will open another one after this one is merged",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4390922251"
+        }
+      ],
+      "reviewed": "9dc8b21c2765bb03c0aaecfe475d33da6c82c668",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4193964826"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "krisztianfekete"
+      },
+      "body": " In A2A, a task can pause to wait for user input and resume in a later request, sometimes in another process. Is the resumed request a new turn? If so, how should it point back to the first one (a span link?), and what status should a paused turn have, since it's neither a success nor an error?\n",
+      "created": "2026-10-06T10:03:02Z",
+      "hunk": "@@ -0,0 +1,121 @@\n+file_format: definition/2\n+spans:\n+  - type: gen_ai.handle_turn.internal\n+    requirement_level: recommended\n+    kind: internal\n+    name:\n+      note: >\n+        **Span name** SHOULD be `handle_turn {gen_ai.main_agent.name}` if `gen_ai.main_agent.name`\n+        is readily available. When it is not available, it SHOULD be `handle_turn`.\n+    brief: >\n+      Represents handling of one request to the agentic system.",
+      "id": "PRRT_kwDOSUeMrM6paZTM",
+      "opened": "2026-10-09T12:02:24Z",
+      "path": "model/gen-ai/turn.yaml",
+      "replies": [
+        {
+          "at": "2026-10-13T15:03:08Z",
+          "body": "> In A2A, a task can pause to wait for user input and resume in a later request, sometimes in another process. Is the resumed request a new turn? \r\n\r\nYes. A task AFAIU is just a storage mechanism, similar to a session. A turn should represent a single back and forth between a caller and a gen_ai system.\r\n\r\n> If so, how should it point back to the first one (a span link?)\r\n\r\nProbably a span link, but I don't want to weigh in, to avoid getting too far ahead with this proposal\r\n\r\n> and what status should a paused turn have, since it's neither a success nor an error?\r\n\r\nAFAIU most spans have an UNSET span status. If that's what you're referring to.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4260332515"
+        },
+        {
+          "at": "2026-10-27T15:53:23Z",
+          "body": "Resolving, because I removed the turn concept from this PR altogether",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4390927945"
+        }
+      ],
+      "reviewed": "9dc8b21c2765bb03c0aaecfe475d33da6c82c668",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4193971268"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "krisztianfekete"
+      },
+      "body": " Which messages go on the turn span: only the new request and the final answer, or the whole conversation? The whole conversation is already on every model span. Copying it again onto the turn makes exports much bigger.\n",
+      "created": "2026-10-06T10:04:05Z",
+      "hunk": "@@ -0,0 +1,121 @@\n+file_format: definition/2\n+spans:\n+  - type: gen_ai.handle_turn.internal\n+    requirement_level: recommended\n+    kind: internal\n+    name:\n+      note: >\n+        **Span name** SHOULD be `handle_turn {gen_ai.main_agent.name}` if `gen_ai.main_agent.name`\n+        is readily available. When it is not available, it SHOULD be `handle_turn`.\n+    brief: >\n+      Represents handling of one request to the agentic system.\n+    note: |\n+      The `gen_ai.operation.name` SHOULD be `handle_turn`.\n+\n+      The turn span is the outermost GenAI operation in a process. It covers everything done\n+      to handle a single request to the agentic system, including agent invocations, workflows,\n+      inference, tool calls, retrieval, and memory operations, as well as handoffs between\n+      several agents. When a turn invokes a remote agent running in another process (for example,\n+      via a `gen_ai.invoke_agent.client` span), that remote process starts its own `handle_turn`\n+      span for the request it handles.\n+\n+      Instrumentations SHOULD report a turn span when they can reliably bound a request to the\n+      agentic system and no other GenAI turn operation is present in the context. Instrumentations\n+      MAY provide a configuration option to disable reporting the `handle_turn` span and turn\n+      metrics.\n+\n+      Operations internal to handling a request are not turns and SHOULD NOT be reported as such.\n+      This includes inference, tool calls, retrieval, and memory operations, as well as invocations\n+      of sub-agents and nested workflows, regardless of whether the instrumentation that reports\n+      them can observe the enclosing turn.\n+\n+      **Span kind** is always `INTERNAL`. The turn is a logical boundary, not a transport one.\n+      When the agentic system is reached over a network protocol, the protocol instrumentation\n+      reports the `SERVER` span and the turn span is nested under it.\n+\n+      The entity that owns the turn may be an agent, a workflow, or an application-specific\n+      entry point. `gen_ai.main_agent.name` identifies it in all cases; `gen_ai.agent.name` and\n+      `gen_ai.workflow.name` describe what is serving the turn when applicable.\n+\n+      The turn span is reported independently of what handles the request. When a single agent\n+      handles it end to end, the `invoke_agent` span for that agent is reported as a child of the\n+      turn span and the two have the same duration. When a workflow handles it end to end, the\n+      turn span carries `gen_ai.workflow.name` and no separate `invoke_workflow` span is reported\n+      for that top-level workflow.\n+\n+      Token usage attributes (`gen_ai.usage.*`) on the turn span represent the total token usage\n+      across all model and remote agent calls within the turn, including sub-agent invocations.\n+      Remote agent invocations (`gen_ai.invoke_agent.client`) are included when the remote service\n+      reports token usage in its response; otherwise, their token usage is only recorded in the\n+      remote process's own turn.\n+    stability: development\n+    entity_associations:\n+      - \"gen_ai.main_agent\"\n+    attributes:\n+      - ref_group: attributes.gen_ai.error\n+      - ref_group: attributes.gen_ai.usage\n+      - ref: gen_ai.operation.name\n+        requirement_level: required\n+        sampling_relevant: true\n+      - ref: gen_ai.main_agent.name\n+        requirement_level:\n+          conditionally_required: When available.\n+        sampling_relevant: true\n+      - ref: gen_ai.agent.name\n+        brief: The human-readable name of the agent that owns the turn.\n+        requirement_level:\n+          conditionally_required: When the turn is owned by an agent and the name is available.\n+      - ref: gen_ai.workflow.name\n+        requirement_level:\n+          conditionally_required: When the turn is owned by a workflow and the name is available.\n+      - ref: gen_ai.conversation.id\n+        requirement_level:\n+          conditionally_required: If and only if the instrumented library has one readily available, or the user application provides one through OpenTelemetry context or library-specific mechanisms.\n+      - ref: gen_ai.input.messages\n+        requirement_level: opt_in",
+      "id": "PRRT_kwDOSUeMrM6paam3",
+      "opened": "2026-10-09T12:02:24Z",
+      "path": "model/gen-ai/turn.yaml",
+      "replies": [
+        {
+          "at": "2026-10-13T15:07:08Z",
+          "body": "It's not currently clear for `invoke_agent` spans as well.\r\n\r\nI'd like to defer it from this PR as well.\r\n\r\nIt should either be framework dependent, or removed from the turn span altogether.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4260378214"
+        },
+        {
+          "at": "2026-10-13T15:35:49Z",
+          "body": "Actually, I added this wording\r\n\r\n> Instrumentations SHOULD NOT set `gen_ai.request.*`, `gen_ai.response.finish_reasons`,\r\n`gen_ai.output.type`, `gen_ai.agent.description`, `gen_ai.system_instructions`,\r\n`gen_ai.tool.definitions`, or `gen_ai.usage.*` on `handle_conversation_turn`.\r\n\r\nDefinitely not the best approach, but better as an interim solution than nothing",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4260711996"
+        }
+      ],
+      "reviewed": "9dc8b21c2765bb03c0aaecfe475d33da6c82c668",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4193979926"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "krisztianfekete"
+      },
+      "body": " Could the context key be a shared one, for example in opentelemetry-util-genai? Otherwise a platform wrapper and a framework in the same process can't see each other's turns, and both report one.",
+      "created": "2026-10-09T12:02:19Z",
+      "hunk": "@@ -546,20 +546,72 @@ spans:\n         requirement_level:\n           conditionally_required: When available.\n \n-  - type: gen_ai.invoke_agent.internal\n+  - type: gen_ai.invocation.internal\n     requirement_level: recommended\n     kind: internal\n     name:\n       note: |\n-        **Span name** SHOULD be `invoke_agent {gen_ai.agent.name}` if `gen_ai.agent.name` is readily available.\n-        When `gen_ai.agent.name` is not available, it SHOULD be `invoke_agent`.\n-        Semantic conventions for individual GenAI systems and frameworks MAY specify different span name format.\n+        **Span name** SHOULD be `{gen_ai.operation.name} {gen_ai.agent.name}` or\n+        `{gen_ai.operation.name} {gen_ai.workflow.name}`, naming the invoked agent or workflow\n+        (for `handle_turn`, the entry-point one). When neither name is readily available, the\n+        span name SHOULD be `{gen_ai.operation.name}`.\n+        Semantic conventions for individual GenAI systems and frameworks MAY specify a different\n+        span name format.\n     brief: >\n-      Describes GenAI agent invocation within the same process.\n+      Describes an in-process GenAI turn, workflow, or agent invocation.\n     note: |\n-      The `gen_ai.operation.name` SHOULD be `invoke_agent`.\n+      The `gen_ai.operation.name` SHOULD be one of:\n+\n+      - `handle_turn`: one turn of a GenAI system, that is, one exchange with the caller (input\n+        in, response out). Reported at a framework entrypoint that is a runner distinct from the\n+        agents it runs, or where the framework defines the control flow between agents and an LLM\n+        steers it (handoffs, transfers, swarms, or a manager LLM that routes). It starts when the\n+        framework takes control flow and ends when the framework releases it back to the caller.\n+        `gen_ai.agent.name` or `gen_ai.workflow.name` identifies the entry-point agent or workflow.\n+      - `invoke_workflow`: an application-defined control flow between steps, at any nesting depth\n+        (for example, an application-defined LangGraph\n+        [`StateGraph`](https://reference.langchain.com/python/langgraph/graphs), Microsoft Agent\n+        Framework [`Workflow`](https://learn.microsoft.com/agent-framework/workflows/) built with\n+        `WorkflowBuilder` edges, CrewAI [`Crew`](https://docs.crewai.com/concepts/crews) with\n+        `Process.sequential` or [`Flow`](https://docs.crewai.com/concepts/flows), and ADK\n+        `Workflow`). It SHOULD NOT be reported when the workflow is an internal implementation\n+        detail of another operation or a framework-defined multi-agent pattern.\n+      - `invoke_agent`: a single LLM-steered agent, at any nesting depth (for example, LangChain\n+        [`create_agent`](https://docs.langchain.com/oss/python/langchain/agents), OpenAI Agents\n+        [`Agent`](https://openai.github.io/openai-agents-python/agents/), CrewAI\n+        [`Agent`](https://docs.crewai.com/concepts/agents), Microsoft Agent Framework\n+        [`Agent`](https://learn.microsoft.com/agent-framework/), Pydantic AI `Agent`, and ADK\n+        [`LlmAgent`](https://adk.dev/agents/llm-agents/)).\n+\n+      When the framework entrypoint is itself an application-defined workflow or a single agent, a\n+      separate `handle_turn` span SHOULD NOT be reported; the top-level `invoke_workflow` or\n+      `invoke_agent` span represents the turn. Instrumentations can tell framework-defined\n+      multi-agent patterns from application-defined workflows using library state (for example,\n+      `crew.process`, or the builder or orchestration type that produced the graph or `Workflow`).\n+      Framework-specific semantic conventions SHOULD specify which entrypoints report each\n+      operation.\n \n-      Examples: LangChain agents, CrewAI agents.\n+      Examples of `handle_turn` operations:\n+\n+      - **ADK**: [`Runner.run(...)`](https://adk.dev/runtime/) / `Runner.run_async(...)`\n+      - **OpenAI Agents**: one [`Runner.run(starting_agent=...)`](https://openai.github.io/openai-agents-python/ref/run/#agents.run.Runner.run)\n+        call (the SDK's `task` span, not one agent-loop iteration / SDK `turn` span as in\n+        `max_turns`; `gen_ai.agent.name` is the starting agent, and `RunConfig.workflow_name` is\n+        not recorded on `handle_turn`)\n+      - **LangGraph Swarm**: `create_swarm([...]).compile().invoke(...)`\n+      - **Microsoft Agent Framework**: `HandoffBuilder(participants=[...]).build().run(...)`\n+      - **CrewAI**: `Crew(..., process=Process.hierarchical).kickoff()`\n+      - **AutoGen**: `Swarm([...]).run(...)`\n+\n+      Instrumentations SHOULD propagate an in-process OpenTelemetry context key when a turn begins",
+      "id": "PRRT_kwDOSUeMrM6qxPdb",
+      "opened": "2026-10-09T12:02:24Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-10-13T15:08:04Z",
+          "body": "Answered in: https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4193964826",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4260388869"
+        }
+      ],
+      "reviewed": "a27ee83274335df768dc23001f8542f5b8eeca19",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4229875081"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "No reference scenario emits this new span type. The committed data still uses `gen_ai.invoke_agent.internal` or `gen_ai.invoke_workflow.internal`, so the regenerated Invocation Internal report now shows `(none)` and loses coverage from all eight libraries that covered the replaced spans. No scenario demonstrates `handle_conversation_turn`, `gen_ai.invocation.is_nested`, or `gen_ai.invocation.duration` either. Update representative agent, workflow, and runner scenarios plus their READMEs/data/reports so each value comes from the real library call and in-process invocation context.",
+      "created": "2026-10-13T15:13:05Z",
+      "hunk": "@@ -546,20 +546,50 @@ spans:\n         requirement_level:\n           conditionally_required: When available.\n \n-  - type: gen_ai.invoke_agent.internal\n+  - type: gen_ai.invocation.internal",
+      "id": "PRRT_kwDOSUeMrM6r7WWO",
+      "opened": "2026-10-13T15:13:06Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-10-27T15:52:03Z",
+          "body": "Outdated, doesn't apply anymore",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4390912521"
+        }
+      ],
+      "reviewed": "f8062b9eac30c74cd755cabb4a625e73abe7f6f3",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4260448214"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This metric now requires `gen_ai.operation.name`, but the shared recorder at line 300 still supplies only `gen_ai.agent.name`. The ADK sample therefore omits a required attribute, which is why the generated metric report lists operation name as `(none)`. Add `gen_ai.operation.name = \"invoke_agent\"` to the recorded attributes for both invocation histograms and regenerate the scenario data and reports.",
+      "created": "2026-10-13T15:13:05Z",
+      "hunk": "@@ -26,12 +26,12 @@\n _reference_meter = reference_meter()\n \n _inference_calls = _reference_meter.create_histogram(\n-    \"gen_ai.invoke_agent.inference_calls\",\n+    \"gen_ai.invocation.inference_calls\",",
+      "id": "PRRT_kwDOSUeMrM6r7WYL",
+      "opened": "2026-10-13T15:13:06Z",
+      "path": "reference/scenarios/google-adk/scenario.py",
+      "replies": [
+        {
+          "at": "2026-10-27T15:51:54Z",
+          "body": "Outdated, doesn't apply anymore",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4390910796"
+        }
+      ],
+      "reviewed": "f8062b9eac30c74cd755cabb4a625e73abe7f6f3",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4260448408"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "Should this note (and the note on `gen_ai.request.model` in `attributes.gen_ai.invoked_agent.internal.common`) also exclude `invoke_workflow`, matching `gen_ai.invocation.duration` in `model/gen-ai/metrics.yaml`? Also, since `gen_ai.invocation.internal` pulls in `attributes.gen_ai.invoke_agent.common`, those agent/model attributes remain `recommended` or `conditionally_required` in the schema for `invoke_workflow` and `handle_conversation_turn`, which will cause Weaver live-check to flag them when omitted.",
+      "created": "2026-10-14T19:04:04Z",
+      "hunk": "@@ -546,20 +546,55 @@ spans:\n         requirement_level:\n           conditionally_required: When available.\n \n-  - type: gen_ai.invoke_agent.internal\n+  - type: gen_ai.invocation.internal\n     requirement_level: recommended\n     kind: internal\n     name:\n       note: |\n-        **Span name** SHOULD be `invoke_agent {gen_ai.agent.name}` if `gen_ai.agent.name` is readily available.\n-        When `gen_ai.agent.name` is not available, it SHOULD be `invoke_agent`.\n-        Semantic conventions for individual GenAI systems and frameworks MAY specify different span name format.\n+        **Span name** SHOULD be `{gen_ai.operation.name} {name}`, where `{name}` is the\n+        `gen_ai.agent.name` or `gen_ai.workflow.name` of the invoked or entry-point agent or\n+        workflow. When that name is not available, it SHOULD be `{gen_ai.operation.name}`.\n+        Semantic conventions for individual GenAI systems and frameworks MAY specify a different\n+        span name format.\n     brief: >\n-      Describes GenAI agent invocation within the same process.\n+      Describes an in-process GenAI conversation turn, workflow, or agent invocation.\n     note: |\n-      The `gen_ai.operation.name` SHOULD be `invoke_agent`.\n-\n-      Examples: LangChain agents, CrewAI agents.\n+      Instrumentations SHOULD set `gen_ai.operation.name` to:\n+\n+      - `invoke_agent` when an LLM drives the control flow through tool calls, for example\n+        LangChain [`create_agent`](https://docs.langchain.com/oss/python/langchain/agents), OpenAI\n+        Agents [`Agent`](https://openai.github.io/openai-agents-python/agents/), CrewAI\n+        [`Agent`](https://docs.crewai.com/concepts/agents), Microsoft Agent Framework\n+        [`Agent`](https://learn.microsoft.com/agent-framework/), Pydantic AI `Agent`, and ADK\n+        [`LlmAgent`](https://adk.dev/agents/llm-agents/).\n+      - `invoke_workflow` when the application defines the control flow, for example LangGraph\n+        [`StateGraph`](https://reference.langchain.com/python/langgraph/graphs), Microsoft Agent\n+        Framework [`Workflow`](https://learn.microsoft.com/agent-framework/workflows/) built with\n+        `WorkflowBuilder` edges, CrewAI [`Crew`](https://docs.crewai.com/concepts/crews) with\n+        `Process.sequential` or [`Flow`](https://docs.crewai.com/concepts/flows), and ADK\n+        `Workflow`.\n+      - `handle_conversation_turn` at an entrypoint that is not itself an agent or an\n+        application-defined workflow, and that takes one input from its caller, passes control to\n+        one or more agent or workflow invocations, and returns the response, for example a\n+        framework runner, a framework-defined multi-agent pattern, or an agent platform\n+        entrypoint. Instrumentations SHOULD report it on every call to such an entrypoint,\n+        independent of the agents or workflows it runs in that call, unless\n+        `gen_ai.invocation.is_nested` would be `true`. For example, ADK\n+        [`Runner.run(...)`](https://adk.dev/runtime/), OpenAI Agents\n+        [`Runner.run(...)`](https://openai.github.io/openai-agents-python/ref/run/#agents.run.Runner.run),\n+        LangGraph Swarm `create_swarm([...]).compile().invoke(...)`, Microsoft Agent Framework\n+        `HandoffBuilder(participants=[...]).build().run(...)`, CrewAI\n+        `Crew(..., process=Process.hierarchical).kickoff()`, and AutoGen `Swarm([...]).run(...)`.\n+\n+      Framework-specific semantic conventions SHOULD specify the operation for cases not covered\n+      above.\n+\n+      Instrumentations SHOULD NOT set `gen_ai.request.*`, `gen_ai.response.finish_reasons`,\n+      `gen_ai.output.type`, `gen_ai.agent.description`, `gen_ai.system_instructions`,\n+      `gen_ai.tool.definitions`, or `gen_ai.usage.*` on `handle_conversation_turn`.",
+      "id": "PRRT_kwDOSUeMrM6seY_U",
+      "opened": "2026-10-14T20:13:31Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-10-27T15:20:25Z",
+          "body": "Done, now this is a note on each of the attributes",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4390537748"
+        }
+      ],
+      "reviewed": "7c743152f17f43dfb7c554b4e0eed20eece0e144",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4275053854"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "On `gen_ai.invocation.inference_calls` and `gen_ai.invocation.tool_calls`, should `gen_ai.agent.name` and `gen_ai.workflow.name` use the same `conditionally_required` conditions (and entry-point `brief` on `gen_ai.agent.name`) as `gen_ai.invocation.duration` and `gen_ai.invocation.internal`, rather than making both unconditionally `recommended` on every data point?",
+      "created": "2026-10-14T19:04:06Z",
+      "hunk": "@@ -116,116 +116,111 @@ metrics:\n         metric_value_type: double\n     attributes:\n       - ref_group: metric_attributes.gen_ai\n-  - name: gen_ai.invoke_workflow.duration\n-    requirement_level: recommended\n-    annotations:\n-      code_generation:\n-        metric_value_type: double\n-    brief: 'Records duration of GenAI workflow.'\n-    note: >\n-      Represents the end-to-end duration of a workflow execution, measured from the point\n-      where application code initiates the workflow to the point where the workflow completes,\n-      independent of workflow complexity.\n-\n-      A workflow is a coordinated process composed of multiple agents or other\n-      operations involving generative AI.\n-\n-      If instrumentation measures only a single provider-facing client operation\n-      (for example, one model API call), `gen_ai.client.operation.duration` SHOULD be used instead.\n-      Instrumentation MAY emit both metrics for the same request path when both boundaries are available.\n-\n-      When this metric is reported alongside a `gen_ai.invoke_workflow.internal` span, the metric value SHOULD be the same as the span duration.\n-\n-      Individual systems may include additional system-specific attributes.\n-      Refer to system-specific documentation, if available.\n-    instrument: histogram\n-    unit: \"s\"\n-    stability: development\n-    attributes:\n-      - ref_group: attributes.gen_ai.error\n-      - ref: gen_ai.workflow.name\n-        requirement_level:\n-          conditionally_required: If available.\n-  - name: gen_ai.invoke_agent.duration\n+  - name: gen_ai.invocation.duration\n     requirement_level: recommended\n     annotations:\n       code_generation:\n         metric_value_type: double\n     brief: >\n-      The end-to-end duration of a single in-process agent invocation,\n-      from the moment the invocation starts until the agent emits\n-      the last chunk of its final response or terminates with an error.\n+      The end-to-end duration of a single in-process agent, workflow, or\n+      conversation turn operation, from the moment the operation starts until\n+      it emits the last chunk of its final response or terminates with an error.\n     note: |\n       Intended for instrumentations of agent frameworks (for example, ADK,\n       LangChain agents, CrewAI agents) that can reliably bound a single\n-      agent invocation.\n+      agent, workflow, or conversation turn operation.\n \n       If instrumentation can only measure a single provider-facing client\n       operation (for example, one model API call),\n-      `gen_ai.client.operation.duration` SHOULD be used instead. If\n-      instrumentation can reliably bound a higher-level workflow that\n-      coordinates multiple agents, `gen_ai.invoke_workflow.duration` SHOULD be\n-      used for that workflow. Instrumentation MAY emit several of these\n-      metrics for the same request path when more than one boundary is\n-      available.\n+      `gen_ai.client.operation.duration` SHOULD be used instead.\n \n-      When this metric is reported alongside a `gen_ai.invoke_agent.internal`\n+      When this metric is reported alongside a `gen_ai.invocation.internal`\n       span, the metric value SHOULD be the same as the span duration.\n     instrument: histogram\n     unit: \"s\"\n     stability: development\n     attributes:\n       - ref_group: attributes.gen_ai.error\n-      - ref_group: attributes.gen_ai.invoked_agent.internal.common\n-  - name: gen_ai.invoke_agent.inference_calls\n+      - ref: gen_ai.operation.name\n+        requirement_level: required\n+      - ref: gen_ai.invocation.is_nested\n+        requirement_level: required\n+      - ref: gen_ai.agent.name\n+        brief: >\n+          The human-readable name of the invoked GenAI agent, or the\n+          entry-point agent when `gen_ai.operation.name` is\n+          `handle_conversation_turn`.\n+        requirement_level:\n+          conditionally_required: When the invoked or entry-point entity is an agent and the name is available.\n+      - ref: gen_ai.workflow.name\n+        requirement_level:\n+          conditionally_required: When the invoked or entry-point entity is a workflow and the name is available.\n+      - ref: gen_ai.request.model\n+        brief: The name of the GenAI model configured for the agent.\n+        requirement_level:\n+          recommended: If applicable.\n+        note: >\n+          This attribute SHOULD be populated if and only if the instrumented\n+          library allows to set only a single model per agent. It SHOULD NOT\n+          be populated for `handle_conversation_turn`, for workflows, or for agents that\n+          support multiple models or dynamic selection.\n+  - name: gen_ai.invocation.inference_calls\n     annotations:\n       code_generation:\n         metric_value_type: int\n     brief: >\n-      The number of inference (model) calls a GenAI agent makes during a\n-      single invocation.\n+      The number of inference (model) calls a GenAI agent, workflow, or\n+      conversation turn operation makes during a single invocation.\n     note: |\n-      The distribution is scoped to a single agent invocation and SHOULD include\n-      only the inference calls the agent itself issued including failed ones;\n-      calls made by sub-agents or transferred-to agents are recorded against\n-      those agents' own invocations so that each inference call is counted\n-      exactly once across the call tree.\n+      The distribution is scoped to a single invocation and SHOULD include\n+      only the inference calls the invocation itself issued including failed\n+      ones; calls made by nested invocations (for example, sub-agents or\n+      transferred-to agents) are recorded against those invocations so that\n+      each inference call is counted exactly once across the call tree.\n \n       This metric SHOULD be emitted together with the\n-      `gen_ai.invoke_agent.internal` span for the same invocation.\n+      `gen_ai.invocation.internal` span for the same invocation.\n     instrument: histogram\n     unit: \"{inference_call}\"\n     stability: development\n     attributes:\n+      - ref: gen_ai.operation.name\n+        requirement_level: required\n       - ref: gen_ai.agent.name\n         requirement_level: recommended\n-  - name: gen_ai.invoke_agent.tool_calls\n+      - ref: gen_ai.workflow.name\n+        requirement_level: recommended",
+      "id": "PRRT_kwDOSUeMrM6seZBk",
+      "opened": "2026-10-14T20:13:31Z",
+      "path": "model/gen-ai/metrics.yaml",
+      "replies": [
+        {
+          "at": "2026-10-27T15:51:28Z",
+          "body": "I removed the `gen_ai.workflow.name` attribute altogether so I believe this doesn't apply anymore",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4390905425"
+        }
+      ],
+      "reviewed": "7c743152f17f43dfb7c554b4e0eed20eece0e144",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4275054075"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "An open-ended `invoke_{framework_entrypoint}` makes `gen_ai.operation.name` unqueryable in the short term (until span type lands): consumers can't find all entrypoint invocations without knowing every framework's word for it, and `invoke_runner` isn't in the `gen_ai.operation.name` enum. What do you think about requirement to document operation names that are for entrypoints?\n\n```suggestion\n      - `invoke_runner` for ADK [`Runner.run(...)`](https://adk.dev/runtime/) and OpenAI\n        Agents [`Runner.run(...)`](https://openai.github.io/openai-agents-python/ref/run/#agents.run.Runner.run).\n      - `invoke_{framework_entrypoint}` when the framework entrypoint is not itself an agent, a\n        workflow, or a runner where `{framework_entrypoint}` is the framework's name for the entrypoint\n        in language-agnostic representation. Instrumentations SHOULD document which operation names \n        correspond to the `invoke_agent` operation.\n```",
+      "created": "2026-10-26T18:37:44Z",
+      "hunk": "@@ -546,20 +546,44 @@ spans:\n         requirement_level:\n           conditionally_required: When available.\n \n-  - type: gen_ai.invoke_agent.internal\n+  - type: gen_ai.invocation.internal\n     requirement_level: recommended\n     kind: internal\n     name:\n       note: |\n-        **Span name** SHOULD be `invoke_agent {gen_ai.agent.name}` if `gen_ai.agent.name` is readily available.\n-        When `gen_ai.agent.name` is not available, it SHOULD be `invoke_agent`.\n-        Semantic conventions for individual GenAI systems and frameworks MAY specify different span name format.\n+        **Span name** SHOULD be `{gen_ai.operation.name} {name}`, where `{name}` is the\n+        `gen_ai.agent.name` or `gen_ai.workflow.name` of the invoked agent or workflow.\n+        When that name is not available, it SHOULD be `{gen_ai.operation.name}`.\n+        Semantic conventions for individual GenAI systems and frameworks MAY specify a different\n+        span name format.\n     brief: >\n-      Describes GenAI agent invocation within the same process.\n+      Describes an in-process GenAI agent, workflow, or framework entrypoint invocation.\n     note: |\n-      The `gen_ai.operation.name` SHOULD be `invoke_agent`.\n+      Instrumentations SHOULD set `gen_ai.operation.name` to:\n+\n+      - `invoke_agent` when an LLM drives the control flow through tool calls, for example\n+        LangChain [`create_agent`](https://docs.langchain.com/oss/python/langchain/agents), OpenAI\n+        Agents [`Agent`](https://openai.github.io/openai-agents-python/agents/), CrewAI\n+        [`Agent`](https://docs.crewai.com/concepts/agents), Microsoft Agent Framework\n+        [`Agent`](https://learn.microsoft.com/agent-framework/), Pydantic AI `Agent`, and ADK\n+        [`LlmAgent`](https://adk.dev/agents/llm-agents/).\n+      - `invoke_workflow` when the application defines the control flow, for example LangGraph\n+        [`StateGraph`](https://reference.langchain.com/python/langgraph/graphs), Microsoft Agent\n+        Framework [`Workflow`](https://learn.microsoft.com/agent-framework/workflows/), CrewAI\n+        [`Crew`](https://docs.crewai.com/concepts/crews), and ADK `Workflow`.\n+      - `invoke_{framework_entrypoint}` when the framework entrypoint is not itself an agent or a\n+        workflow, where `{framework_entrypoint}` is the framework's name for the entrypoint, for\n+        example `invoke_runner` for ADK [`Runner.run(...)`](https://adk.dev/runtime/) and OpenAI\n+        Agents [`Runner.run(...)`](https://openai.github.io/openai-agents-python/ref/run/#agents.run.Runner.run).",
+      "id": "PRRT_kwDOSUeMrM6wZscs",
+      "opened": "2026-10-28T18:30:32Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-10-29T18:15:23Z",
+          "body": "I'm curious if something like `invoke_entrypoint` for the operation_name solve the \"open-ended name\" issue?\r\n\r\nIf you prefer documentation instead, can you recommend where we should require this documentation to be? Should it be framework-specific semconv in this repo? If so should we update the OpenAI semconv in addition to ADK's?",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4416195658"
+        },
+        {
+          "at": "2026-11-02T13:30:16Z",
+          "body": "For now I went with\r\n\r\n> Framework-specific semantic conventions and instrumentations SHOULD document which of their operations they report as `invoke_agent`, `invoke_workflow`, or `invoke_{framework_entrypoint}`, and the `{framework_entrypoint}` names they use.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4442958302"
+        },
+        {
+          "at": "2026-11-02T14:25:55Z",
+          "body": "I am not sure if documenting this help consumers that classify by operation name (I'd expect consumers use a closed set and would drop `invoke_runner` by default). +1 to your earlier `invoke_entrypoint` idea, as a single value registered in the enum.\r\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4443533625"
+        },
+        {
+          "at": "2026-11-03T15:10:44Z",
+          "body": "We discussed this offline. Where I landed:\r\n\r\n1. `gen_ai.operation.name` should map the code construct to the telemetry it emits, so values should be relatively concrete. `entrypoint` is too generic.\r\n2. To address the open-ended values, `invoke_runner` is now part of the `gen_ai.operation.name` enum (b3afa99baf43f57da0740e89bbab4bbd06c2db63), so consumers have a list of known values to support.\r\n3. To my knowledge, span type is O(weeks) from initial implementations in OTLP and SDKs, and O(months) from wide adoption, so the window where consumers need to know every framework's operation names is short. I don't expect the enum to grow often in that window: ADK and the OpenAI Agents SDK are the only two examples I've found so far.\r\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4456537656"
+        }
+      ],
+      "reviewed": "7179e6694fcc1b35632e48109398cb96028c8e34",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4381069694"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "do we want these metrics to be reported for entrypoints (depending on the SDL) that never make inference or tool calls? \ni.e. should they report 0 or nothing? \n\nI think we should not report these metrics from layers that never directly do such calls, but do report 0 if no infernece/ tool calls actually happened during the agent invocation.",
+      "created": "2026-10-26T18:37:44Z",
+      "hunk": "@@ -116,116 +116,106 @@ metrics:\n         metric_value_type: double\n     attributes:\n       - ref_group: metric_attributes.gen_ai\n-  - name: gen_ai.invoke_workflow.duration\n-    requirement_level: recommended\n-    annotations:\n-      code_generation:\n-        metric_value_type: double\n-    brief: 'Records duration of GenAI workflow.'\n-    note: >\n-      Represents the end-to-end duration of a workflow execution, measured from the point\n-      where application code initiates the workflow to the point where the workflow completes,\n-      independent of workflow complexity.\n-\n-      A workflow is a coordinated process composed of multiple agents or other\n-      operations involving generative AI.\n-\n-      If instrumentation measures only a single provider-facing client operation\n-      (for example, one model API call), `gen_ai.client.operation.duration` SHOULD be used instead.\n-      Instrumentation MAY emit both metrics for the same request path when both boundaries are available.\n-\n-      When this metric is reported alongside a `gen_ai.invoke_workflow.internal` span, the metric value SHOULD be the same as the span duration.\n-\n-      Individual systems may include additional system-specific attributes.\n-      Refer to system-specific documentation, if available.\n-    instrument: histogram\n-    unit: \"s\"\n-    stability: development\n-    attributes:\n-      - ref_group: attributes.gen_ai.error\n-      - ref: gen_ai.workflow.name\n-        requirement_level:\n-          conditionally_required: If available.\n-  - name: gen_ai.invoke_agent.duration\n+  - name: gen_ai.invocation.duration\n     requirement_level: recommended\n     annotations:\n       code_generation:\n         metric_value_type: double\n     brief: >\n-      The end-to-end duration of a single in-process agent invocation,\n-      from the moment the invocation starts until the agent emits\n-      the last chunk of its final response or terminates with an error.\n+      The end-to-end duration of a single in-process agent, workflow, or\n+      framework entrypoint invocation, from the moment the invocation starts until\n+      it emits the last chunk of its final response or terminates with an error.\n     note: |\n       Intended for instrumentations of agent frameworks (for example, ADK,\n       LangChain agents, CrewAI agents) that can reliably bound a single\n-      agent invocation.\n+      agent, workflow, or framework entrypoint invocation.\n \n       If instrumentation can only measure a single provider-facing client\n       operation (for example, one model API call),\n-      `gen_ai.client.operation.duration` SHOULD be used instead. If\n-      instrumentation can reliably bound a higher-level workflow that\n-      coordinates multiple agents, `gen_ai.invoke_workflow.duration` SHOULD be\n-      used for that workflow. Instrumentation MAY emit several of these\n-      metrics for the same request path when more than one boundary is\n-      available.\n+      `gen_ai.client.operation.duration` SHOULD be used instead.\n \n-      When this metric is reported alongside a `gen_ai.invoke_agent.internal`\n+      When this metric is reported alongside a `gen_ai.invocation.internal`\n       span, the metric value SHOULD be the same as the span duration.\n     instrument: histogram\n     unit: \"s\"\n     stability: development\n     attributes:\n       - ref_group: attributes.gen_ai.error\n+      - ref: gen_ai.operation.name\n+        requirement_level: required\n+      - ref: gen_ai.invocation.is_nested\n+        requirement_level: required\n       - ref_group: attributes.gen_ai.invoked_agent.internal.common\n-  - name: gen_ai.invoke_agent.inference_calls\n+      - ref: gen_ai.agent.name\n+        requirement_level:\n+          conditionally_required: When the invocation represents an agent and the name is available.\n+      - ref: gen_ai.workflow.name\n+        requirement_level:\n+          conditionally_required: When the invocation represents a workflow and the name is available.\n+      - ref: gen_ai.request.model\n+        requirement_level:\n+          recommended: When the invocation represents an agent, if applicable.\n+  - name: gen_ai.invocation.inference_calls\n     annotations:\n       code_generation:\n         metric_value_type: int\n     brief: >\n-      The number of inference (model) calls a GenAI agent makes during a\n-      single invocation.\n+      The number of inference (model) calls a GenAI agent, workflow, or\n+      framework entrypoint makes during a single invocation.",
+      "id": "PRRT_kwDOSUeMrM6wZsdC",
+      "opened": "2026-10-28T18:30:32Z",
+      "path": "model/gen-ai/metrics.yaml",
+      "replies": [
+        {
+          "at": "2026-11-02T14:05:54Z",
+          "body": "SGTM applied suggestion in 11fdeb6e6d9ca5b9659e844f33d6104ff3d3687d",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4443327050"
+        }
+      ],
+      "reviewed": "7179e6694fcc1b35632e48109398cb96028c8e34",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4381069729"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "It's unclear what happens with a remote parent, e.g. an A2A server-side agent whose parent context is a remote `invoke_agent` client span. Suggest scoping it to the process:\n\n```suggestion\n      `true` when the invocation runs within another `invoke_agent`,\n      `invoke_workflow`, or `invoke_{framework_entrypoint}` invocation in the same\n      process, including one whose span is disabled or not sampled; `false` otherwise.\n```",
+      "created": "2026-10-26T18:37:49Z",
+      "hunk": "@@ -1087,6 +1086,17 @@ attributes:\n       what `gen_ai.workflow.name` means in the context of that framework.\n     examples: [\"multi_agent_rag\", \"customer_support_pipeline\"]\n     stability: development\n+  - key: gen_ai.invocation.is_nested\n+    type: boolean\n+    brief: >\n+      Whether the invocation runs within another `invoke_agent`,\n+      `invoke_workflow`, or `invoke_{framework_entrypoint}` invocation.\n+    note: |\n+      `true` when the invocation runs within another `invoke_agent`,\n+      `invoke_workflow`, or `invoke_{framework_entrypoint}` invocation, including one\n+      whose span is disabled or not sampled; `false` otherwise.",
+      "id": "PRRT_kwDOSUeMrM6wZsl4",
+      "opened": "2026-10-28T18:30:32Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-11-02T14:05:58Z",
+          "body": "SG, scoped to in-process. `is_nested` moved to a follow-up PR, so the change lands there.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4443327945"
+        }
+      ],
+      "reviewed": "7179e6694fcc1b35632e48109398cb96028c8e34",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4381070665"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: `gen_ai.invocation.duration` and the span require `gen_ai.invocation.is_nested`, but the call-count metrics don't, so you can't split root vs nested counts the same way. Same for `tool_calls`.\n\n```suggestion\n      - ref: gen_ai.operation.name\n        requirement_level: required\n      - ref: gen_ai.invocation.is_nested\n        requirement_level: required\n```",
+      "created": "2026-10-26T18:37:49Z",
+      "hunk": "@@ -116,116 +116,106 @@ metrics:\n         metric_value_type: double\n     attributes:\n       - ref_group: metric_attributes.gen_ai\n-  - name: gen_ai.invoke_workflow.duration\n-    requirement_level: recommended\n-    annotations:\n-      code_generation:\n-        metric_value_type: double\n-    brief: 'Records duration of GenAI workflow.'\n-    note: >\n-      Represents the end-to-end duration of a workflow execution, measured from the point\n-      where application code initiates the workflow to the point where the workflow completes,\n-      independent of workflow complexity.\n-\n-      A workflow is a coordinated process composed of multiple agents or other\n-      operations involving generative AI.\n-\n-      If instrumentation measures only a single provider-facing client operation\n-      (for example, one model API call), `gen_ai.client.operation.duration` SHOULD be used instead.\n-      Instrumentation MAY emit both metrics for the same request path when both boundaries are available.\n-\n-      When this metric is reported alongside a `gen_ai.invoke_workflow.internal` span, the metric value SHOULD be the same as the span duration.\n-\n-      Individual systems may include additional system-specific attributes.\n-      Refer to system-specific documentation, if available.\n-    instrument: histogram\n-    unit: \"s\"\n-    stability: development\n-    attributes:\n-      - ref_group: attributes.gen_ai.error\n-      - ref: gen_ai.workflow.name\n-        requirement_level:\n-          conditionally_required: If available.\n-  - name: gen_ai.invoke_agent.duration\n+  - name: gen_ai.invocation.duration\n     requirement_level: recommended\n     annotations:\n       code_generation:\n         metric_value_type: double\n     brief: >\n-      The end-to-end duration of a single in-process agent invocation,\n-      from the moment the invocation starts until the agent emits\n-      the last chunk of its final response or terminates with an error.\n+      The end-to-end duration of a single in-process agent, workflow, or\n+      framework entrypoint invocation, from the moment the invocation starts until\n+      it emits the last chunk of its final response or terminates with an error.\n     note: |\n       Intended for instrumentations of agent frameworks (for example, ADK,\n       LangChain agents, CrewAI agents) that can reliably bound a single\n-      agent invocation.\n+      agent, workflow, or framework entrypoint invocation.\n \n       If instrumentation can only measure a single provider-facing client\n       operation (for example, one model API call),\n-      `gen_ai.client.operation.duration` SHOULD be used instead. If\n-      instrumentation can reliably bound a higher-level workflow that\n-      coordinates multiple agents, `gen_ai.invoke_workflow.duration` SHOULD be\n-      used for that workflow. Instrumentation MAY emit several of these\n-      metrics for the same request path when more than one boundary is\n-      available.\n+      `gen_ai.client.operation.duration` SHOULD be used instead.\n \n-      When this metric is reported alongside a `gen_ai.invoke_agent.internal`\n+      When this metric is reported alongside a `gen_ai.invocation.internal`\n       span, the metric value SHOULD be the same as the span duration.\n     instrument: histogram\n     unit: \"s\"\n     stability: development\n     attributes:\n       - ref_group: attributes.gen_ai.error\n+      - ref: gen_ai.operation.name\n+        requirement_level: required\n+      - ref: gen_ai.invocation.is_nested\n+        requirement_level: required\n       - ref_group: attributes.gen_ai.invoked_agent.internal.common\n-  - name: gen_ai.invoke_agent.inference_calls\n+      - ref: gen_ai.agent.name\n+        requirement_level:\n+          conditionally_required: When the invocation represents an agent and the name is available.\n+      - ref: gen_ai.workflow.name\n+        requirement_level:\n+          conditionally_required: When the invocation represents a workflow and the name is available.\n+      - ref: gen_ai.request.model\n+        requirement_level:\n+          recommended: When the invocation represents an agent, if applicable.\n+  - name: gen_ai.invocation.inference_calls\n     annotations:\n       code_generation:\n         metric_value_type: int\n     brief: >\n-      The number of inference (model) calls a GenAI agent makes during a\n-      single invocation.\n+      The number of inference (model) calls a GenAI agent, workflow, or\n+      framework entrypoint makes during a single invocation.\n     note: |\n-      The distribution is scoped to a single agent invocation and SHOULD include\n-      only the inference calls the agent itself issued including failed ones;\n-      calls made by sub-agents or transferred-to agents are recorded against\n-      those agents' own invocations so that each inference call is counted\n-      exactly once across the call tree.\n+      The distribution is scoped to a single invocation and SHOULD include\n+      only the inference calls the invocation itself issued including failed\n+      ones; calls made by nested invocations (for example, sub-agents or\n+      transferred-to agents) are recorded against those invocations so that\n+      each inference call is counted exactly once across the call tree.\n \n       This metric SHOULD be emitted together with the\n-      `gen_ai.invoke_agent.internal` span for the same invocation.\n+      `gen_ai.invocation.internal` span for the same invocation.\n     instrument: histogram\n     unit: \"{inference_call}\"\n     stability: development\n     attributes:\n+      - ref: gen_ai.operation.name\n+        requirement_level: required",
+      "id": "PRRT_kwDOSUeMrM6wZslw",
+      "opened": "2026-10-28T18:30:32Z",
+      "path": "model/gen-ai/metrics.yaml",
+      "replies": [
+        {
+          "at": "2026-11-02T14:05:56Z",
+          "body": "I'm not sure it adds much here. These metrics only count the calls an invocation issues directly, so root and nested counts never overlap, and filtering on `is_nested=false` wouldn't give the end-to-end total anyway. `is_nested` has also moved to a follow-up PR, so happy to revisit it there.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4443327571"
+        }
+      ],
+      "reviewed": "7179e6694fcc1b35632e48109398cb96028c8e34",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4381070655"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Any need to drop it? we should now record it as agent name",
+      "created": "2026-10-26T18:37:49Z",
+      "hunk": "@@ -254,22 +255,20 @@ async def run_workflow():\n     )\n     input_text = \"What's the weather in Seattle?\"\n \n-    print(\"  [workflow_run] agent run as workflow (reference implementation)\")\n-    workflow_name = \"sequential-agents\"\n-    workflow_span_attributes = {\n-        \"gen_ai.operation.name\": \"invoke_workflow\",\n+    print(\"  [runner_run] multi-agent handoff via Runner.run (reference implementation)\")\n+    # `Runner` is not itself an agent or a workflow, so its invocation is `invoke_runner`.\n+    runner_span_attributes = {\n+        \"gen_ai.operation.name\": \"invoke_runner\",\n+        \"gen_ai.invocation.is_nested\": False,\n     }\n-    with _reference_tracer.start_as_current_span(\n-        f\"invoke_workflow {workflow_name}\", attributes=workflow_span_attributes\n-    ) as workflow_span:\n-        workflow_span.set_attribute(\"gen_ai.workflow.name\", workflow_name)\n-        workflow_span.set_attribute(\n+    with _reference_tracer.start_as_current_span(\"invoke_runner\", attributes=runner_span_attributes) as runner_span:\n+        runner_span.set_attribute(\n             \"gen_ai.input.messages\", json.dumps([{\"role\": \"user\", \"parts\": [{\"type\": \"text\", \"content\": input_text}]}])\n         )\n \n         # Note: Agent spans (invoke_agent) are expected to be children of the\n-        # workflow span but are omitted for brevity in this scenario.\n-        result = await Runner.run(agent_a, input_text, run_config=RunConfig(workflow_name=workflow_name))\n+        # runner span but are omitted for brevity in this scenario.\n+        result = await Runner.run(agent_a, input_text)",
+      "id": "PRRT_kwDOSUeMrM6wZsmC",
+      "opened": "2026-10-28T18:30:32Z",
+      "path": "reference/scenarios/openai-agents/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-02T14:06:00Z",
+          "body": "`Runner` isn't an agent or a workflow, so its span is `invoke_runner`, and the conventions don't define a name for it. `workflow_name` is the SDK's tracing label for the run rather than an agent or workflow name, so I left `gen_ai.agent.name` unset. Can this be introduced in a future enhancement if needed?",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4443328379"
+        }
+      ],
+      "reviewed": "7179e6694fcc1b35632e48109398cb96028c8e34",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4381070678"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "doesn't it contradict  the \n\n> It is NOT RECOMMENDED to use\n> instrumentation-time constants, framework defaults, or names of types\n> representing the agent or workflow, such as \"StateGraph\n\nbelow?\n\nI.e. does it suggest to use static name when no agent name is available? \nI'm ok with having a fallback, just want to have it clearly stated and consistent.",
+      "created": "2026-10-28T17:13:08Z",
+      "hunk": "@@ -470,6 +470,14 @@ attributes:\n   - key: gen_ai.agent.name\n     type: string\n     brief: Human-readable name of the GenAI agent provided by the application.\n+    note: |\n+      For `invoke_workflow` operations, this is the name of the workflow, for example\n+      the name of a compiled LangGraph graph, a CrewAI `Crew`, or an ADK `Workflow`.",
+      "id": "PRRT_kwDOSUeMrM6xPEuw",
+      "opened": "2026-10-28T18:30:32Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-11-02T14:06:03Z",
+          "body": "No fallback intended to carry over guidance from https://github.com/open-telemetry/semantic-conventions-genai/pull/354. \r\n\r\nAll of these take an application-provided name: LangGraph `compile(name=...)`, CrewAI `Crew(name=...)`, and ADK `Workflow(name=...)` (required). The rule only excludes their defaults (`\"LangGraph\"`, `\"crew\"`) and type names. I reworded the note to \"the name the application gives the workflow\".",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4443328866"
+        }
+      ],
+      "reviewed": "de1eedbfcf4966d75fb7d0a3ff006e27c53e067c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4403737738"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "since it's reused for short and long things, I'd prefer to have more granularity in lower boundaries.\r\n\r\nAlso 1000h is A LOT - these are configurable by users and I would not consider 1000h to be something super-common. Maybe lower it down to 24h and let users configure if they need more? This would also give more granularity to fast sub-agents.\r\n\r\n```suggestion\r\n[0.1, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4, 12.8, 25.6, 51.2, 102.4, 204.8, 409.6, 900, 1800, 3600, 7200, 14400, 43200, 86400].\r\n```",
+      "created": "2026-10-28T17:13:09Z",
+      "hunk": "@@ -623,7 +561,7 @@ It is recommended to check system-specific documentation, if available.\n ### Metric: `gen_ai.invoke_agent.duration`\n \n This metric SHOULD be specified with [ExplicitBucketBoundaries] of\n-[0.1, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4, 12.8, 25.6, 51.2, 102.4, 204.8, 409.6].\n+[0.1, 0.2, 0.4, 1, 5, 10, 30, 60, 120, 300, 600, 1800, 3600, 7200, 36000, 360000, 3600000].",
+      "id": "PRRT_kwDOSUeMrM6xPEw1",
+      "opened": "2026-10-28T18:30:32Z",
+      "path": "docs/gen-ai/gen-ai-metrics.md",
+      "replies": [
+        {
+          "at": "2026-11-02T14:06:06Z",
+          "body": "SGTM, applied. Good to know these are configurable!",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4443329421"
+        }
+      ],
+      "reviewed": "de1eedbfcf4966d75fb7d0a3ff006e27c53e067c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4403737959"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: [README.md#L27](https://github.com/open-telemetry/semantic-conventions-genai/blob/de1eedbfcf4966d75fb7d0a3ff006e27c53e067c/reference/scenarios/openai-agents/README.md#L27) still lists `invoke_workflow` as implemented via `workflow_name`; worth switching that row to `invoke_runner`.\n",
+      "created": "2026-10-28T17:13:10Z",
+      "hunk": "@@ -449,16 +449,13 @@ async def capture_create(*args, **kwargs):\n             trace.get_current_span().set_attribute(\"gen_ai.response.finish_reasons\", finish_reasons)\n         return response\n \n-    print(\"  [workflow_run] agent run as workflow (reference implementation)\")\n-    workflow_name = \"sequential-agents\"\n-    workflow_span_attributes = {\n-        \"gen_ai.operation.name\": \"invoke_workflow\",\n+    print(\"  [runner_run] multi-agent handoff via Runner.run (reference implementation)\")\n+    # `Runner` is not itself an agent or a workflow, so its invocation is `invoke_runner`.",
+      "id": "PRRT_kwDOSUeMrM6xPEzD",
+      "opened": "2026-10-28T18:30:32Z",
+      "path": "reference/scenarios/openai-agents/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-02T14:06:08Z",
+          "body": "SGTM, done.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4443329875"
+        }
+      ],
+      "reviewed": "de1eedbfcf4966d75fb7d0a3ff006e27c53e067c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4403738193"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "maybe \n\n\n```suggestion\n    brief: Human-readable name of the GenAI agent, workflow, or framework entrypoint provided by the application.\n```\n\n?",
+      "created": "2026-10-28T17:31:27Z",
+      "hunk": "@@ -470,6 +470,14 @@ attributes:\n   - key: gen_ai.agent.name\n     type: string\n     brief: Human-readable name of the GenAI agent provided by the application.",
+      "id": "PRRT_kwDOSUeMrM6xPg6N",
+      "opened": "2026-10-28T18:30:32Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-11-02T14:06:10Z",
+          "body": "Applied, then narrowed it back to \"agent or workflow\": entrypoints like `invoke_runner` don't carry a name in this PR, so mentioning them in the brief would be misleading.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4443330293"
+        }
+      ],
+      "reviewed": "de1eedbfcf4966d75fb7d0a3ff006e27c53e067c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4403928365"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "there is this point in the workflow, adapting it to agent name:\n\n```suggestion\n      low-cardinality name is available, this attribute MUST NOT be captured by default.\n      \n      Semantic conventions for individual Generative AI frameworks SHOULD document\n      how `gen_ai.agent.name` is recorded in the context of that framework      \n```",
+      "created": "2026-10-28T17:34:59Z",
+      "hunk": "@@ -470,6 +470,14 @@ attributes:\n   - key: gen_ai.agent.name\n     type: string\n     brief: Human-readable name of the GenAI agent provided by the application.\n+    note: |\n+      For `invoke_workflow` operations, this is the name of the workflow, for example\n+      the name of a compiled LangGraph graph, a CrewAI `Crew`, or an ADK `Workflow`.\n+\n+      This attribute MUST have low cardinality. It is NOT RECOMMENDED to use\n+      instrumentation-time constants, framework defaults, or names of types\n+      representing the agent or workflow, such as \"StateGraph\". When no meaningful,\n+      low-cardinality name is available, this attribute MUST NOT be captured by default.",
+      "id": "PRRT_kwDOSUeMrM6xPmeF",
+      "opened": "2026-10-28T18:30:32Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-11-02T14:06:12Z",
+          "body": "SGTM, applied.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4443330644"
+        }
+      ],
+      "reviewed": "de1eedbfcf4966d75fb7d0a3ff006e27c53e067c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4403965515"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "are there any not covered by invoke_{framework_entrypoint} ?",
+      "created": "2026-10-28T17:43:20Z",
+      "hunk": "@@ -639,15 +639,39 @@ spans:\n     kind: internal\n     name:\n       note: |\n-        **Span name** SHOULD be `invoke_agent {gen_ai.agent.name}` if `gen_ai.agent.name` is readily available.\n-        When `gen_ai.agent.name` is not available, it SHOULD be `invoke_agent`.\n-        Semantic conventions for individual GenAI systems and frameworks MAY specify different span name format.\n+        **Span name** SHOULD be `{gen_ai.operation.name} {gen_ai.agent.name}` if `gen_ai.agent.name`\n+        is readily available. When `gen_ai.agent.name` is not available, it SHOULD be\n+        `{gen_ai.operation.name}`.\n+        Semantic conventions for individual GenAI systems and frameworks MAY specify a different\n+        span name format.\n     brief: >\n-      Describes GenAI agent invocation within the same process.\n+      Describes an in-process GenAI agent, workflow, or framework entrypoint invocation.\n     note: |\n-      The `gen_ai.operation.name` SHOULD be `invoke_agent`.\n-\n-      Examples: LangChain agents, CrewAI agents.\n+      Instrumentations SHOULD set `gen_ai.operation.name` to:\n+\n+      - `invoke_agent` when an LLM drives the control flow through tool calls, for example\n+        LangChain [`create_agent`](https://docs.langchain.com/oss/python/langchain/agents), OpenAI\n+        Agents [`Agent`](https://openai.github.io/openai-agents-python/agents/), CrewAI\n+        [`Agent`](https://docs.crewai.com/concepts/agents), Microsoft Agent Framework\n+        [`Agent`](https://learn.microsoft.com/agent-framework/), Pydantic AI `Agent`, and ADK\n+        [`LlmAgent`](https://adk.dev/agents/llm-agents/).\n+      - `invoke_workflow` when the application defines the control flow, for example LangGraph\n+        [`StateGraph`](https://reference.langchain.com/python/langgraph/graphs), Microsoft Agent\n+        Framework [`Workflow`](https://learn.microsoft.com/agent-framework/workflows/), CrewAI\n+        [`Crew`](https://docs.crewai.com/concepts/crews), and ADK `Workflow`.\n+      - `invoke_{framework_entrypoint}` when the framework entrypoint is not itself an agent or a\n+        workflow, where `{framework_entrypoint}` is the framework's name for the entrypoint, for\n+        example `invoke_runner` for ADK [`Runner.run(...)`](https://adk.dev/runtime/) and OpenAI\n+        Agents [`Runner.run(...)`](https://openai.github.io/openai-agents-python/ref/run/#agents.run.Runner.run).\n+\n+      Framework-specific semantic conventions SHOULD specify the operation for cases not covered\n+      above.",
+      "id": "PRRT_kwDOSUeMrM6xPzxG",
+      "opened": "2026-10-28T18:30:32Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-11-02T14:06:15Z",
+          "body": "No, removed",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4443331187"
+        }
+      ],
+      "reviewed": "de1eedbfcf4966d75fb7d0a3ff006e27c53e067c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4404054034"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "do we still need to refine it here if we put this (including entrypoint mention) in the attribute definition? Left a suggestion there.",
+      "created": "2026-10-28T17:46:48Z",
+      "hunk": "@@ -656,9 +680,48 @@ spans:\n       - ref: gen_ai.operation.name\n         sampling_relevant: true\n       - ref: gen_ai.request.model\n+        requirement_level:\n+          recommended: When `gen_ai.operation.name` is `invoke_agent`, if applicable.\n         sampling_relevant: true\n       - ref: gen_ai.agent.name\n+        brief: The human-readable name of the invoked GenAI agent or workflow.",
+      "id": "PRRT_kwDOSUeMrM6xP5QB",
+      "opened": "2026-10-28T18:30:32Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-11-02T14:06:17Z",
+          "body": "Good point, dropped the span-level brief since the registry one now covers it.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4443331683"
+        }
+      ],
+      "reviewed": "de1eedbfcf4966d75fb7d0a3ff006e27c53e067c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4404090799"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "what if we define span without all these things specific to agent only and have a span refinement that's specifically for agent that would include them all and say that invoke_agent is expected? we can also have span refinement for workflow where we'd mention that invoke_workflow is the expected operation name.\n\nI don't think it's blocking and I can take it as a follow up and send a PR. ",
+      "created": "2026-10-28T17:49:15Z",
+      "hunk": "@@ -656,9 +680,48 @@ spans:\n       - ref: gen_ai.operation.name\n         sampling_relevant: true\n       - ref: gen_ai.request.model\n+        requirement_level:\n+          recommended: When `gen_ai.operation.name` is `invoke_agent`, if applicable.\n         sampling_relevant: true\n       - ref: gen_ai.agent.name\n+        brief: The human-readable name of the invoked GenAI agent or workflow.\n         sampling_relevant: true\n+      - ref: gen_ai.request.max_tokens\n+        requirement_level:\n+          recommended: When `gen_ai.operation.name` is `invoke_agent`.\n+      - ref: gen_ai.request.choice.count\n+        requirement_level:\n+          conditionally_required: When `gen_ai.operation.name` is `invoke_agent`, if available, in the request, and !=1.\n+      - ref: gen_ai.request.temperature\n+        requirement_level:\n+          recommended: When `gen_ai.operation.name` is `invoke_agent`.\n+      - ref: gen_ai.request.top_p\n+        requirement_level:\n+          recommended: When `gen_ai.operation.name` is `invoke_agent`.\n+      - ref: gen_ai.request.stop_sequences\n+        requirement_level:\n+          recommended: When `gen_ai.operation.name` is `invoke_agent`.\n+      - ref: gen_ai.request.frequency_penalty\n+        requirement_level:\n+          recommended: When `gen_ai.operation.name` is `invoke_agent`.\n+      - ref: gen_ai.request.presence_penalty\n+        requirement_level:\n+          recommended: When `gen_ai.operation.name` is `invoke_agent`.",
+      "id": "PRRT_kwDOSUeMrM6xP-MN",
+      "opened": "2026-10-28T18:30:32Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-11-02T14:06:19Z",
+          "body": "Love the idea! This PR already has a lot going on, and I'd struggle to keep track of the fixes if I stacked it here, so a follow-up from you would be great.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4443332116"
+        }
+      ],
+      "reviewed": "de1eedbfcf4966d75fb7d0a3ff006e27c53e067c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4404121963"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "maybe we should carry it over to invoke_{entrypoint} operation note? that it's up to individual framework conventions / instrumentations to decide and document what type of entrypoint and other operations they have. Feel free to ignore if you think it's described there already.",
+      "created": "2026-10-28T17:59:45Z",
+      "hunk": "@@ -715,58 +778,6 @@ spans:\n       - ref: gen_ai.tool.call.result\n         requirement_level: opt_in\n \n-  - type: gen_ai.invoke_workflow.internal\n-    requirement_level: recommended\n-    kind: internal\n-    name:\n-      note: >\n-        **Span name** SHOULD be `invoke_workflow {gen_ai.workflow.name}`.\n-    brief: >\n-      Represents an operation that executes a coordinated process composed of multiple agents\n-      or other operations involving generative AI.\n-    note: |\n-      The `gen_ai.operation.name` SHOULD be `invoke_workflow`.\n-\n-      The workflow span SHOULD be reported for operations that trigger the execution\n-      of composable processes (e.g., graphs, orchestrators) coordinating multiple\n-      agents or GenAI calls. It SHOULD NOT be reported for standalone agent invocations.\n-\n-      The `invoke_workflow` span SHOULD NOT be reported when the workflow invocation is\n-      an internal implementation detail of another operation (e.g., an agent or tool that\n-      spins up a runner/workflow under the hood to delegate to a sub-agent) rather than\n-      a user-facing entry point. Workflows defined by the application SHOULD be reported\n-      even when nested, for example a sub-graph invoked as a node of another graph.\n-\n-      Framework-specific semantic conventions SHOULD define which operations to report\n-      as workflows and MAY specify heuristics to distinguish them from standalone\n-      agent invocations and internal operations.",
+      "id": "PRRT_kwDOSUeMrM6xQN9N",
+      "opened": "2026-10-28T18:30:32Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-11-02T14:06:21Z",
+          "body": "Went with a broader note instead: framework conventions and instrumentations SHOULD document which of their operations are `invoke_agent`, `invoke_workflow`, or `invoke_{framework_entrypoint}`, and the entrypoint names they use.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4443332522"
+        }
+      ],
+      "reviewed": "de1eedbfcf4966d75fb7d0a3ff006e27c53e067c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4404227675"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "not blocking:  related to earlier comment on the static agent name in registry definition - if we use `Crew` or graph name as fallbacks for agent name, should we fallback for all the things? e.g. langchain agents can be unnamed, we can put `unknown` or fallback to class name too. \n\nif we don't require agent name, maybe we don't need a fallback there?",
+      "created": "2026-10-28T18:07:49Z",
+      "hunk": "@@ -202,42 +167,50 @@ metrics:\n     stability: development\n     attributes:\n       - ref_group: attributes.gen_ai.error\n+      - ref: gen_ai.operation.name\n+        requirement_level: required\n       - ref_group: attributes.gen_ai.invoked_agent.internal.common\n+      - ref: gen_ai.request.model\n+        requirement_level:\n+          recommended: When `gen_ai.operation.name` is `invoke_agent`, if applicable.\n   - name: gen_ai.invoke_agent.inference_calls\n     annotations:\n       code_generation:\n         metric_value_type: int\n     brief: >\n-      The number of inference (model) calls a GenAI agent makes during a\n-      single invocation.\n+      The number of inference (model) calls a GenAI agent, workflow, or\n+      framework entrypoint makes during a single invocation.\n     note: |\n-      The distribution is scoped to a single agent invocation and SHOULD include\n-      only the inference calls the agent itself issued including failed ones;\n-      calls made by sub-agents or transferred-to agents are recorded against\n-      those agents' own invocations so that each inference call is counted\n-      exactly once across the call tree.\n+      The distribution is scoped to a single invocation and SHOULD include\n+      only the inference calls the invocation itself issued including failed\n+      ones; calls made by nested invocations (for example, sub-agents or\n+      transferred-to agents) are recorded against those invocations so that\n+      each inference call is counted exactly once across the call tree.\n \n       This metric SHOULD be emitted together with the\n       `gen_ai.invoke_agent.internal` span for the same invocation.\n     instrument: histogram\n     unit: \"{inference_call}\"\n     stability: development\n     attributes:\n+      - ref: gen_ai.operation.name\n+        requirement_level: required\n       - ref: gen_ai.agent.name\n-        requirement_level: recommended\n+        requirement_level:\n+          conditionally_required: When available.",
+      "id": "PRRT_kwDOSUeMrM6xQaM4",
+      "opened": "2026-10-28T18:30:32Z",
+      "path": "model/gen-ai/metrics.yaml",
+      "replies": [
+        {
+          "at": "2026-11-02T14:06:24Z",
+          "body": "Agreed, no fallbacks. When there's no application-provided name, `gen_ai.agent.name` isn't recorded, matching the `gen_ai.workflow.name` guidance from #354.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4443332839"
+        }
+      ],
+      "reviewed": "de1eedbfcf4966d75fb7d0a3ff006e27c53e067c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4404309895"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit, we can probably override parent note with \"\" for a2a (and if we end up changing original brief be wider, we should make a2a one more narrow) because agent definition is pretty clear here.",
+      "created": "2026-10-28T18:15:39Z",
+      "hunk": "@@ -202,15 +210,15 @@ SHOULD enrich the transport server span instead - see A2A\n | [`a2a.tenant`](/docs/registry/attributes/a2a.md) | ![Development](https://img.shields.io/badge/-development-blue) | `Conditionally Required` When the A2A request `tenant` field is set. | string | The opaque routing identifier of the target [A2A tenant](https://github.com/a2aproject/A2A/blob/main/docs/topics/multi-tenancy.md). | `billing` |\n | [`error.type`](https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/docs/registry/attributes/error.md) | ![Stable](https://img.shields.io/badge/-stable-lightgreen) | `Conditionally Required` If and only if the operation fails. | string | Describes a class of error the operation ended with. [7] | `timeout`; `java.net.UnknownHostException`; `server_certificate_invalid`; `500` |\n | [`gen_ai.agent.description`](/docs/registry/attributes/gen-ai.md) | ![Development](https://img.shields.io/badge/-development-blue) | `Conditionally Required` When available from the Agent Card. | string | Free-form description of the GenAI agent provided by the application. | `Helps with math problems`; `Generates fiction stories` |\n-| [`gen_ai.agent.name`](/docs/registry/attributes/gen-ai.md) | ![Development](https://img.shields.io/badge/-development-blue) | `Conditionally Required` When available from the Agent Card. | string | Human-readable name of the GenAI agent provided by the application. | `Math Tutor`; `Fiction Writer` |\n+| [`gen_ai.agent.name`](/docs/registry/attributes/gen-ai.md) | ![Development](https://img.shields.io/badge/-development-blue) | `Conditionally Required` When available from the Agent Card. | string | Human-readable name of the GenAI agent provided by the application. [8] | `Math Tutor`; `Fiction Writer` |",
+      "id": "PRRT_kwDOSUeMrM6xQlsw",
+      "opened": "2026-10-28T18:30:32Z",
+      "path": "docs/gen-ai/a2a.md",
+      "replies": [
+        {
+          "at": "2026-11-02T14:06:26Z",
+          "body": "Done. a2a now narrows the brief to the Agent Card name and overrides the note with `\"\"`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4443333270"
+        }
+      ],
+      "reviewed": "de1eedbfcf4966d75fb7d0a3ff006e27c53e067c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4404387037"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "ask to myself, update all examples to include span type",
+      "created": "2026-10-28T18:16:18Z",
+      "hunk": "",
+      "id": "PRRT_kwDOSUeMrM6xQmr-",
+      "opened": "2026-10-28T18:30:32Z",
+      "path": "docs/gen-ai/non-normative/examples-agent-calls.md",
+      "replies": [],
+      "reviewed": "de1eedbfcf4966d75fb7d0a3ff006e27c53e067c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4404393679"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "it's the same as line 17, remove heading?",
+      "created": "2026-10-28T18:20:03Z",
+      "hunk": "@@ -14,10 +14,9 @@ linkTitle: Metrics\n   - [Metric: `gen_ai.server.request.duration`](#metric-gen_aiserverrequestduration)\n   - [Metric: `gen_ai.server.time_per_output_token`](#metric-gen_aiservertime_per_output_token)\n   - [Metric: `gen_ai.server.time_to_first_token`](#metric-gen_aiservertime_to_first_token)\n-- [Generative AI workflow metrics](#generative-ai-workflow-metrics)\n-  - [Metric: `gen_ai.invoke_workflow.duration`](#metric-gen_aiinvoke_workflowduration)\n - [Generative AI agent metrics](#generative-ai-agent-metrics)\n   - [Metric: `gen_ai.invoke_agent.duration`](#metric-gen_aiinvoke_agentduration)\n+- [Generative AI agent metrics](#generative-ai-agent-metrics)",
+      "id": "PRRT_kwDOSUeMrM6xQsbl",
+      "opened": "2026-10-28T18:30:32Z",
+      "path": "docs/gen-ai/gen-ai-metrics.md",
+      "replies": [
+        {
+          "at": "2026-11-02T14:06:28Z",
+          "body": "Done.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4443333640"
+        }
+      ],
+      "reviewed": "de1eedbfcf4966d75fb7d0a3ff006e27c53e067c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4404431420"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "This shouldn't need open-telemetry/semantic-conventions-conformance#322. A `spans` matcher with `type` in `conformance.yaml` overrides span classification, and the other two runner findings (the `invoke_workflow` span name keyed on `gen_ai.workflow.name` and the unknown `invoke_runner` operation) can go in `expected_violations`. I left suggestions on the affected scenarios. That keeps the pin on upstream, and #322 can be picked up later.\n\n```suggestion\nCONFORMANCE_REPO_URL=https://github.com/open-telemetry/semantic-conventions-conformance.git\nCONFORMANCE_REF=dfd20d85e458e2ee37522c0658c3e686802a9053\n```",
+      "created": "2026-10-28T18:22:24Z",
+      "hunk": "@@ -6,5 +6,6 @@ POLICY_REPO_URL=https://github.com/open-telemetry/opentelemetry-weaver-packages.\n POLICY_REPO_REF=d84341cf20a1fef1a833ef44d318c41a770e6e64\n \n # renovate: datasource=git-refs depName=open-telemetry/semantic-conventions-conformance versioning=git ref=main\n-CONFORMANCE_REPO_URL=https://github.com/open-telemetry/semantic-conventions-conformance.git\n-CONFORMANCE_REF=dfd20d85e458e2ee37522c0658c3e686802a9053\n+# Temporarily a fork, until open-telemetry/semantic-conventions-conformance#322 merges.\n+CONFORMANCE_REPO_URL=https://github.com/RKest/semantic-conventions-conformance.git\n+CONFORMANCE_REF=71ad57921853db1c5b5a2acfd85f57912190b55a",
+      "id": "PRRT_kwDOSUeMrM6xQv3W",
+      "opened": "2026-10-28T18:30:32Z",
+      "path": "versions.env",
+      "replies": [
+        {
+          "at": "2026-11-02T14:06:31Z",
+          "body": "Thanks, switched back to the upstream pin and moved the overrides into each scenario's `conformance.yaml`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4443334040"
+        }
+      ],
+      "reviewed": "de1eedbfcf4966d75fb7d0a3ff006e27c53e067c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4404454241"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "With the upstream runner pin, a matcher classifies the runner span, and the unknown operation goes to `expected_violations` (context taken from the runner's rego, so worth re-running to confirm):\n\n```suggestion\n      - id: required_attribute_not_present\n        context:\n          attribute_key: gen_ai.operation.name\n        reason: ADK native instrumentation records the gen_ai.invoke_agent.* metrics without gen_ai.operation.name.\n      - id: genai_operation_name_unknown\n        context:\n          operation: invoke_runner\n        reason: The runner does not know invoke_runner yet.\n    spans:\n      - match:\n          attributes:\n            gen_ai.operation.name: invoke_runner\n          type: gen_ai.invoke_agent.internal\n```",
+      "created": "2026-10-28T18:22:25Z",
+      "hunk": "@@ -56,3 +56,7 @@ scenarios:\n           expected: '{tool_call}'\n           unit: '1'\n         reason: OTel SDK emits unit '1' instead of '{inference_call}'/'{tool_call}'; fix histogram unit.\n+      - id: required_attribute_not_present\n+        context:\n+          attribute_key: gen_ai.operation.name\n+        reason: ADK native instrumentation records the gen_ai.invoke_agent.* metrics without gen_ai.operation.name.",
+      "id": "PRRT_kwDOSUeMrM6xQv58",
+      "opened": "2026-10-28T18:30:32Z",
+      "path": "reference/scenarios/google-adk/conformance.yaml",
+      "replies": [
+        {
+          "at": "2026-11-02T14:06:33Z",
+          "body": "Applied, thanks!",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4443334525"
+        }
+      ],
+      "reviewed": "de1eedbfcf4966d75fb7d0a3ff006e27c53e067c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4404454487"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Same as `versions.env`: with the upstream runner pin, this could go in `crewai/conformance.yaml` under `scenarios.reference` (not in the diff, so no suggestion block):\n\n```yaml\n    expected_violations:\n      - id: genai_span_name_format\n        context:\n          expected_form: invoke_workflow\n          keyed_attr: gen_ai.workflow.name\n          operation: invoke_workflow\n        reason: The runner still keys invoke_workflow span names on gen_ai.workflow.name.\n    spans:\n      - match:\n          attributes:\n            gen_ai.operation.name: invoke_workflow\n          type: gen_ai.invoke_agent.internal\n```",
+      "created": "2026-10-28T18:22:26Z",
+      "hunk": "@@ -87,17 +87,17 @@ def get_weather(location: str) -> str:\n         agent=researcher,\n     )\n \n-    crew = Crew(agents=[researcher], tasks=[task], verbose=False)\n-    workflow_name = getattr(crew, \"name\", None)\n+    # CrewAI names every crew \"crew\" unless the application names it, and that default\n+    # identifies nothing, so the crew gets an application-defined name.\n+    crew = Crew(name=\"weather_crew\", agents=[researcher], tasks=[task], verbose=False)\n \n     workflow_span_attributes = {\n         \"gen_ai.operation.name\": \"invoke_workflow\",\n+        \"gen_ai.agent.name\": crew.name,\n     }\n     with _reference_tracer.start_as_current_span(\n-        \"invoke_workflow crew\", attributes=workflow_span_attributes\n+        f\"invoke_workflow {crew.name}\", attributes=workflow_span_attributes",
+      "id": "PRRT_kwDOSUeMrM6xQv73",
+      "opened": "2026-10-28T18:30:32Z",
+      "path": "reference/scenarios/crewai/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-02T14:06:35Z",
+          "body": "Applied, thanks!",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4443334851"
+        }
+      ],
+      "reviewed": "de1eedbfcf4966d75fb7d0a3ff006e27c53e067c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4404454690"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Same as `versions.env`: with the upstream runner pin, this could go in `langchain/conformance.yaml` (not in the diff). Add the violation to the existing `expected_violations` and add a `spans` section:\n\n```yaml\n      - id: genai_span_name_format\n        context:\n          expected_form: invoke_workflow\n          keyed_attr: gen_ai.workflow.name\n          operation: invoke_workflow\n        reason: The runner still keys invoke_workflow span names on gen_ai.workflow.name.\n    spans:\n      - match:\n          attributes:\n            gen_ai.operation.name: invoke_workflow\n          type: gen_ai.invoke_agent.internal\n```",
+      "created": "2026-10-28T18:22:27Z",
+      "hunk": "@@ -294,7 +294,7 @@ async def run_workflow_reference():\n     with _reference_tracer.start_as_current_span(\n         f\"invoke_workflow {workflow_name}\", attributes=workflow_span_attributes\n     ) as workflow_span:\n-        workflow_span.set_attribute(\"gen_ai.workflow.name\", workflow_name)\n+        workflow_span.set_attribute(\"gen_ai.agent.name\", workflow_name)",
+      "id": "PRRT_kwDOSUeMrM6xQv9a",
+      "opened": "2026-10-28T18:30:32Z",
+      "path": "reference/scenarios/langchain/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-02T14:06:37Z",
+          "body": "Applied, thanks!",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4443335203"
+        }
+      ],
+      "reviewed": "de1eedbfcf4966d75fb7d0a3ff006e27c53e067c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4404454852"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Same as `versions.env`: with the upstream runner pin, this could go in `openai-agents/conformance.yaml` (not in the diff). Add the violation to the existing `expected_violations` and add a `spans` section:\n\n```yaml\n      - id: genai_operation_name_unknown\n        context:\n          operation: invoke_runner\n        reason: The runner does not know invoke_runner yet.\n    spans:\n      - match:\n          attributes:\n            gen_ai.operation.name: invoke_runner\n          type: gen_ai.invoke_agent.internal\n```",
+      "created": "2026-10-28T18:22:28Z",
+      "hunk": "@@ -449,16 +449,13 @@ async def capture_create(*args, **kwargs):\n             trace.get_current_span().set_attribute(\"gen_ai.response.finish_reasons\", finish_reasons)\n         return response\n \n-    print(\"  [workflow_run] agent run as workflow (reference implementation)\")\n-    workflow_name = \"sequential-agents\"\n-    workflow_span_attributes = {\n-        \"gen_ai.operation.name\": \"invoke_workflow\",\n+    print(\"  [runner_run] multi-agent handoff via Runner.run (reference implementation)\")\n+    # `Runner` is not itself an agent or a workflow, so its invocation is `invoke_runner`.\n+    runner_span_attributes = {\n+        \"gen_ai.operation.name\": \"invoke_runner\",\n     }\n-    with _reference_tracer.start_as_current_span(\n-        f\"invoke_workflow {workflow_name}\", attributes=workflow_span_attributes\n-    ) as workflow_span:\n-        workflow_span.set_attribute(\"gen_ai.workflow.name\", workflow_name)\n-        workflow_span.set_attribute(\n+    with _reference_tracer.start_as_current_span(\"invoke_runner\", attributes=runner_span_attributes) as runner_span:",
+      "id": "PRRT_kwDOSUeMrM6xQv_c",
+      "opened": "2026-10-28T18:30:32Z",
+      "path": "reference/scenarios/openai-agents/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-02T14:06:40Z",
+          "body": "Applied, thanks!",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4443335593"
+        }
+      ],
+      "reviewed": "de1eedbfcf4966d75fb7d0a3ff006e27c53e067c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4404455055"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "No reference scenario records the newly required `gen_ai.operation.name` on `gen_ai.invoke_agent.duration`; the committed Google ADK and ADK A2A samples contain only `gen_ai.agent.name`. This leaves the merged duration contract without reference coverage required by `.github/instructions/evaluate-reference.instructions.md:40-43`. Record durations around representative agent, workflow, and runner library calls with the corresponding operation name, then regenerate the scenario data.",
+      "created": "2026-11-02T18:31:12Z",
+      "hunk": "@@ -207,42 +172,60 @@ metrics:\n     stability: development\n     attributes:\n       - ref_group: attributes.gen_ai.error\n+      - ref: gen_ai.operation.name\n+        requirement_level: required",
+      "id": "PRRT_kwDOSUeMrM6yzs6s",
+      "opened": "2026-11-02T18:31:13Z",
+      "path": "model/gen-ai/metrics.yaml",
+      "replies": [
+        {
+          "at": "2026-11-03T15:13:21Z",
+          "body": "Added in b3afa99baf43f57da0740e89bbab4bbd06c2db63: the google-adk scenario now records gen_ai.invoke_agent.duration with gen_ai.operation.name for both the invoke_runner and the invoke_agent invocation.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4456571020"
+        }
+      ],
+      "reviewed": "11fdeb6e6d9ca5b9659e844f33d6104ff3d3687d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4446215314"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The changed `gen_ai.output.type` requirement has no supporting internal-agent scenario, and `reference/reports/invoke-agent-internal-span.md` still reports `(none)`. Add an internal-agent scenario that requests an output format through the library API and derives this attribute from that configuration, then regenerate the data and reports. `.github/instructions/evaluate-reference.instructions.md:7-23` requires reference coverage for changed fields.",
+      "created": "2026-11-02T18:31:13Z",
+      "hunk": "@@ -679,9 +703,47 @@ spans:\n             omit_enum_table: true\n         sampling_relevant: true\n       - ref: gen_ai.request.model\n+        requirement_level:\n+          recommended: When `gen_ai.operation.name` is `invoke_agent`, if applicable.\n         sampling_relevant: true\n       - ref: gen_ai.agent.name\n         sampling_relevant: true\n+      - ref: gen_ai.request.max_tokens\n+        requirement_level:\n+          recommended: When `gen_ai.operation.name` is `invoke_agent`.\n+      - ref: gen_ai.request.choice.count\n+        requirement_level:\n+          conditionally_required: When `gen_ai.operation.name` is `invoke_agent`, if available, in the request, and !=1.\n+      - ref: gen_ai.request.temperature\n+        requirement_level:\n+          recommended: When `gen_ai.operation.name` is `invoke_agent`.\n+      - ref: gen_ai.request.top_p\n+        requirement_level:\n+          recommended: When `gen_ai.operation.name` is `invoke_agent`.\n+      - ref: gen_ai.request.stop_sequences\n+        requirement_level:\n+          recommended: When `gen_ai.operation.name` is `invoke_agent`.\n+      - ref: gen_ai.request.frequency_penalty\n+        requirement_level:\n+          recommended: When `gen_ai.operation.name` is `invoke_agent`.\n+      - ref: gen_ai.request.presence_penalty\n+        requirement_level:\n+          recommended: When `gen_ai.operation.name` is `invoke_agent`.\n+      - ref: gen_ai.request.seed\n+        requirement_level:\n+          conditionally_required: When `gen_ai.operation.name` is `invoke_agent`, if applicable and if the request includes a seed.\n+      - ref: gen_ai.output.type\n+        requirement_level:\n+          conditionally_required: When `gen_ai.operation.name` is `invoke_agent`, when applicable and if the request includes an output format.",
+      "id": "PRRT_kwDOSUeMrM6yzs7R",
+      "opened": "2026-11-02T18:31:13Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "11fdeb6e6d9ca5b9659e844f33d6104ff3d3687d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4446215385"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "(if this is the text we're going with everywhere)\n```suggestion\n    brief: Human-readable name of the GenAI agent, workflow, or framework entrypoint provided by the application.\n```",
+      "created": "2026-11-02T19:05:47Z",
+      "hunk": "@@ -481,7 +481,15 @@ attributes:\n     stability: development\n   - key: gen_ai.agent.name\n     type: string\n-    brief: Human-readable name of the GenAI agent provided by the application.\n+    brief: Human-readable name of the GenAI agent or workflow provided by the application.",
+      "id": "PRRT_kwDOSUeMrM6y0gDC",
+      "opened": "2026-11-02T19:10:33Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-11-03T15:15:53Z",
+          "body": "I landed on not recording `gen_ai.agent.name` for entrypoint spans.\r\n\r\nRecording it would require specifying what `gen_ai.agent.name` means on these spans and so-far we don't have a need for this right now.\r\n\r\nThis can be a future enhancement if ever needed.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4456602766"
+        },
+        {
+          "at": "2026-11-05T03:18:25Z",
+          "body": "makes sense 👍 ",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4476231335"
+        }
+      ],
+      "reviewed": "11fdeb6e6d9ca5b9659e844f33d6104ff3d3687d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4446558030"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "just a thought to reduce re-saying \"GenAI agent, workflow, or framework entrypoint\"\n```suggestion\n      instrumentation-time constants, framework defaults, or type names such as \"StateGraph\". When no meaningful,\n```",
+      "created": "2026-11-02T19:10:17Z",
+      "hunk": "@@ -481,7 +481,15 @@ attributes:\n     stability: development\n   - key: gen_ai.agent.name\n     type: string\n-    brief: Human-readable name of the GenAI agent provided by the application.\n+    brief: Human-readable name of the GenAI agent or workflow provided by the application.\n+    note: |\n+      This attribute MUST have low cardinality. It is NOT RECOMMENDED to use\n+      instrumentation-time constants, framework defaults, or names of types\n+      representing the agent or workflow, such as \"StateGraph\". When no meaningful,",
+      "id": "PRRT_kwDOSUeMrM6y0m7r",
+      "opened": "2026-11-02T19:10:33Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [],
+      "reviewed": "11fdeb6e6d9ca5b9659e844f33d6104ff3d3687d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4446603946"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\nMerge the `invoke_workflow` span and metric into `gen_ai.invoke_agent.internal` and `gen_ai.invoke_agent.duration`. Replace `gen_ai.workflow.name` with `gen_ai.agent.name`.\n\n```",
+      "created": "2026-11-02T17:49:15Z",
+      "hunk": "@@ -0,0 +1 @@\n+Merge `gen_ai.invoke_workflow.internal` into `gen_ai.invoke_agent.internal` and `gen_ai.invoke_workflow.duration` into `gen_ai.invoke_agent.duration`; `gen_ai.operation.name` tells agent, workflow, and framework entrypoint invocations apart. Remove `gen_ai.workflow.name`: workflow invocations record their name in `gen_ai.agent.name`. Framework entrypoints that are not themselves an agent or a workflow use an `invoke_{framework_entrypoint}` operation name instead of `invoke_workflow`, for example `invoke_runner` for ADK and OpenAI Agents `Runner.run(...)`. `gen_ai.operation.name` is now required on `gen_ai.invoke_agent.duration`, `gen_ai.invoke_agent.inference_calls`, and `gen_ai.invoke_agent.tool_calls`, and `gen_ai.agent.name` is conditionally required on the latter two. The low-cardinality guidance for `gen_ai.agent.name` (no instrumentation-time constants, framework defaults, or type names; not captured by default when no meaningful name is available) now applies wherever the attribute is used.",
+      "id": "PRRT_kwDOSUeMrM6yyope",
+      "opened": "2026-11-02T19:26:53Z",
+      "path": "changelog.d/571.breaking.md",
+      "replies": [],
+      "reviewed": "11fdeb6e6d9ca5b9659e844f33d6104ff3d3687d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4445759046"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "are these two friends the same now?",
+      "created": "2026-11-02T17:50:59Z",
+      "hunk": "@@ -24,6 +24,6 @@ target's SDK turn begins. Each agent's turn has its own `invoke_agent` span.\n | --- | --- | --- |\n | inference (`chat`) | No — delegates to the `openai` client | ✅ Correctly not emitted |\n | invoke_agent (internal) | Yes — `Runner.run` on an agent | ✅ Implemented |\n-| invoke_workflow | Yes — the SDK's tracing models a run as a workflow (`workflow_name`) | ✅ Implemented |\n+| invoke_runner | Yes — `Runner.run` is the SDK entrypoint | ✅ Implemented |",
+      "id": "PRRT_kwDOSUeMrM6yyrXP",
+      "opened": "2026-11-02T19:26:53Z",
+      "path": "reference/scenarios/openai-agents/README.md",
+      "replies": [
+        {
+          "at": "2026-11-03T15:23:02Z",
+          "body": "Reworded the `invoke_agent` row in c7157858e7b8bfb3a0c2c0cc84f83163be4d5cc1: `invoke_runner` is the `Runner.run` call, and `invoke_agent` is each agent it executes.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4456693793"
+        }
+      ],
+      "reviewed": "11fdeb6e6d9ca5b9659e844f33d6104ff3d3687d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4445777533"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: should we clarify anything here? they both point to the same operation at least in the text",
+      "created": "2026-11-02T17:53:10Z",
+      "hunk": "@@ -19,7 +19,7 @@ tool executes. The transfer records `pass_control`; the target's separate\n | --- | --- | --- |\n | inference (`chat`) | No — delegates to the model client (`google-genai`) | ✅ Correctly not emitted |\n | invoke_agent (internal) | Yes — agent run | ✅ Implemented |\n-| invoke_workflow | Yes — workflow agents (e.g. `SequentialAgent`) | ✅ Implemented |\n+| invoke_runner | Yes — `Runner.run` is the SDK entrypoint | ✅ Implemented |",
+      "id": "PRRT_kwDOSUeMrM6yyukF",
+      "opened": "2026-11-02T19:26:53Z",
+      "path": "reference/scenarios/google-adk/README.md",
+      "replies": [
+        {
+          "at": "2026-11-03T15:23:07Z",
+          "body": "Reworded the `invoke_agent` row in c7157858e7b8bfb3a0c2c0cc84f83163be4d5cc1: `invoke_runner` is the `Runner.run` call, and `invoke_agent` is each agent it executes.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4456694935"
+        }
+      ],
+      "reviewed": "11fdeb6e6d9ca5b9659e844f33d6104ff3d3687d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4445799774"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit, independently we're splitting this metric into per-operation variants\n\n```suggestion\n      `gen_ai.client.*.duration`,  SHOULD be used instead.\n```",
+      "created": "2026-11-02T17:57:51Z",
+      "hunk": "@@ -147,58 +147,23 @@ metrics:\n         metric_value_type: double\n     attributes:\n       - ref_group: metric_attributes.gen_ai\n-  - name: gen_ai.invoke_workflow.duration\n-    requirement_level: recommended\n-    annotations:\n-      code_generation:\n-        metric_value_type: double\n-    brief: 'Records duration of GenAI workflow.'\n-    note: >\n-      Represents the end-to-end duration of a workflow execution, measured from the point\n-      where application code initiates the workflow to the point where the workflow completes,\n-      independent of workflow complexity.\n-\n-      A workflow is a coordinated process composed of multiple agents or other\n-      operations involving generative AI.\n-\n-      If instrumentation measures only a single provider-facing client operation\n-      (for example, one model API call), `gen_ai.client.operation.duration` SHOULD be used instead.\n-      Instrumentation MAY emit both metrics for the same request path when both boundaries are available.\n-\n-      When this metric is reported alongside a `gen_ai.invoke_workflow.internal` span, the metric value SHOULD be the same as the span duration.\n-\n-      Individual systems may include additional system-specific attributes.\n-      Refer to system-specific documentation, if available.\n-    instrument: histogram\n-    unit: \"s\"\n-    stability: development\n-    attributes:\n-      - ref_group: attributes.gen_ai.error\n-      - ref: gen_ai.workflow.name\n-        requirement_level:\n-          conditionally_required: If available.\n   - name: gen_ai.invoke_agent.duration\n     requirement_level: recommended\n     annotations:\n       code_generation:\n         metric_value_type: double\n     brief: >\n-      The end-to-end duration of a single in-process agent invocation,\n-      from the moment the invocation starts until the agent emits\n-      the last chunk of its final response or terminates with an error.\n+      The end-to-end duration of a single in-process agent, workflow, or\n+      framework entrypoint invocation, from the moment the invocation starts until\n+      it emits the last chunk of its final response or terminates with an error.\n     note: |\n       Intended for instrumentations of agent frameworks (for example, ADK,\n       LangChain agents, CrewAI agents) that can reliably bound a single\n-      agent invocation.\n+      agent, workflow, or framework entrypoint invocation.\n \n       If instrumentation can only measure a single provider-facing client\n       operation (for example, one model API call),\n-      `gen_ai.client.operation.duration` SHOULD be used instead. If\n-      instrumentation can reliably bound a higher-level workflow that\n-      coordinates multiple agents, `gen_ai.invoke_workflow.duration` SHOULD be\n-      used for that workflow. Instrumentation MAY emit several of these\n-      metrics for the same request path when more than one boundary is\n-      available.\n+      `gen_ai.client.operation.duration` SHOULD be used instead.",
+      "id": "PRRT_kwDOSUeMrM6yy1rT",
+      "opened": "2026-11-02T19:26:53Z",
+      "path": "model/gen-ai/metrics.yaml",
+      "replies": [],
+      "reviewed": "11fdeb6e6d9ca5b9659e844f33d6104ff3d3687d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4445847329"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "we're trying to provide better guidance for duration metrics - https://github.com/open-telemetry/semantic-conventions/pull/4280 to have more user-friendly boundaries (decimal and minutes-friendly), @trask has https://github.com/open-telemetry/semantic-conventions-genai/pull/655 out to implement it here, we probably need to discuss and align a bit",
+      "created": "2026-11-02T19:25:25Z",
+      "hunk": "@@ -623,7 +560,7 @@ It is recommended to check system-specific documentation, if available.\n ### Metric: `gen_ai.invoke_agent.duration`\n \n This metric SHOULD be specified with [ExplicitBucketBoundaries] of\n-[0.1, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4, 12.8, 25.6, 51.2, 102.4, 204.8, 409.6].\n+[0.1, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4, 12.8, 25.6, 51.2, 102.4, 204.8, 409.6, 900, 1800, 3600, 7200, 14400, 43200, 86400].",
+      "id": "PRRT_kwDOSUeMrM6y09VC",
+      "opened": "2026-11-02T19:26:53Z",
+      "path": "docs/gen-ai/gen-ai-metrics.md",
+      "replies": [
+        {
+          "at": "2026-11-02T19:43:27Z",
+          "body": "#655 has overlaps with several PRs right now, thinking to just let the other PRs go through and then fix up #655",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4446935583"
+        }
+      ],
+      "reviewed": "11fdeb6e6d9ca5b9659e844f33d6104ff3d3687d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/571#discussion_r4446756371"
+    }
+  ]
+}

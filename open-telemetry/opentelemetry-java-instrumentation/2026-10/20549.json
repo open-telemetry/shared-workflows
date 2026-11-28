@@ -1,0 +1,115 @@
+{
+  "head": "dd595231dee3c124ca6176c4d9bb2ac2c6b7cd46",
+  "merge": "959c522d4bd2302aa732a595c8590cc91e921f96",
+  "merged": "2026-10-13T05:16:54Z",
+  "missing_roots": 0,
+  "number": 20549,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] `version343Test` and `version344Test` are single-test constructor compatibility variants that emit the same Protostellar telemetry. They remain collection-enabled here, so `check -PcollectMetadata=true` can merge duplicate compatibility output into the default profile; exclude both along with the unit suite.",
+      "created": "2026-10-12T23:26:40Z",
+      "hunk": "@@ -81,7 +81,7 @@ tasks {\n   withType<Test>().configureEach {\n     systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)\n     usesService(gradle.sharedServices.registrations[\"testcontainersBuildService\"].service)\n-    systemProperty(\"collectMetadata\", otelProps.collectMetadata)\n+    systemProperty(\"collectMetadata\", otelProps.collectMetadata && name != \"unitTests\")",
+      "id": "PRRT_kwDODJKVX86rp04Q",
+      "opened": "2026-10-12T23:26:42Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-13T00:22:33Z",
+          "body": "Addressed in dd595231dee3c124ca6176c4d9bb2ac2c6b7cd46.\n\nCouchbaseProtostellar343Test.capturesTargetWithLegacyConstructors and CouchbaseProtostellar344Test.capturesTargetWithOriginalConstructor each cover one constructor compatibility regression. instrumentation-docs/readme.md:37-44 excludes classpath compatibility regressions. Both version343Test and version344Test now receive collectMetadata=false even with -PcollectMetadata=true, remain enabled in check, and leave the representative Couchbase test variants collection-enabled.\n\n<!-- copilot-loop:bedd899b35e30cb6b31269f985d92dbf659561a75c9049ce87fc48a425519058:4253217519:c1fa3f73fb4c4ad99728f293b22a95c3 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20549#discussion_r4253501418"
+        }
+      ],
+      "reviewed": "7108e7818b085183e0b27dba9b6ddd2d453902eb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20549#discussion_r4253217519"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] `version23Test` is a one-test API compatibility regression, and `version23TestPreviewSemconv` is its generated semconv copy. Both still inherit collection here, so `check -PcollectMetadata=true` can merge nonrepresentative telemetry into the default/preview profiles; exclude both tasks.",
+      "created": "2026-10-12T23:26:41Z",
+      "hunk": "@@ -62,7 +62,7 @@ testing {\n tasks {\n   withType<Test>().configureEach {\n     usesService(gradle.sharedServices.registrations[\"testcontainersBuildService\"].service)\n-    systemProperty(\"collectMetadata\", otelProps.collectMetadata)\n+    systemProperty(\"collectMetadata\", otelProps.collectMetadata && name != \"unitTests\")",
+      "id": "PRRT_kwDODJKVX86rp04x",
+      "opened": "2026-10-12T23:26:42Z",
+      "path": "instrumentation/jedis/jedis-2.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-13T00:23:30Z",
+          "body": "Addressed in dd595231dee3c124ca6176c4d9bb2ac2c6b7cd46.\n\nJedis23ClusterCommandTest.zeroArgumentExecuteIsInstrumented is a single API compatibility regression. Both version23Test and its version23TestPreviewSemconv variant now receive collectMetadata=false. The excluded preview variant no longer has metadataConfig, as required by the collection policy; it retains the service.peer preview setting and remains in check. The representative testPreviewSemconv still collects and retains its metadataConfig label.\n\n<!-- copilot-loop:bedd899b35e30cb6b31269f985d92dbf659561a75c9049ce87fc48a425519058:4253217563:d4de831e1aa142318b895a4077ff244f -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20549#discussion_r4253506451"
+        }
+      ],
+      "reviewed": "7108e7818b085183e0b27dba9b6ddd2d453902eb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20549#discussion_r4253217563"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] `testReceiveSpansDisabled` is a filtered suppression-only regression task, but this condition leaves collection enabled for it. Running this module's `check` with `-PcollectMetadata=true` therefore merges nonrepresentative telemetry into the default profile; exclude that task as well.",
+      "created": "2026-10-12T23:26:41Z",
+      "hunk": "@@ -68,7 +68,7 @@ testing {\n \n tasks {\n   withType<Test>().configureEach {\n-    systemProperty(\"collectMetadata\", otelProps.collectMetadata)\n+    systemProperty(\"collectMetadata\", otelProps.collectMetadata && name != \"unitTests\")",
+      "id": "PRRT_kwDODJKVX86rp05I",
+      "opened": "2026-10-12T23:26:42Z",
+      "path": "instrumentation/jms/jms-1.1/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-13T00:24:28Z",
+          "body": "Addressed in dd595231dee3c124ca6176c4d9bb2ac2c6b7cd46.\n\nThe JMS 1.1 build filters testReceiveSpansDisabled to Jms1SuppressReceiveSpansTest, whose only parameterized operation verifies suppression behavior. This is not a full representative default-profile suite. The task now receives collectMetadata=false and remains enabled in check, while test and jms2Test retain their collection settings and distinct profile labels.\n\n<!-- copilot-loop:bedd899b35e30cb6b31269f985d92dbf659561a75c9049ce87fc48a425519058:4253217598:2e2b04a43f6244009a5ee32e552c8ae9 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20549#discussion_r4253511217"
+        }
+      ],
+      "reviewed": "7108e7818b085183e0b27dba9b6ddd2d453902eb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20549#discussion_r4253217598"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The filtered `testReceiveSpansDisabled` task exercises only the receive-span suppression regression, yet this condition still allows it to collect under `check -PcollectMetadata=true`. Exclude it so that its telemetry is not merged into the default Spring JMS profile.",
+      "created": "2026-10-12T23:26:42Z",
+      "hunk": "@@ -56,7 +56,7 @@ testing {\n tasks {\n   withType<Test>().configureEach {\n     usesService(gradle.sharedServices.registrations[\"testcontainersBuildService\"].service)\n-    systemProperty(\"collectMetadata\", otelProps.collectMetadata)\n+    systemProperty(\"collectMetadata\", otelProps.collectMetadata && name != \"unitTests\")",
+      "id": "PRRT_kwDODJKVX86rp05_",
+      "opened": "2026-10-12T23:26:42Z",
+      "path": "instrumentation/spring/spring-jms/spring-jms-6.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-13T00:26:18Z",
+          "body": "Addressed in dd595231dee3c124ca6176c4d9bb2ac2c6b7cd46.\n\nSpring JMS 6.0 filters testReceiveSpansDisabled to SpringListenerSuppressReceiveSpansTest, which asserts the receive-span suppression scenario rather than the complete integration suite. It now receives collectMetadata=false and remains enabled in check. The representative test and separately labeled testJmsDisabled mode keep their collection settings.\n\n<!-- copilot-loop:bedd899b35e30cb6b31269f985d92dbf659561a75c9049ce87fc48a425519058:4253217673:638999b7482441d69cf74419d61792a4 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20549#discussion_r4253521096"
+        }
+      ],
+      "reviewed": "7108e7818b085183e0b27dba9b6ddd2d453902eb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20549#discussion_r4253217673"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] `testReceiveSpansDisabled` runs only `Jms3SuppressReceiveSpansTest`, so it is a regression-only suppression task. This condition still enables collection for it during `check -PcollectMetadata=true`, causing its output to be merged into default metadata; exclude it too.",
+      "created": "2026-10-12T23:26:42Z",
+      "hunk": "@@ -54,7 +54,7 @@ testing {\n tasks {\n   withType<Test>().configureEach {\n     usesService(gradle.sharedServices.registrations[\"testcontainersBuildService\"].service)\n-    systemProperty(\"collectMetadata\", otelProps.collectMetadata)\n+    systemProperty(\"collectMetadata\", otelProps.collectMetadata && name != \"unitTests\")",
+      "id": "PRRT_kwDODJKVX86rp05e",
+      "opened": "2026-10-12T23:26:42Z",
+      "path": "instrumentation/jms/jms-3.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-13T00:25:23Z",
+          "body": "Addressed in dd595231dee3c124ca6176c4d9bb2ac2c6b7cd46.\n\nThe JMS 3.0 build filters testReceiveSpansDisabled to Jms3SuppressReceiveSpansTest, a receive-span suppression regression. It now receives collectMetadata=false while remaining enabled in check. The representative test task continues to collect with its existing receive-telemetry profile.\n\n<!-- copilot-loop:bedd899b35e30cb6b31269f985d92dbf659561a75c9049ce87fc48a425519058:4253217632:77094ee721f44e43a07d2c273c7ce4d3 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20549#discussion_r4253516297"
+        }
+      ],
+      "reviewed": "7108e7818b085183e0b27dba9b6ddd2d453902eb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20549#discussion_r4253217632"
+    }
+  ]
+}

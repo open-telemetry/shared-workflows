@@ -1,0 +1,184 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "8875446bdbeeba46178ea0c713b5bc652c7aec287b9dfe496468d4fa0a0c0122",
+  "input_digest": "27d14befba9399a229755680e1a2396b7f8d7c210ee9ec6d24c737f50f7a37c7",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a76fd93147dfe6a50ec04b1b0aee0772c8478183/instrumentation/couchbase/couchbase-3.2/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d7f594550b3a815e055260507fe192b782182299/instrumentation/couchbase/couchbase-3.2/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a76fd93147dfe6a50ec04b1b0aee0772c8478183/instrumentation/lettuce/lettuce-5.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d7f594550b3a815e055260507fe192b782182299/instrumentation/lettuce/lettuce-5.0/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86yVelc",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/918595b715a78a633c9721493a1c584b963b0f64/instrumentation/couchbase/couchbase-3.2/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d7f594550b3a815e055260507fe192b782182299/instrumentation/couchbase/couchbase-3.2/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86yVp5b",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/918595b715a78a633c9721493a1c584b963b0f64/instrumentation/tomcat/tomcat-10.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d7f594550b3a815e055260507fe192b782182299/instrumentation/tomcat/tomcat-10.0/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86yVp5k",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/918595b715a78a633c9721493a1c584b963b0f64/instrumentation/micrometer/micrometer-1.5/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d7f594550b3a815e055260507fe192b782182299/instrumentation/micrometer/micrometer-1.5/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/918595b715a78a633c9721493a1c584b963b0f64/instrumentation/couchbase/couchbase-3.2/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d7f594550b3a815e055260507fe192b782182299/instrumentation/couchbase/couchbase-3.2/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/918595b715a78a633c9721493a1c584b963b0f64/instrumentation/guava-10.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d7f594550b3a815e055260507fe192b782182299/instrumentation/guava-10.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/918595b715a78a633c9721493a1c584b963b0f64/instrumentation/spring/spring-batch-3.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d7f594550b3a815e055260507fe192b782182299/instrumentation/spring/spring-batch-3.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/918595b715a78a633c9721493a1c584b963b0f64/instrumentation/tomcat/tomcat-10.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d7f594550b3a815e055260507fe192b782182299/instrumentation/tomcat/tomcat-10.0/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86yVp-j",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/55a80d6492a97b3e1b98f68a59986df1ccaf09f1/instrumentation/elasticsearch/elasticsearch-transport-6.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d7f594550b3a815e055260507fe192b782182299/instrumentation/elasticsearch/elasticsearch-transport-6.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/55a80d6492a97b3e1b98f68a59986df1ccaf09f1/instrumentation/couchbase/couchbase-3.2/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d7f594550b3a815e055260507fe192b782182299/instrumentation/couchbase/couchbase-3.2/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/55a80d6492a97b3e1b98f68a59986df1ccaf09f1/instrumentation/lettuce/lettuce-5.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d7f594550b3a815e055260507fe192b782182299/instrumentation/lettuce/lettuce-5.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/55a80d6492a97b3e1b98f68a59986df1ccaf09f1/instrumentation/okhttp/okhttp-3.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d7f594550b3a815e055260507fe192b782182299/instrumentation/okhttp/okhttp-3.0/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86yV4DU",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8dfa6d1ab4e6fe08ac76b18f81f47cedc230a099/instrumentation/spymemcached-2.12/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d7f594550b3a815e055260507fe192b782182299/instrumentation/spymemcached-2.12/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86yW6g4",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d54b048ce46ec55ca790db3b3819ff3fa9c5811d/instrumentation/spymemcached-2.12/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d7f594550b3a815e055260507fe192b782182299/instrumentation/spymemcached-2.12/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d54b048ce46ec55ca790db3b3819ff3fa9c5811d/instrumentation/couchbase/couchbase-3.2/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d7f594550b3a815e055260507fe192b782182299/instrumentation/couchbase/couchbase-3.2/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d54b048ce46ec55ca790db3b3819ff3fa9c5811d/instrumentation/elasticsearch/elasticsearch-transport-6.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d7f594550b3a815e055260507fe192b782182299/instrumentation/elasticsearch/elasticsearch-transport-6.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d54b048ce46ec55ca790db3b3819ff3fa9c5811d/instrumentation/guava-10.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d7f594550b3a815e055260507fe192b782182299/instrumentation/guava-10.0/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86yXKjZ",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2fba890a7dc5d4f5558565408cc35c67b96c0c18/instrumentation/spymemcached-2.12/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d7f594550b3a815e055260507fe192b782182299/instrumentation/spymemcached-2.12/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2fba890a7dc5d4f5558565408cc35c67b96c0c18/instrumentation/couchbase/couchbase-3.2/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d7f594550b3a815e055260507fe192b782182299/instrumentation/couchbase/couchbase-3.2/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86yfdU3",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86yflvJ",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86yfdU3",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3bd15207d5eabe4de13c51bfbf1ea528d4fd83c6/instrumentation/elasticsearch/elasticsearch-transport-6.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d7f594550b3a815e055260507fe192b782182299/instrumentation/elasticsearch/elasticsearch-transport-6.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3bd15207d5eabe4de13c51bfbf1ea528d4fd83c6/conventions/src/main/kotlin/io/opentelemetry/instrumentation/gradle/TestSuiteExecutions.kt",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d7f594550b3a815e055260507fe192b782182299/conventions/src/main/kotlin/io/opentelemetry/instrumentation/gradle/TestSuiteExecutions.kt",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3bd15207d5eabe4de13c51bfbf1ea528d4fd83c6/instrumentation/couchbase/couchbase-3.2/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d7f594550b3a815e055260507fe192b782182299/instrumentation/couchbase/couchbase-3.2/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/d7f594550b3a815e055260507fe192b782182299"
+      ],
+      "id": "PRRT_kwDODJKVX86yf6FZ",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/26f0e330f81acd233a58e635138c57fca8ba9413/instrumentation/guava-10.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d7f594550b3a815e055260507fe192b782182299/instrumentation/guava-10.0/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86ygEnJ",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b12a4caab9a299243828172f586118920fa13583/instrumentation/pulsar/pulsar-2.8/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b12a4caab9a299243828172f586118920fa13583/instrumentation/spring/spring-kafka-2.7/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d7f594550b3a815e055260507fe192b782182299/instrumentation/pulsar/pulsar-2.8/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d7f594550b3a815e055260507fe192b782182299/instrumentation/spring/spring-kafka-2.7/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86ygK6t",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f14ec52be2c45c3b93e5714bdd03381c09df77da/instrumentation/pulsar/pulsar-2.8/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d7f594550b3a815e055260507fe192b782182299/instrumentation/pulsar/pulsar-2.8/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f14ec52be2c45c3b93e5714bdd03381c09df77da/instrumentation/lettuce/lettuce-5.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d7f594550b3a815e055260507fe192b782182299/instrumentation/lettuce/lettuce-5.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f14ec52be2c45c3b93e5714bdd03381c09df77da/instrumentation/sofa-rpc-5.4/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d7f594550b3a815e055260507fe192b782182299/instrumentation/sofa-rpc-5.4/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f14ec52be2c45c3b93e5714bdd03381c09df77da/instrumentation/spring/spring-kafka-2.7/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d7f594550b3a815e055260507fe192b782182299/instrumentation/spring/spring-kafka-2.7/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86ygYFm",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "head": "c954a222e5f2d264a1ef5ea0b1e66cfbb1170813",
+  "merge": "627aebdcc61fcb1afa1f8667b88da1eea12bee04",
+  "merged": "2026-10-16T15:22:38Z",
+  "missing_roots": 0,
+  "number": 20633,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] A lower-priority source can claim a nested list even when it is excluded by the outer list's owner. For example, a higher source with `otel.outer[0].name=x` and `otel.outer[0].inner[0]=null` preserves the null item on its own. Adding a lower source with `otel.outer[0].inner[0]=old` assigns `inner` to that source. Extraction then rejects the higher entry because of `inner` and the lower entry because of `outer`, removing the nested list entirely. Stop claiming descendant lists when an ancestor belongs to another source, and add a nested-null regression test.",
+      "created": "2026-10-16T02:25:30Z",
+      "hunk": "@@ -95,6 +104,61 @@ private static Map<String, String> extractSpringProperties(ConfigurableEnvironme\n     return props;\n   }\n \n+  /**\n+   * Returns, for each list, the highest-priority source that gives it a value. Like Spring Boot, a\n+   * list is taken as a whole from that source rather than merging items from several sources, see\n+   * https://docs.spring.io/spring-boot/reference/features/external-config.html#features.external-config.typesafe-configuration-properties.merging-complex-types\n+   */\n+  private static Map<String, PropertySource<?>> findListSources(\n+      MutablePropertySources propertySources) {\n+    Map<String, PropertySource<?>> listSources = new HashMap<>();\n+    for (PropertySource<?> propertySource : propertySources) {\n+      if (propertySource instanceof EnumerablePropertySource<?>) {\n+        for (String propertyName :\n+            ((EnumerablePropertySource<?>) propertySource).getPropertyNames()) {\n+          // a null value does not define a list, like in Spring's resolution\n+          if (propertyName.startsWith(\"otel.\")\n+              && propertySource.getProperty(propertyName) != null) {\n+            for (String listPath : listPaths(propertyName)) {\n+              listSources.putIfAbsent(listPath, propertySource);",
+      "id": "PRRT_kwDODJKVX86tCfoj",
+      "opened": "2026-10-16T02:25:31Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/EmbeddedConfigFile.java",
+      "replies": [
+        {
+          "at": "2026-10-16T06:01:58Z",
+          "body": "Good catch — fixed in c954a222e5: a source stops claiming nested lists once an enclosing list belongs to another source, so the outer list's owner keeps its nested null item. Added `extractModel_nestedListBelongsToOuterListSource` (histogram `boundaries` inside `views`), which fails on the previous commit.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20633#discussion_r4291405431"
+        }
+      ],
+      "reviewed": "3576108f9651b5cdc3c82d884e87b58807a2d61a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20633#discussion_r4290249962"
+    }
+  ]
+}

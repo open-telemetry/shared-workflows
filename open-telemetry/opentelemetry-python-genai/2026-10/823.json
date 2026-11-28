@@ -1,0 +1,76 @@
+{
+  "head": "1ec8fb577493b7528de0acdf58fe3d66d2000520",
+  "merge": "93c3dfed4e4e278f8d0f808894401822699b01bd",
+  "merged": "2026-10-03T00:34:40Z",
+  "missing_roots": 0,
+  "number": 823,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR claims to close #246, but not all deprecated util methods are removed: `ToolInvocation.should_capture_content_on_span` is still marked deprecated since 1.2b0 in `_tool_invocation.py:115-122`, and `test_toolcall.py` continues exercising it. Remove that property and its legacy assertions in this breaking cleanup, or narrow the PR/issue scope so #246 remains open.",
+      "created": "2026-10-01T21:43:27Z",
+      "hunk": "@@ -0,0 +1 @@\n+Remove the deprecated GenAI utility callables ``should_emit_event()``, ``should_capture_content_on_spans()``, ``TelemetryHandler.start_inference()``, ``TelemetryHandler.start_llm()``, ``TelemetryHandler.start_embedding()``, ``TelemetryHandler.start_tool()``, ``TelemetryHandler.start_workflow()``, ``TelemetryHandler.stop_llm()``, ``TelemetryHandler.fail_llm()``, ``TelemetryHandler.start_invoke_local_agent()``, ``TelemetryHandler.start_invoke_remote_agent()``, and ``get_telemetry_handler()``.",
+      "id": "PRRT_kwDOSbspP86oJmwu",
+      "opened": "2026-10-01T21:43:29Z",
+      "path": "util/opentelemetry-util-genai/.changelog/823.removed",
+      "replies": [],
+      "reviewed": "babd674a6c87489851d701fe6c8e50f385e8e6d7",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/823#discussion_r4160800293"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This import is now only needed by `LLMInvocation._start_with_handler()`, but deleting `TelemetryHandler.start_llm()`, `stop_llm()`, and `fail_llm()` leaves that method and `_sync_to_invocation()` with no callers. The still-exported `types.LLMInvocation` also tells users to call those removed methods. Remove the orphaned compatibility bridge/export, or update the remaining compatibility contract so it does not retain dead lifecycle code and advertise nonexistent APIs.",
+      "created": "2026-10-01T21:43:28Z",
+      "hunk": "@@ -22,6 +22,7 @@\n )\n from opentelemetry.util.genai.completion_hook import CompletionHook\n from opentelemetry.util.genai.types import (\n+    ContentCapturingMode,",
+      "id": "PRRT_kwDOSbspP86oJmxz",
+      "opened": "2026-10-01T21:43:29Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_inference_invocation.py",
+      "replies": [],
+      "reviewed": "babd674a6c87489851d701fe6c8e50f385e8e6d7",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/823#discussion_r4160800397"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This newly added suppression violates the repository rule in `AGENTS.md:145` not to add type-ignore comments. `_should_emit_event` is now only consumed from `_inference_invocation.py`; move the private helper to its consuming module (and relocate its tests), or otherwise restructure the code so Pyright can see a real use without suppressing `reportUnusedFunction`.",
+      "created": "2026-10-01T21:43:28Z",
+      "hunk": "@@ -104,7 +104,7 @@ def is_experimental_mode() -> bool:\n     return True\n \n \n-def _should_emit_event(\n+def _should_emit_event(  # pyright: ignore[reportUnusedFunction]",
+      "id": "PRRT_kwDOSbspP86oJmyI",
+      "opened": "2026-10-01T21:43:29Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/utils.py",
+      "replies": [],
+      "reviewed": "babd674a6c87489851d701fe6c8e50f385e8e6d7",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/823#discussion_r4160800432"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Removing `get_telemetry_handler` breaks released packages on import. langchain 1.0b0, 1.1b0, 1.1b1 and openai-agents 1.0b0, 1.1b0 import it at module level and accept any util below 2, so pip will pair them with the next util release.\n\nCould we keep it, still deprecated, for the rest of 1.x? No released package from this repo uses the other removed APIs.\n\n#841 adds a CI check that catches this kind of break.",
+      "created": "2026-10-02T23:39:52Z",
+      "hunk": "@@ -736,29 +481,3 @@ def workflow(\n             _attach_to_context=_attach_to_context,\n             conversation_id=conversation_id,\n         )\n-\n-\n-def get_telemetry_handler(",
+      "id": "PRRT_kwDOSbspP86ohkht",
+      "opened": "2026-10-02T23:41:49Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/handler.py",
+      "replies": [
+        {
+          "at": "2026-10-03T00:12:34Z",
+          "body": "Thanks for pointing this out. I have addressed the feedback. ",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/823#discussion_r4170851365"
+        }
+      ],
+      "reviewed": "16427aea9ed7d2fe3d0cd2ddab18c170dfd874ff",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/823#discussion_r4170708807"
+    }
+  ]
+}

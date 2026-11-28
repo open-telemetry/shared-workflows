@@ -1,0 +1,67 @@
+{
+  "head": "5990a8e2388b3d8224703cea253b315a3223bd27",
+  "merge": "2250d9f986a74783a9ac3cbd954639b25e0ffadc",
+  "merged": "2026-10-31T03:33:13Z",
+  "missing_roots": 0,
+  "number": 395,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "ADK 2.13 defaults to its v2 telemetry schema, where content capture is disabled unless explicitly enabled. The OpenInference environment leaves `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` unset, so its regenerated measurements omit input/output messages because capture is off, contrary to the README's content-capture contract. Set `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT: SPAN_AND_EVENT` in `openinference/conformance.yaml`, as the native environment does, and regenerate `openinference/data.json`.",
+      "created": "2026-10-26T15:10:14Z",
+      "hunk": "@@ -3,8 +3,8 @@ name = \"google-adk-openinference-conformance\"\n version = \"0.0.0\"\n requires-python = \">=3.12\"\n dependencies = [\n-    \"google-adk==2.12.0\",\n-    \"openinference-instrumentation-google-adk==1.0.4\",\n+    \"google-adk==2.13.0\",",
+      "id": "PRRT_kwDOTuzK5c6wUiAz",
+      "opened": "2026-10-26T15:10:14Z",
+      "path": "scenarios/gen-ai/python/google-adk/openinference/pyproject.toml",
+      "replies": [
+        {
+          "at": "2026-10-26T15:24:46Z",
+          "body": "Fixed in 94e6ec1. The OpenInference environment now sets `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT: SPAN_AND_EVENT`. Its regenerated measurements contain `gen_ai.input.messages`, `gen_ai.output.messages`, and `gen_ai.system_instructions` on both inference spans and operation-details events.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/395#discussion_r4379059993"
+        }
+      ],
+      "reviewed": "33c56e89ad244fca1fb6ba1c19852d6f1741ff19",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/395#discussion_r4378890966"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Fix the Google ADK content-capture regression in this PR directly. Copilot review 5654289732, finding https://github.com/open-telemetry/semantic-conventions-conformance/pull/395#discussion_r4378890966, is valid: scenarios/gen-ai/README.md requires content capture in every environment, but google-adk/openinference/conformance.yaml leaves OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT unset. ADK 2.13 defaults to schema v2 and TelemetryConfig resolves an unset capture mode to NO_CONTENT; the current regenerated OpenInference data loses gen_ai.input.messages and gen_ai.output.messages. The native environment already uses SPAN_AND_EVENT.\n\nAdd OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT: SPAN_AND_EVENT to the env mapping in scenarios/gen-ai/python/google-adk/openinference/conformance.yaml. Run both Google ADK OpenInference scenarios and regenerate and commit its data.json with content capture enabled. Verify the resulting telemetry captures available message content on spans and events under the upgraded SDK, keeping genuine instrumentation gaps and findings visible. Preserve google-adk 2.13.0, openinference-instrumentation-google-adk 1.0.5, the compatible OpenTelemetry pins, and the existing two-round-trip/scenario behavior. Run the narrow relevant repository validation. Do not suppress findings or add expectations, change shared scenarios or mocks, change Renovate grouping, touch other frameworks, alter PR #375, or create another requested PR. This correction preserves the coverage required by the original independent Google ADK extraction.",
+      "created": "2026-10-26T15:17:56Z",
+      "hunk": "@@ -3,8 +3,8 @@ name = \"google-adk-openinference-conformance\"\n version = \"0.0.0\"\n requires-python = \">=3.12\"\n dependencies = [\n-    \"google-adk==2.12.0\",\n-    \"openinference-instrumentation-google-adk==1.0.4\",\n+    \"google-adk==2.13.0\",",
+      "id": "PRRT_kwDOTuzK5c6wUwfX",
+      "opened": "2026-10-26T15:17:56Z",
+      "path": "scenarios/gen-ai/python/google-adk/openinference/pyproject.toml",
+      "replies": [
+        {
+          "at": "2026-10-26T15:21:07Z",
+          "body": "Enabled `SPAN_AND_EVENT` capture and regenerated `data.json` from both OpenInference scenarios; the regenerated data records input/output messages on spans and inference-detail events while retaining findings. Committed as `94e6ec1`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/395#discussion_r4379019339"
+        }
+      ],
+      "reviewed": "33c56e89ad244fca1fb6ba1c19852d6f1741ff19",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/395#discussion_r4378983862"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "The update was already merged with #375.\nPlease update the PR title and description for just this added config.",
+      "created": "2026-10-26T21:39:15Z",
+      "hunk": "@@ -12,6 +12,7 @@ env:\n   GOOGLE_GEMINI_BASE_URL: ${MOCK_SERVER_URL}\n   GOOGLE_API_KEY: test_google_api_key\n   GOOGLE_GENAI_USE_VERTEXAI: \"0\"\n+  OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT: SPAN_AND_EVENT",
+      "id": "PRRT_kwDOTuzK5c6wdxhC",
+      "opened": "2026-10-26T22:02:52Z",
+      "path": "scenarios/gen-ai/python/google-adk/openinference/conformance.yaml",
+      "replies": [],
+      "reviewed": "75bc00f6af921cec72d412cd52c61b8c1faddfd1",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/395#discussion_r4382807286"
+    }
+  ]
+}

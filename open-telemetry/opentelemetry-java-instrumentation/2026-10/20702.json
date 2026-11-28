@@ -1,0 +1,94 @@
+{
+  "head": "bb3e31891c0738cad25dc8060124d30efe13ec62",
+  "merge": "96be94c3d7847bad075f44f311813f29a7983572",
+  "merged": "2026-10-19T06:24:20Z",
+  "missing_roots": 0,
+  "number": 20702,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Simplify the peer-service test expectations in this PR without changing emitted telemetry, mapping defaults, or supported test behavior. Apply these related cleanups for PR #20702 only.\n\n1. In `instrumentation/sofa-rpc-5.4/testing`, replace all eight `hasPeerService() ? testing().expectedPeerService() : null` expressions in `AbstractSofaRpcTest` and `AbstractSofaRpcTraceChainTest` with `testing().expectedPeerService()`. The shared library runner already returns null, while the agent runner supplies the mapping-aware expectation. Remove the now-unused abstract `hasPeerService()` declarations and all five concrete overrides in the javaagent, library, and library-autoconfigure test subclasses. Do not remove genuine library/agent differences such as `genericMethodName()`.\n\n2. In the agent-only Camel `SuppressionTest.addNestedHttpClientSpan` helper, obtain the expectation from the existing singleton `AgentTestRunner.instance().expectedPeerService()` rather than adding a `String expectedPeerService` parameter and passing it through all callers. Those HTTP server test extensions use that same agent runner. Remove the extra argument from the calls in `RestCamelTest`, `SingleServiceCamelTest`, and `TwoServicesWithDirectClientCamelTest`. Keep nested-span suppression and span assertions unchanged; do not create or register another extension.\n\n3. In the R2DBC library `R2dbcStatementTest`, reuse its newly added `expectedPeerService()` override when configuring `AttributesExtractor.constant(maybeStablePeerService(), ...)` instead of duplicating `\"test-peer-service\"` in the extractor setup. Preserve the override and the abstract test's expectation hook: this library fixture explicitly adds a peer-service extractor, so replacing its expectation with the ordinary library runner's null would be incorrect.\n\nKeep the Vert.x server-list and host-dependent conditions; they represent real behavior rather than redundant agent/library checks. Keep `AgentTestRunner.expectedPeerService()` mapping-aware and retain its coverage. Do not return `System.getProperty(PEER_SERVICE_MAPPING_PROPERTY)` directly, since that property contains a host-to-service mapping string, not just the service name. Do not introduce another system property or a mapping parser solely for this cleanup. Leave the shared mapping enabled and do not add the mapped/unmapped Gradle profiles reserved for the follow-up.\n\nUse the existing focused tests to verify equivalent behavior for SOFA agent/library variants, Camel's suppression modes, and R2DBC's explicitly configured library extractor. Follow repository formatting guidance and keep this change limited to these simplifications.",
+      "created": "2026-10-19T03:26:28Z",
+      "hunk": "@@ -196,7 +196,7 @@ RPC_SYSTEM_NAME, emitPreviewRpcSemconv() ? \"sofarpc\" : null),\n                                         : genericMethodName()),\n                                 equalTo(\n                                     maybeStablePeerService(),\n-                                    hasPeerService() ? \"test-peer-service\" : null),\n+                                    hasPeerService() ? testing().expectedPeerService() : null),",
+      "id": "PRRT_kwDODJKVX86txq7P",
+      "opened": "2026-10-19T03:26:28Z",
+      "path": "instrumentation/sofa-rpc-5.4/testing/src/main/java/io/opentelemetry/instrumentation/sofarpc/v5_4/AbstractSofaRpcTest.java",
+      "replies": [
+        {
+          "at": "2026-10-19T03:36:20Z",
+          "body": "Applied the requested SOFA, Camel, and R2DBC simplifications while preserving mapping behavior and test coverage. Commit: `COMMIT_HASH`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20702#discussion_r4310111551"
+        }
+      ],
+      "reviewed": "75204cec6cb9c016a7899112bf37bd81cc67d547",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20702#discussion_r4310074285"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot delete this file",
+      "created": "2026-10-19T03:38:45Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX86txyBX",
+      "opened": "2026-10-19T03:38:45Z",
+      "path": "testing-common/src/test/java/io/opentelemetry/instrumentation/testing/AgentTestRunnerTest.java",
+      "replies": [
+        {
+          "at": "2026-10-19T03:44:15Z",
+          "body": "Deleted `AgentTestRunnerTest.java` as requested. Commit: `e62d53a7`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20702#discussion_r4310141090"
+        }
+      ],
+      "reviewed": "544fc3d91a7bb8998c5877ac6a569b62b6a75ff0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20702#discussion_r4310120588"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Remove the global runner lookup from Camel's `SuppressionTest.addNestedHttpClientSpan` in this PR. Add a nullable `String expectedPeerService` parameter and use `equalTo(maybeStablePeerService(), expectedPeerService)` in the helper. Update every caller in `RestCamelTest`, `SingleServiceCamelTest`, and `TwoServicesWithDirectClientCamelTest` to pass its existing `testing.expectedPeerService()`. Remove the unused `AgentTestRunner` import from `SuppressionTest`.\r\n\r\nThis is the latest direction for Camel and supersedes the earlier request in this PR to use `AgentTestRunner.instance().expectedPeerService()`. The caller should supply the expectation instead of the static helper reaching into the global runner. Preserve semantic-convention key selection, null-as-absence assertions, nested-span suppression, and mapping-aware expectations. Do not create or register another extension.\r\n\r\nKeep the change limited to this Camel helper and its callers. Do not change emitted telemetry, mapping defaults, the shared runner, or unrelated cleanup already requested on this PR. Follow repository formatting guidance and use focused Camel coverage for the existing suppression modes to verify equivalent behavior.",
+      "created": "2026-10-19T03:43:06Z",
+      "hunk": "@@ -56,7 +57,8 @@ static void addNestedHttpClientSpan(\n                     equalTo(HTTP_REQUEST_METHOD, method),\n                     equalTo(HTTP_RESPONSE_STATUS_CODE, 200L),\n                     equalTo(NETWORK_PROTOCOL_VERSION, \"1.1\"),\n-                    equalTo(maybeStablePeerService(), \"test-peer-service\"),\n+                    equalTo(\n+                        maybeStablePeerService(), AgentTestRunner.instance().expectedPeerService()),",
+      "id": "PRRT_kwDODJKVX86tx0dQ",
+      "opened": "2026-10-19T03:43:06Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/SuppressionTest.java",
+      "replies": [
+        {
+          "at": "2026-10-19T03:51:50Z",
+          "body": "Updated `addNestedHttpClientSpan` to accept a nullable expected peer-service value from each existing caller and removed the global runner lookup. Focused Camel suppression tests pass. Commit: `0e896b92`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20702#discussion_r4310171920"
+        }
+      ],
+      "reviewed": "544fc3d91a7bb8998c5877ac6a569b62b6a75ff0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20702#discussion_r4310136579"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Non-blocking: remove `@Nullable` and its import from this test helper, as required by `docs/contributing/style-guide.md:169`. The parameter can still accept the unmapped `null` expectation without the annotation.",
+      "created": "2026-10-19T04:09:32Z",
+      "hunk": "@@ -43,6 +44,7 @@ static void addNestedHttpClientSpan(\n       String url,\n       String serverAddress,\n       long serverPort,\n+      @Nullable String expectedPeerService,",
+      "id": "PRRT_kwDODJKVX86tyFgG",
+      "opened": "2026-10-19T04:09:33Z",
+      "path": "instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/SuppressionTest.java",
+      "replies": [
+        {
+          "at": "2026-10-19T05:08:53Z",
+          "body": "Removed `@Nullable` and its import from the test helper. Focused Camel tests passed. Commit: `bb3e3189`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20702#discussion_r4310502663"
+        }
+      ],
+      "reviewed": "0e896b92eacb6ce02f83d1329e301f407f49d11f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20702#discussion_r4310247540"
+    }
+  ]
+}

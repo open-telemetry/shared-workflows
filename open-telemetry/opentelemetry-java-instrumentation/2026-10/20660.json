@@ -1,0 +1,31 @@
+{
+  "head": "b7f5249ae7dbd34158c1fdf895c26423ed511fd2",
+  "merge": "c0a9e91262a82c764775d45ba97d4617a8026d98",
+  "merged": "2026-10-19T14:28:18Z",
+  "missing_roots": 0,
+  "number": 20660,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This route loses database-path decoding for both MySQL and MariaDB URLs without a subprotocol. For example, `jdbc:mysql://address=(host=db.example.com)(port=3307)/orders%2darchive` previously produced `db.namespace=orders-archive` through `GenericUrlParser`'s `URI.getPath()`. `parseMariaSubProtocol` instead stores the raw substring, producing `orders%2darchive`. Preserve URI path decoding for the newly routed URLs, keeping query-parameter precedence intact, and add an encoded-database regression case.",
+      "created": "2026-10-17T07:07:40Z",
+      "hunk": "@@ -78,8 +79,9 @@ public void parse(String jdbcUrl, ParseContext ctx) {\n     String subtype = extractSubtype(jdbcUrl);\n     int protoLoc = jdbcUrl.indexOf(\"://\");\n \n-    if (subtype != null) {\n-      // Has subprotocol (e.g., mysql:aurora://...)\n+    if (subtype != null || (protoLoc > 0 && jdbcUrl.startsWith(\"address=\", protoLoc + 3))) {",
+      "id": "PRRT_kwDODJKVX86teKKr",
+      "opened": "2026-10-17T07:07:41Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/MysqlUrlParser.java",
+      "replies": [
+        {
+          "at": "2026-10-17T14:38:39Z",
+          "body": "Good catch, thanks. Fixed in ec19494858: these URLs now stay on `GenericUrlParser` (so `URI.getPath()` still decodes the database name) and only the host and port are taken from the `address=` block. Added `jdbc:mysql://address=(host=mdb.host)(port=33)/mdb%2ddb` → `mdb-db`, which fails on the previous commit.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20660#discussion_r4303059739"
+        }
+      ],
+      "reviewed": "1871d1eccff149371d55a8f0ed915aa164961421",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20660#discussion_r4301838977"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "head": "41b8b19c067dfb646d9c495445f670021470f456",
+  "merge": "dc768943213a6509d2cd34c92a8bebd964487be5",
+  "merged": "2026-10-10T21:41:00Z",
+  "missing_roots": 0,
+  "number": 20463,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This also forwards an empty invalid link for the supported case where a record has no message ID and all records share one queue: `getLinkAttributes()` returns `Attributes.empty()` for that case (`SqsEventRecordAttributesTest.java:89-95`). Because `SpanLinksBuilder` delegates to the configured `SpanBuilder`, dropping this link is implementation-dependent, so a non-SDK implementation may record the empty invalid link despite this change being scoped to attributed links. Preserve valid links, but only forward invalid contexts when the computed attributes are nonempty.",
+      "created": "2026-10-09T02:38:39Z",
+      "hunk": "@@ -27,9 +27,7 @@ public void extract(SpanLinksBuilder spanLinks, Context parentContext, SQSEvent\n     SqsEventRecordAttributes attributes = SqsEventRecordAttributes.create(event);\n     for (SQSMessage record : records) {\n       SpanContext creationSpanContext = creationSpanContext(record);\n-      if (creationSpanContext.isValid()) {\n-        spanLinks.addLink(creationSpanContext, attributes.getLinkAttributes(record));\n-      }\n+      spanLinks.addLink(creationSpanContext, attributes.getLinkAttributes(record));",
+      "id": "PRRT_kwDODJKVX86qoD2g",
+      "opened": "2026-10-09T02:38:39Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-events-common-2.2/library/src/main/java/io/opentelemetry/instrumentation/awslambdaevents/common/v2_2/internal/SqsEventSpanLinksExtractor.java",
+      "replies": [
+        {
+          "at": "2026-10-09T03:06:08Z",
+          "body": "Addressed in e697e8bfa22298cbe84b1d7cbe887162cc601b50.\n\nAnalysis: SqsEventRecordAttributesTest confirms that a missing message ID in a shared queue produces Attributes.empty(), and SpanLinksBuilderImpl delegates directly to the configured SpanBuilder. Guarding addLink with context validity or nonempty computed attributes fixes the issue at the extractor, independent of SDK filtering. Focused tests cover rejection and both preservation conditions.\n\nUpsides: Makes the empty-invalid-link behavior consistent for SDK and non-SDK builders while retaining all meaningful links.\n\nDownsides: Adds one conditional check per record; the only removed delegation is an invalid context with empty attributes.\n\n<!-- copilot-loop:5147517caa5191f710a92d5be03649bf17324cf9a734af5a20b77f3b1174f8a7:4226103699:d2bc557cbb7d498080d14e9503119e5a -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20463#discussion_r4226234903"
+        }
+      ],
+      "reviewed": "7bd0ef177a93235c6283904ebb6b9e8c555ac265",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20463#discussion_r4226103699"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "why is the isValid check retained here but removed in the aws-sdk usages?",
+      "created": "2026-10-09T08:51:07Z",
+      "hunk": "@@ -27,8 +28,9 @@ public void extract(SpanLinksBuilder spanLinks, Context parentContext, SQSEvent\n     SqsEventRecordAttributes attributes = SqsEventRecordAttributes.create(event);\n     for (SQSMessage record : records) {\n       SpanContext creationSpanContext = creationSpanContext(record);\n-      if (creationSpanContext.isValid()) {\n-        spanLinks.addLink(creationSpanContext, attributes.getLinkAttributes(record));\n+      Attributes linkAttributes = attributes.getLinkAttributes(record);\n+      if (creationSpanContext.isValid() || !linkAttributes.isEmpty()) {",
+      "id": "PRRT_kwDODJKVX86qtgBD",
+      "opened": "2026-10-09T08:51:07Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-events-common-2.2/library/src/main/java/io/opentelemetry/instrumentation/awslambdaevents/common/v2_2/internal/SqsEventSpanLinksExtractor.java",
+      "replies": [],
+      "reviewed": "e697e8bfa22298cbe84b1d7cbe887162cc601b50",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20463#discussion_r4228347891"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "head": "6de26330a2e7e941d084f898f7192b3d525da409",
+  "merge": "c5843d34ea23f37f71b24328e29e733afe2c8aa1",
+  "merged": "2026-11-03T23:47:32Z",
+  "missing_roots": 0,
+  "number": 21186,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly. The user explicitly requested dropping instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/WeaverContainerTest.java. Delete that newly added test file without moving or replacing its tests elsewhere. Restore WeaverContainer.WeaverValidationResult.fromJson(JsonNode) to private static, since the package-private visibility was introduced solely for that test. Keep the zero-observation validation for unlisted prefix-matched registry metrics and attributes, containsAll(expectedKeys), required/optional count checks, and the jvm.* import unchanged. Preserve this PR as a draft against main. Run the narrowest applicable formatting and validation, using spotlessApply directly rather than spotlessCheck first. Do not edit PR titles or descriptions, request reviews, merge, or make unrelated changes; the coordinator handles metadata and review.",
+      "created": "2026-11-03T20:11:03Z",
+      "hunk": "@@ -0,0 +1,119 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.jmx.rules;\n+\n+import static java.util.Collections.emptyList;\n+import static java.util.Collections.emptyMap;\n+import static java.util.Collections.singletonList;\n+import static org.assertj.core.api.Assertions.assertThatThrownBy;\n+\n+import com.fasterxml.jackson.databind.ObjectMapper;\n+import com.fasterxml.jackson.databind.node.ObjectNode;\n+import java.util.HashMap;\n+import java.util.Map;\n+import org.junit.jupiter.api.Test;\n+\n+class WeaverContainerTest {",
+      "id": "PRRT_kwDODJKVX86zT-Wd",
+      "opened": "2026-11-03T20:11:03Z",
+      "path": "instrumentation/jmx-metrics/library/src/test/java/io/opentelemetry/instrumentation/jmx/rules/WeaverContainerTest.java",
+      "replies": [
+        {
+          "at": "2026-11-03T20:17:51Z",
+          "body": "Removed the added test file and restored `fromJson(JsonNode)` to `private static`; the validation logic is unchanged. Commit: `07e0c0b2`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21186#discussion_r4459966021"
+        }
+      ],
+      "reviewed": "6726d3cd11112069497a4b5a8f1e0c5775cc146b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21186#discussion_r4459900132"
+    }
+  ]
+}

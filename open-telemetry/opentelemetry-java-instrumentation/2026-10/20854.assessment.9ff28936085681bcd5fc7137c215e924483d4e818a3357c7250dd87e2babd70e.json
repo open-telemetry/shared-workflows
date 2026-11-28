@@ -1,0 +1,34 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "0e64f791fbe92915597c058e202951eef6adeda26795ec62b2e00a5bd2c0496b",
+  "input_digest": "9ff28936085681bcd5fc7137c215e924483d4e818a3357c7250dd87e2babd70e",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f1edd282321534f3d75564a4831ccde70561ad11/instrumentation/micrometer/micrometer-1.5/library/src/main/java/io/opentelemetry/instrumentation/micrometer/v1_5/OpenTelemetryMeterRegistryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6a5877474b4e2f373a2910faf65ab7749e1e484c/instrumentation/micrometer/micrometer-1.5/library/src/main/java/io/opentelemetry/instrumentation/micrometer/v1_5/OpenTelemetryMeterRegistryBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6a5877474b4e2f373a2910faf65ab7749e1e484c/instrumentation/micrometer/micrometer-1.5/library/src/main/java/io/opentelemetry/instrumentation/micrometer/v1_5/internal/Experimental.java"
+      ],
+      "id": "PRRT_kwDODJKVX86vTlkQ",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b92ffd6230c5bdf050a042b8fdb6a0961b5e5e77/docs/apidiffs/current_vs_latest/opentelemetry-micrometer-1.5.txt",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b92ffd6230c5bdf050a042b8fdb6a0961b5e5e77/instrumentation/micrometer/micrometer-1.5/library/src/main/java/io/opentelemetry/instrumentation/micrometer/v1_5/internal/Experimental.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6a5877474b4e2f373a2910faf65ab7749e1e484c/docs/apidiffs/current_vs_latest/opentelemetry-micrometer-1.5.txt",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6a5877474b4e2f373a2910faf65ab7749e1e484c/instrumentation/micrometer/micrometer-1.5/library/src/main/java/io/opentelemetry/instrumentation/micrometer/v1_5/internal/Experimental.java"
+      ],
+      "id": "PRRT_kwDODJKVX86vVjdf",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

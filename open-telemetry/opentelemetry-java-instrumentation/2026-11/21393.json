@@ -1,0 +1,73 @@
+{
+  "head": "80ee316a9bb29c8f0c91c39de5136096ec4009e4",
+  "merge": "b0128d4088dae22ac40e4b510fe6538012442df4",
+  "merged": "2026-11-21T17:56:54Z",
+  "missing_roots": 0,
+  "number": 21393,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing draft PR directly on `open-telemetry/opentelemetry-java-instrumentation:copilot/migrate-jodd-http-test`. Keep the GitHub-assigned branch and any platform-assigned follow-up branch; do not rename, create a replacement branch or open a separate PR as a workaround.\n\nSimplify `unitTests()` in `conventions/src/main/kotlin/io/opentelemetry/instrumentation/gradle/TestSuiteExecutions.kt`: it already eagerly realizes the suite, so use `create(...)` and return `JvmTestSuite` directly without changing module call sites, and update the convention tests for the direct return. Have `executions` reuse `includeInCheck()` for the default suite so there is one way to wire a suite into `check`. Preserve lazy test tasks and ensure unrelated opt-in suites are not added to `check`.\n\nKeep suite ownership tracking for variants and use it in one real migration. I checked for duplicated unit suites and Reactor Kafka has a concrete case in `instrumentation/reactor/reactor-kafka-1.0/javaagent/build.gradle.kts`: `unitTests` and `receiveTelemetryDisabledUnitTests` compile the same test sources with the same dependencies to test receive telemetry on and off. Use the `unitTests` helper there and replace the duplicate suite with a `ReceiveTelemetryDisabled` execution variant of `unitTests`, sharing compiled tests and runtime dependencies. Keep the existing default `unitTests` execution opted into `otel.instrumentation.common.messaging.experimental.receive-telemetry.enabled=true` using `configureDefault`, and leave the disabled variant at the existing unset/disabled default. Both modes must remain in `check` and run without the agent. Preserve the existing case-insensitive owning-suite convention and standalone/installed-agent behavior; the task name alone must not make an integration variant agent-free. Keep Jodd HTTP's migration, pinned helper test version, and installed-agent coverage unchanged. Limit the migration to Reactor Kafka.\n\nRun the focused `TestSuiteExecutionsTest`, both Reactor Kafka unit-test executions, and Jodd HTTP's helper suite in the cloud. Verify task wiring in `check`, including `-PtestLatestDeps=true` where feasible. Report what actually ran and any blockers.",
+      "created": "2026-11-21T00:06:02Z",
+      "hunk": "@@ -16,19 +18,54 @@ import org.gradle.testing.base.TestingExtension\n import org.gradle.testing.base.TestSuite\n \n class TestSuiteExecutionsPlugin : Plugin<Project> {\n+  private val executionSuites = mutableMapOf<String, JvmTestSuite>()\n+\n   override fun apply(project: Project) {\n     project.pluginManager.apply(\"jvm-test-suite\")\n     project.extensions.getByType(TestingExtension::class.java).suites\n       .withType(JvmTestSuite::class.java).configureEach {\n-        (this as ExtensionAware).extensions.add(\"executions\", TestSuiteExecutions(project, this))\n+        (this as ExtensionAware).extensions.add(\n+          \"executions\", TestSuiteExecutions(project, this, this@TestSuiteExecutionsPlugin)\n+        )\n       }\n   }\n+\n+  internal fun registerExecution(name: String, suite: JvmTestSuite) {\n+    executionSuites[name] = suite\n+  }\n+\n+  internal fun isUnitTestSuite(task: Test): Boolean {\n+    val suite = executionSuites[task.name]\n+      ?: task.project.extensions.getByType(TestingExtension::class.java).suites\n+        .findByName(task.name) as? JvmTestSuite\n+    return suite != null && suite.name.endsWith(\"unitTests\", true)\n+  }\n }\n \n+/** Register helper unit tests with the current project as a dependency and include them in check. */\n+fun PolymorphicDomainObjectContainer<TestSuite>.unitTests(",
+      "id": "PRRT_kwDODJKVX866OYk-",
+      "opened": "2026-11-21T00:06:02Z",
+      "path": "conventions/src/main/kotlin/io/opentelemetry/instrumentation/gradle/TestSuiteExecutions.kt",
+      "replies": [
+        {
+          "at": "2026-11-21T00:20:27Z",
+          "body": "Updated in `7c75e3ed`. `unitTests()` now eagerly creates and returns `JvmTestSuite`, and default executions share `includeInCheck()`. Reactor Kafka’s disabled-receive run is now a tracked `ReceiveTelemetryDisabled` variant with default-only telemetry enabled. The focused convention test, both Reactor Kafka executions, and Jodd helper suite passed; baseline and `-PtestLatestDeps=true` dry-run check graphs include the expected suites.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21393#discussion_r4649224903"
+        }
+      ],
+      "reviewed": "84bd2029b3e5cda4c77b80770254243421930661",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21393#discussion_r4649136975"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this draft PR directly on `open-telemetry/opentelemetry-java-instrumentation:copilot/migrate-jodd-http-test`. Keep the GitHub-assigned branch and any platform-assigned follow-up branch. Do not rename a branch, create a replacement branch, or open a separate PR as a workaround. Leave the PR in draft.\n\nKeep `unitTests()` and its targeted `check` dependency, and keep the Jodd HTTP migration with its helper tests pinned to Jodd HTTP 4.2.0. In Reactor Kafka's `javaagent/build.gradle.kts`, remove the entire `executions(\"unitTests\")` block. Run the existing `ReactorKafkaOwnershipTest` source set once via `unitTests()`, without the agent or a receive-telemetry JVM flag. Those tests seed their own consumer contexts and use the process instrumenter. `KafkaInstrumenterFactory` uses the flag only when building the receive instrumenter. Preserve the existing installed-agent `test` and `testReceiveSpansDisabled` coverage, other integration variants, dependency graphs, and `check` wiring.\n\nRemove the new `executionSuites` registry and variant-specific plumbing from this PR. Keep the early return in `io.opentelemetry.instrumentation.javaagent-testing.gradle.kts` before resolving or wiring the agent for normal `JvmTestSuite` tasks whose owning suite name ends in `unitTests`, case-insensitively. A standalone task or installed-agent variant with a matching suffix must still use the agent. Preserve the helper's suite-local dependency behavior and lazy test tasks. Keep focused convention tests for the behavior retained here, and update the contributor docs and Gradle instructions so they do not promise agent-free execution variants yet. Do not migrate Couchbase or make unrelated changes in this PR.\n\nRun the focused `TestSuiteExecutionsTest` and the Jodd HTTP and Reactor Kafka `unitTests` tasks. Inspect the `check` graph in baseline and latest-dependency modes to confirm the expected tasks remain selected. Report what actually ran and any blockers.",
+      "created": "2026-11-21T00:40:19Z",
+      "hunk": "@@ -95,9 +77,11 @@ testing.suites {\n   }\n \n   executions(\"unitTests\") {\n-    configureEach {\n+    configureDefault {\n       jvmArgs(\"-Dotel.instrumentation.common.messaging.experimental.receive-telemetry.enabled=true\")\n     }\n+\n+    register(\"ReceiveTelemetryDisabled\") {}",
+      "id": "PRRT_kwDODJKVX866O6ci",
+      "opened": "2026-11-21T00:40:19Z",
+      "path": "instrumentation/reactor/reactor-kafka-1.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-21T00:51:09Z",
+          "body": "Implemented in `7f71c85a`. Removed Reactor Kafka’s extra unit-test execution and the suite-ownership registry. Only normal `JvmTestSuite` tasks whose suite name ends in `unitTests` are now agent-free; standalone tasks and execution variants retain agent setup. Updated the contributor guidance. The focused convention, Jodd, and Reactor Kafka unit tests passed, and baseline/latest `check` graphs retain the expected suites.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21393#discussion_r4649430107"
+        }
+      ],
+      "reviewed": "7c75e3ed404e161b052b6f467b9b0143d8a9f6bf",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21393#discussion_r4649361641"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update draft PR #21393 directly on `open-telemetry/opentelemetry-java-instrumentation:copilot/migrate-jodd-http-test`. Keep the GitHub-assigned branch and any platform-assigned follow-up branch. Do not rename or replace the branch or open a separate PR. Leave this PR in draft.\n\nIn `conventions/src/main/kotlin/io.opentelemetry.instrumentation.javaagent-testing.gradle.kts`, keep the original suite lookup and put its guard at the start of the `Test` configuration, before looking up `shadowJar`, resolving `agentForTesting`, or adding either agent dependency. Skip the agent only for a matching `JvmTestSuite` whose name ends with `unitTests`, case-insensitively. Standalone tasks, variant tasks, and installed-agent suites should behave as they do now. Remove the `isUnitTestSuite` import and both classifier methods in `conventions/src/main/kotlin/io/opentelemetry/instrumentation/gradle/TestSuiteExecutions.kt`.\n\nDelete the `agent-free classification applies only to unit test suite tasks` test in `conventions/src/test/kotlin/io/opentelemetry/instrumentation/gradle/TestSuiteExecutionsTest.kt`. Its stand-in callback does not exercise agent jar resolution in the convention. Keep `unitTests()` and the tests for selective `check` wiring, task laziness, and dependency isolation. Leave both migrations unchanged. Keep Jodd HTTP pinned to 4.2.0 for the helper tests and retain Reactor Kafka's single ownership suite, installed-agent receive-telemetry coverage, version suites, and `dependsOn(testing.suites)`.\n\nRun the focused `TestSuiteExecutionsTest` and the Jodd HTTP and Reactor Kafka `unitTests` tasks where feasible. Report what actually ran and any blockers.",
+      "created": "2026-11-21T01:35:23Z",
+      "hunk": "@@ -122,6 +123,10 @@ class JavaagentTestArgumentsProvider(\n // need to run this after evaluate because testSets plugin adds new test tasks\n afterEvaluate {\n   tasks.withType<Test>().configureEach {\n+    if (isUnitTestSuite()) {",
+      "id": "PRRT_kwDODJKVX866Pr0z",
+      "opened": "2026-11-21T01:35:23Z",
+      "path": "conventions/src/main/kotlin/io.opentelemetry.instrumentation.javaagent-testing.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-21T01:44:08Z",
+          "body": "Implemented in `5590f944`. The agent-free guard now performs the original `JvmTestSuite` lookup before agent resolution; the classifier methods and stand-in test are removed. Focused convention, Jodd HTTP, and Reactor Kafka unit tests and the Kotlin Gradle formatting check passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21393#discussion_r4649755210"
+        }
+      ],
+      "reviewed": "7f71c85a036b7d6a1350b495891d68a676e86aeb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21393#discussion_r4649696942"
+    }
+  ]
+}

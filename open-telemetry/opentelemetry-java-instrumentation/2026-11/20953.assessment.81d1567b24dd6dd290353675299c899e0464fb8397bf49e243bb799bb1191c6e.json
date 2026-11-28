@@ -1,0 +1,896 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "59e88bc141866189e0b2c53812133dda00c856d4865f227d9072f56728c0c286",
+  "input_digest": "81d1567b24dd6dd290353675299c899e0464fb8397bf49e243bb799bb1191c6e",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/39c6eb35d0eca88d8a8f71913cede98f947f5731/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/39c6eb35d0eca88d8a8f71913cede98f947f5731/.github/instructions/emitted-telemetry.instructions.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/.github/instructions/emitted-telemetry.instructions.md"
+      ],
+      "id": "PRRT_kwDODJKVX86v822R",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/39c6eb35d0eca88d8a8f71913cede98f947f5731/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/rest/common/v5_0/ElasticsearchDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/rest/common/v5_0/ElasticsearchDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/rest/common/v5_0/ElasticsearchDbResponseStatusTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86v822b",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/39c6eb35d0eca88d8a8f71913cede98f947f5731/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/39c6eb35d0eca88d8a8f71913cede98f947f5731/instrumentation/jdbc/testing/src/main/java/io/opentelemetry/instrumentation/jdbc/testing/AbstractJdbcInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/464fddf15fbfe0fc94c688b645f9a5bfd6468e57"
+      ],
+      "id": "PRRT_kwDODJKVX86v822d",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/39c6eb35d0eca88d8a8f71913cede98f947f5731/instrumentation/opensearch/opensearch-rest-common-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/rest/common/v1_0/OpenSearchRestAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/39c6eb35d0eca88d8a8f71913cede98f947f5731/instrumentation/opensearch/opensearch-rest-common-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/rest/common/v1_0/RestResponseListener.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/opensearch/opensearch-rest-common-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/rest/common/v1_0/OpenSearchRestAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/opensearch/opensearch-rest-common-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/rest/common/v1_0/RestResponseListener.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/opensearch/opensearch-rest-common-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/rest/common/v1_0/OpenSearchRestInstrumenterFactory.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/opensearch/opensearch-rest-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/rest/v1_0/OpenSearchRestSingletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/opensearch/opensearch-rest-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/rest/v3_0/OpenSearchRestSingletons.java"
+      ],
+      "id": "PRRT_kwDODJKVX86v822j",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/39c6eb35d0eca88d8a8f71913cede98f947f5731/instrumentation/vertx/vertx-sql-client/vertx-sql-client-common-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/common/v4_0/VertxSqlClientAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/vertx/vertx-sql-client/vertx-sql-client-common-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/common/v4_0/VertxSqlClientAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/vertx/vertx-sql-client/vertx-sql-client-common-4.0/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/common/v4_0/VertxSqlClientResponseStatusTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86v822m",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/39c6eb35d0eca88d8a8f71913cede98f947f5731/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/rest/common/v5_0/ElasticsearchDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/rest/common/v5_0/ElasticsearchDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/39c6eb35d0eca88d8a8f71913cede98f947f5731/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientAttributesExtractor.java"
+      ],
+      "id": "PRRT_kwDODJKVX86v837p",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2e7bcd1f0f2d182385d937ecec09b33ce1f1e461/instrumentation/opensearch/opensearch-rest-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/rest/v1_0/RestClientInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2e7bcd1f0f2d182385d937ecec09b33ce1f1e461/instrumentation/opensearch/opensearch-rest-common-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/rest/common/v1_0/OpenSearchRestAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/opensearch/opensearch-rest-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/rest/v1_0/RestClientInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/opensearch/opensearch-rest-common-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/rest/common/v1_0/OpenSearchRestAttributesGetter.java"
+      ],
+      "id": "PRRT_kwDODJKVX86v9FXv",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86v9HEt",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86v9FXv",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bd2ca6c2562421460be309f05b6080ac30a257c1/instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/DynamoDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/DynamoDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bd2ca6c2562421460be309f05b6080ac30a257c1/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/rest/common/v5_0/ElasticsearchDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/rest/common/v5_0/ElasticsearchDbAttributesGetter.java"
+      ],
+      "id": "PRRT_kwDODJKVX86v-Ghx",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/821fdd3794cd553faf6517b499d3c48686d7f70d/instrumentation/mongo/mongo-3.1/library/src/main/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/MongoDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/mongo/mongo-3.1/library/src/main/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/MongoDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/821fdd3794cd553faf6517b499d3c48686d7f70d/instrumentation/opensearch/opensearch-rest-common-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/rest/common/v1_0/OpenSearchRestAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/opensearch/opensearch-rest-common-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/rest/common/v1_0/OpenSearchRestAttributesGetter.java"
+      ],
+      "id": "PRRT_kwDODJKVX86v-TTS",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86v-YHU",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86v-TTS",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e5c07d053c77dda991aecf62c39b6d2524254435/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e5c07d053c77dda991aecf62c39b6d2524254435/instrumentation/r2dbc-1.0/library/src/main/java/io/opentelemetry/instrumentation/r2dbc/v1_0/internal/R2dbcSqlAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/r2dbc-1.0/library/src/main/java/io/opentelemetry/instrumentation/r2dbc/v1_0/internal/R2dbcSqlAttributesGetter.java"
+      ],
+      "id": "PRRT_kwDODJKVX86wEebK",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/be5f9cca5f355c80471c6c95071636c8c49f9adf/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/rest/common/v5_0/ElasticsearchDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/rest/common/v5_0/ElasticsearchDbAttributesGetter.java"
+      ],
+      "id": "PRRT_kwDODJKVX86wUBQB",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/be5f9cca5f355c80471c6c95071636c8c49f9adf/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcAttributesGetter.java"
+      ],
+      "id": "PRRT_kwDODJKVX86wUJjK",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/be5f9cca5f355c80471c6c95071636c8c49f9adf/instrumentation/opensearch/opensearch-rest-common-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/rest/common/v1_0/OpenSearchRestAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/opensearch/opensearch-rest-common-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/rest/common/v1_0/OpenSearchRestAttributesGetter.java"
+      ],
+      "id": "PRRT_kwDODJKVX86wU3wA",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/be5f9cca5f355c80471c6c95071636c8c49f9adf/instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/be5f9cca5f355c80471c6c95071636c8c49f9adf/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/rest/common/v5_0/ElasticsearchDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/rest/common/v5_0/ElasticsearchDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/be5f9cca5f355c80471c6c95071636c8c49f9adf/instrumentation/opensearch/opensearch-rest-common-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/rest/common/v1_0/OpenSearchRestAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/opensearch/opensearch-rest-common-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/rest/common/v1_0/OpenSearchRestAttributesGetter.java"
+      ],
+      "id": "PRRT_kwDODJKVX86wYSdY",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86wZbt3",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86wYSdY",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3e4cec464bdde876a7967e189ddb154b5b4161a6/instrumentation/r2dbc-1.0/library/src/main/java/io/opentelemetry/instrumentation/r2dbc/v1_0/internal/R2dbcSqlAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/r2dbc-1.0/library/src/main/java/io/opentelemetry/instrumentation/r2dbc/v1_0/internal/R2dbcSqlAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/r2dbc-1.0/library/src/test/java/io/opentelemetry/instrumentation/r2dbc/v1_0/R2dbcSqlAttributesGetterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/r2dbc-1.0/testing/src/main/java/io/opentelemetry/instrumentation/r2dbc/v1_0/AbstractR2dbcStatementTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86wZtMF",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3e4cec464bdde876a7967e189ddb154b5b4161a6/instrumentation/vertx/vertx-sql-client/vertx-sql-client-common-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/common/v4_0/VertxSqlClientAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/vertx/vertx-sql-client/vertx-sql-client-common-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/common/v4_0/VertxSqlClientAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/vertx/vertx-sql-client/vertx-sql-client-common-4.0/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/common/v4_0/VertxSqlClientResponseStatusTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86wZtNV",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86waKoZ",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86wZtMF",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e5ae14afcf5f6cae69e6146c3ba20746512ba39c/instrumentation/lettuce/lettuce-5.1/library/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/OpenTelemetryTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e5ae14afcf5f6cae69e6146c3ba20746512ba39c/instrumentation/lettuce/lettuce-5.1/library/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/LettuceDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/lettuce/lettuce-5.1/library/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/OpenTelemetryTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/lettuce/lettuce-5.1/library/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/LettuceDbAttributesGetter.java"
+      ],
+      "id": "PRRT_kwDODJKVX86wa6r_",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86wbAIJ",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86wa6r_",
+      "status": "duplicate"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86wbn2S",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86wa6r_",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ae0660dd7fd308d31eeb9af8508824691cdecb5c/instrumentation/r2dbc-1.0/library/src/main/java/io/opentelemetry/instrumentation/r2dbc/v1_0/internal/R2dbcSqlAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ae0660dd7fd308d31eeb9af8508824691cdecb5c/instrumentation/vertx/vertx-sql-client/vertx-sql-client-common-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/common/v4_0/VertxSqlClientAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/r2dbc-1.0/library/src/main/java/io/opentelemetry/instrumentation/r2dbc/v1_0/internal/R2dbcSqlAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/vertx/vertx-sql-client/vertx-sql-client-common-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/common/v4_0/VertxSqlClientAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/internal/SqlResponseStatusCodeUtil.java"
+      ],
+      "id": "PRRT_kwDODJKVX86wcOsp",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/afab4a582cb84092808627c9812151d77a5a241a/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/afab4a582cb84092808627c9812151d77a5a241a/instrumentation/r2dbc-1.0/library/src/main/java/io/opentelemetry/instrumentation/r2dbc/v1_0/internal/R2dbcSqlAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/r2dbc-1.0/library/src/main/java/io/opentelemetry/instrumentation/r2dbc/v1_0/internal/R2dbcSqlAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/internal/SqlResponseStatusCodeUtil.java"
+      ],
+      "id": "PRRT_kwDODJKVX86wdQFN",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7e775ecfaf91d239afd5558cd43b45c9bfbd0eba/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7e775ecfaf91d239afd5558cd43b45c9bfbd0eba/instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv1/v0_5/ClickHouseErrorCodeExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv1/v0_5/ClickHouseErrorCodeExtractor.java"
+      ],
+      "id": "PRRT_kwDODJKVX86wdv74",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/07ff8e835a2b17748946555b57021c59caf2a591/instrumentation/mongo/mongo-3.1/library/src/main/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/MongoDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/mongo/mongo-3.1/library/src/main/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/MongoDbAttributesGetter.java"
+      ],
+      "id": "PRRT_kwDODJKVX86weU6E",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86wf3A2",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86wf3Qm",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86wf558",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/07ff8e835a2b17748946555b57021c59caf2a591/instrumentation/jdbc/library/src/test/java/io/opentelemetry/instrumentation/jdbc/datasource/JdbcTelemetryTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/jdbc/library/src/test/java/io/opentelemetry/instrumentation/jdbc/datasource/JdbcTelemetryTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/07ff8e835a2b17748946555b57021c59caf2a591/instrumentation/jdbc/library/src/test/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcAttributesGetterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/jdbc/library/src/test/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcAttributesGetterTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86wf669",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86wf7lO",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/07ff8e835a2b17748946555b57021c59caf2a591/instrumentation/lettuce/lettuce-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/lettuce/v4_0/LettuceAsyncClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/lettuce/lettuce-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/lettuce/v4_0/LettuceAsyncClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/464fddf15fbfe0fc94c688b645f9a5bfd6468e57"
+      ],
+      "id": "PRRT_kwDODJKVX86wf86b",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86wf_Oi",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/07ff8e835a2b17748946555b57021c59caf2a591/instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/opensearch/opensearch-java-3.0/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchAttributesGetterTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86wf_4h",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/07ff8e835a2b17748946555b57021c59caf2a591/instrumentation/opensearch/opensearch-rest-common-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/rest/common/v1_0/OpenSearchRestAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/opensearch/opensearch-rest-common-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/rest/common/v1_0/OpenSearchRestAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/opensearch/opensearch-rest-common-1.0/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/opensearch/rest/common/v1_0/OpenSearchRestAttributesGetterTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86wgBf5",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/07ff8e835a2b17748946555b57021c59caf2a591/instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchAttributesGetter.java"
+      ],
+      "id": "PRRT_kwDODJKVX86wgsp9",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/85e0e73bd2cc1421d8ff97461fbc334a6c9149a5/instrumentation/mongo/mongo-3.1/library/src/main/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/MongoDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/mongo/mongo-3.1/library/src/main/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/MongoDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/85e0e73bd2cc1421d8ff97461fbc334a6c9149a5/instrumentation/mongo/mongo-3.1/library/src/test/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/MongoDbAttributesGetterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/mongo/mongo-3.1/library/src/test/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/MongoDbAttributesGetterTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86whOZC",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8c4d500a5b00941dd8e4481e8401aa58bdd0b2af/instrumentation/mongo/mongo-3.1/library/src/main/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/MongoDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/mongo/mongo-3.1/library/src/main/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/MongoDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8c4d500a5b00941dd8e4481e8401aa58bdd0b2af/instrumentation/mongo/mongo-3.1/library/src/test/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/MongoDbAttributesGetterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/mongo/mongo-3.1/library/src/test/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/MongoDbAttributesGetterTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86whZ44",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8c4d500a5b00941dd8e4481e8401aa58bdd0b2af/instrumentation/mongo/mongo-3.1/library/src/main/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/MongoDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8c4d500a5b00941dd8e4481e8401aa58bdd0b2af/instrumentation/mongo/mongo-3.1/library/src/test/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/MongoDbAttributesGetterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/mongo/mongo-3.1/library/src/main/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/MongoDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/mongo/mongo-3.1/library/src/test/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/MongoDbAttributesGetterTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86whZ5I",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86whfUK",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86whZ44",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4ef40d67e8620adf9f29f872bc5ad14d61255507/instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv1/v0_5/ClickHouseErrorCodeExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv1/v0_5/ClickHouseErrorCodeExtractorTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86wh0le",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8954b622f60e6c4dc6f5c541718b0fa8c41ce20d/instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv1/v0_5/ClickHouseErrorCodeExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8954b622f60e6c4dc6f5c541718b0fa8c41ce20d/instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv1/v0_5/ClickHouseClientV1Singletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv1/v0_5/ClickHouseErrorCodeExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv1/v0_5/ClickHouseClientV1Singletons.java"
+      ],
+      "id": "PRRT_kwDODJKVX86wia7K",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c40083670fd51a3c030c4f02695facbf0278371b/instrumentation/lettuce/lettuce-5.1/testing/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/AbstractLettuceSyncClientAuthTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/lettuce/lettuce-5.1/testing/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/AbstractLettuceSyncClientAuthTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86xxrv2",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6b42199151ce5aef6b260c301712f9a31fb83db2/instrumentation/vertx/vertx-sql-client/vertx-sql-client-common-4.0/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/common/v4_0/VertxSqlClientAttributesGetterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6b42199151ce5aef6b260c301712f9a31fb83db2/instrumentation/opensearch/opensearch-java-3.0/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchAttributesGetterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6b42199151ce5aef6b260c301712f9a31fb83db2/instrumentation/opensearch/opensearch-rest-common-1.0/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/opensearch/rest/common/v1_0/OpenSearchRestAttributesGetterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/vertx/vertx-sql-client/vertx-sql-client-common-4.0/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/common/v4_0/VertxSqlClientAttributesGetterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/opensearch/opensearch-java-3.0/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchAttributesGetterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/opensearch/opensearch-rest-common-1.0/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/opensearch/rest/common/v1_0/OpenSearchRestAttributesGetterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6b42199151ce5aef6b260c301712f9a31fb83db2/instrumentation/vertx/vertx-sql-client/vertx-sql-client-common-4.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/vertx/vertx-sql-client/vertx-sql-client-common-4.0/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86xyDr8",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6b42199151ce5aef6b260c301712f9a31fb83db2/instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/compare/6b42199151ce5aef6b260c301712f9a31fb83db2...e044b4d28ff35b735d7f5f3abf21691d3bdeebaf"
+      ],
+      "id": "PRRT_kwDODJKVX86xyDrg",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6b42199151ce5aef6b260c301712f9a31fb83db2/instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6b42199151ce5aef6b260c301712f9a31fb83db2/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientMetricsAdvice.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientMetricsAdvice.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6b42199151ce5aef6b260c301712f9a31fb83db2/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientMetricsTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientMetricsTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86xynxg",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f7584c3ee46e12c6f452839e6908aa819036bced/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientMetricsAdvice.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f7584c3ee46e12c6f452839e6908aa819036bced/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientMetrics.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f7584c3ee46e12c6f452839e6908aa819036bced/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientAttributesExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientMetricsAdvice.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientMetrics.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientAttributesExtractor.java"
+      ],
+      "id": "PRRT_kwDODJKVX86xzDyN",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f7584c3ee46e12c6f452839e6908aa819036bced/instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedAttributesGetter.java"
+      ],
+      "id": "PRRT_kwDODJKVX86xzDyv",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f7584c3ee46e12c6f452839e6908aa819036bced/instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f7584c3ee46e12c6f452839e6908aa819036bced/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f7584c3ee46e12c6f452839e6908aa819036bced/instrumentation/opensearch/opensearch-java-3.0/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchAttributesGetterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/opensearch/opensearch-java-3.0/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchAttributesGetterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f7584c3ee46e12c6f452839e6908aa819036bced/instrumentation/opensearch/opensearch-rest-common-1.0/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/opensearch/rest/common/v1_0/OpenSearchRestAttributesGetterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/opensearch/opensearch-rest-common-1.0/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/opensearch/rest/common/v1_0/OpenSearchRestAttributesGetterTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86x0ery",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bf8979615c23f12db8a122fca377bd302f0359d7/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientMetrics.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientMetrics.java"
+      ],
+      "id": "PRRT_kwDODJKVX86x1A6u",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bf8979615c23f12db8a122fca377bd302f0359d7/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientMetrics.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientMetrics.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bf8979615c23f12db8a122fca377bd302f0359d7/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/DbRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/DbRequest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86x1DWa",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e3586339f57dcba550b6e191d9800e8199308744/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientMetrics.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientMetrics.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e3586339f57dcba550b6e191d9800e8199308744/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientMetricsTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientMetricsTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86x1tLp",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/08054f766d731b3373878208bcacbc01e2a4a3b8/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/DbRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/08054f766d731b3373878208bcacbc01e2a4a3b8/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/DbRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcAttributesGetter.java"
+      ],
+      "id": "PRRT_kwDODJKVX86x2PLF",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3c7a4306ad444c6e3c008842ba4f8acba2e44d43/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/DbRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3c7a4306ad444c6e3c008842ba4f8acba2e44d43/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3c7a4306ad444c6e3c008842ba4f8acba2e44d43/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/OpenTelemetryStatement.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/DbRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/OpenTelemetryStatement.java"
+      ],
+      "id": "PRRT_kwDODJKVX860NTdN",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9d1659fd7a0c81b228e367e8a782c39fa20fa7e5/instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv1/v0_5/ClickHouseErrorCodeExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9d1659fd7a0c81b228e367e8a782c39fa20fa7e5/instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv1/v0_5/ClickHouseErrorCodeExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9d1659fd7a0c81b228e367e8a782c39fa20fa7e5/instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv1/v0_5/ClickHouseClientV1Singletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv1/v0_5/ClickHouseErrorCodeExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv1/v0_5/ClickHouseErrorCodeExtractorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv1/v0_5/ClickHouseClientV1Singletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/464fddf15fbfe0fc94c688b645f9a5bfd6468e57"
+      ],
+      "id": "PRRT_kwDODJKVX860OSMF",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX860OSNn",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86whOZC",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9d1659fd7a0c81b228e367e8a782c39fa20fa7e5/instrumentation/jdbc/testing/src/main/java/io/opentelemetry/instrumentation/jdbc/TestConnection.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9d1659fd7a0c81b228e367e8a782c39fa20fa7e5/instrumentation/jdbc/testing/src/main/java/io/opentelemetry/instrumentation/jdbc/TestStatement.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/jdbc/testing/src/main/java/io/opentelemetry/instrumentation/jdbc/TestConnection.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/jdbc/testing/src/main/java/io/opentelemetry/instrumentation/jdbc/TestStatement.java"
+      ],
+      "id": "PRRT_kwDODJKVX860OSOz",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9d1659fd7a0c81b228e367e8a782c39fa20fa7e5/instrumentation/vertx/vertx-sql-client/vertx-sql-client-common-4.0/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/common/v4_0/VertxSqlClientAttributesGetterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/vertx/vertx-sql-client/vertx-sql-client-common-4.0/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/common/v4_0/VertxSqlClientAttributesGetterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/vertx/vertx-sql-client/vertx-sql-client-common-4.0/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/common/v4_0/VertxSqlClientResponseStatusTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX860POte",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX860RKd3",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX860OSMF",
+      "status": "duplicate"
+    },
+    {
+      "id": "PRRT_kwDODJKVX860Ry9_",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX860NTdN",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f02ef9395030a0cc02b957b194061b4f20395071/instrumentation/lettuce/lettuce-5.1/library/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/LettuceDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/lettuce/lettuce-5.1/library/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/LettuceDbAttributesGetter.java"
+      ],
+      "id": "PRRT_kwDODJKVX860V0YW",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ce27acc5f24fd678b72d3aa9a08a2598111c0456/instrumentation/lettuce/lettuce-5.1/library/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/OpenTelemetryTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ce27acc5f24fd678b72d3aa9a08a2598111c0456/instrumentation/lettuce/lettuce-5.1/library/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/LettuceDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/lettuce/lettuce-5.1/library/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/OpenTelemetryTracing.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/lettuce/lettuce-5.1/library/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/LettuceDbAttributesGetter.java"
+      ],
+      "id": "PRRT_kwDODJKVX860WTzf",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ce27acc5f24fd678b72d3aa9a08a2598111c0456/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/internal/SqlResponseStatusCodeUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/internal/SqlResponseStatusCodeUtil.java"
+      ],
+      "id": "PRRT_kwDODJKVX860WLX3",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ce27acc5f24fd678b72d3aa9a08a2598111c0456/instrumentation/clickhouse/clickhouse-client-common-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/client/common/v0_5/ClickHouseAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/clickhouse/clickhouse-client-common-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/client/common/v0_5/ClickHouseAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ce27acc5f24fd678b72d3aa9a08a2598111c0456/instrumentation/clickhouse/clickhouse-client-common-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/client/common/v0_5/ClickHouseInstrumenterFactory.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/clickhouse/clickhouse-client-common-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/client/common/v0_5/ClickHouseInstrumenterFactory.java"
+      ],
+      "id": "PRRT_kwDODJKVX860WMaY",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ce27acc5f24fd678b72d3aa9a08a2598111c0456/instrumentation/clickhouse/clickhouse-client-common-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/client/common/v0_5/ClickHouseInstrumenterFactory.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ce27acc5f24fd678b72d3aa9a08a2598111c0456/instrumentation/clickhouse/clickhouse-client-common-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/client/common/v0_5/ClickHouseAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/clickhouse/clickhouse-client-common-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/client/common/v0_5/ClickHouseInstrumenterFactory.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/clickhouse/clickhouse-client-common-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/client/common/v0_5/ClickHouseAttributesGetter.java"
+      ],
+      "id": "PRRT_kwDODJKVX860WM_X",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ce27acc5f24fd678b72d3aa9a08a2598111c0456/instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv1/v0_5/ClickHouseErrorCodeExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv1/v0_5/ClickHouseErrorCodeExtractor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ce27acc5f24fd678b72d3aa9a08a2598111c0456/instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv1/v0_5/ClickHouseClientV1Singletons.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/clickhouse/clickhouse-client-v1-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/clientv1/v0_5/ClickHouseClientV1Singletons.java"
+      ],
+      "id": "PRRT_kwDODJKVX860WNS_",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ce27acc5f24fd678b72d3aa9a08a2598111c0456/instrumentation/vertx/vertx-sql-client/vertx-sql-client-common-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/common/v4_0/VertxSqlClientAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/vertx/vertx-sql-client/vertx-sql-client-common-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/common/v4_0/VertxSqlClientAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ce27acc5f24fd678b72d3aa9a08a2598111c0456/instrumentation/vertx/vertx-sql-client/vertx-sql-client-5.0/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/common/v4_0/VertxSqlClientAttributesGetterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/vertx/vertx-sql-client/vertx-sql-client-5.0/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/common/v4_0/VertxSqlClientAttributesGetterTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX860XBcN",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b8430a807e55bb4f3c8433ee0131a0c2309d178d/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b8430a807e55bb4f3c8433ee0131a0c2309d178d/instrumentation/r2dbc-1.0/library/src/main/java/io/opentelemetry/instrumentation/r2dbc/v1_0/internal/R2dbcSqlAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/r2dbc-1.0/library/src/main/java/io/opentelemetry/instrumentation/r2dbc/v1_0/internal/R2dbcSqlAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b8430a807e55bb4f3c8433ee0131a0c2309d178d/instrumentation/vertx/vertx-sql-client/vertx-sql-client-common-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/common/v4_0/VertxSqlClientAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/vertx/vertx-sql-client/vertx-sql-client-common-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/common/v4_0/VertxSqlClientAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b8430a807e55bb4f3c8433ee0131a0c2309d178d/instrumentation/rediscala-1.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/rediscala-1.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaAttributesGetter.java"
+      ],
+      "id": "PRRT_kwDODJKVX860XZ4q",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/70cc2d34b11d8b1ea55402e4464a6280cb0f373f/instrumentation/jdbc/testing/src/main/java/io/opentelemetry/instrumentation/jdbc/testing/AbstractJdbcInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/jdbc/testing/src/main/java/io/opentelemetry/instrumentation/jdbc/testing/AbstractJdbcInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/70cc2d34b11d8b1ea55402e4464a6280cb0f373f/instrumentation/jdbc/library/src/test/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcAttributesGetterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/jdbc/library/src/test/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcAttributesGetterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/70cc2d34b11d8b1ea55402e4464a6280cb0f373f/instrumentation/lettuce/lettuce-5.1/library/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/LettuceResponse.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/lettuce/lettuce-5.1/library/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/LettuceResponse.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/70cc2d34b11d8b1ea55402e4464a6280cb0f373f/instrumentation/r2dbc-1.0/library/src/test/java/io/opentelemetry/instrumentation/r2dbc/v1_0/R2dbcSqlAttributesGetterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/r2dbc-1.0/library/src/test/java/io/opentelemetry/instrumentation/r2dbc/v1_0/R2dbcSqlAttributesGetterTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX860X6od",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a8313f8b66deec4626ce5700945688a0ea3f3b3e/instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a8313f8b66deec4626ce5700945688a0ea3f3b3e/.github/instructions/emitted-telemetry.instructions.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/.github/instructions/emitted-telemetry.instructions.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a8313f8b66deec4626ce5700945688a0ea3f3b3e/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/rest/common/v5_0/ElasticsearchDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/elasticsearch/elasticsearch-rest-common-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/rest/common/v5_0/ElasticsearchDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a8313f8b66deec4626ce5700945688a0ea3f3b3e/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a8313f8b66deec4626ce5700945688a0ea3f3b3e/instrumentation/r2dbc-1.0/library/src/main/java/io/opentelemetry/instrumentation/r2dbc/v1_0/internal/R2dbcSqlAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/r2dbc-1.0/library/src/main/java/io/opentelemetry/instrumentation/r2dbc/v1_0/internal/R2dbcSqlAttributesGetter.java"
+      ],
+      "id": "PRRT_kwDODJKVX860ZFo9",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bd20557d7ca95f0d55a17abfb2b83ca3bbd3d87f/instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/MemcachedFutureInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedSingletons.java"
+      ],
+      "id": "PRRT_kwDODJKVX860s7Cx",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fdc50eacf159d66a1e1196b3b003bdcd39314a8c/instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/MemcachedFutureInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedSingletons.java"
+      ],
+      "id": "PRRT_kwDODJKVX860uoI5",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a9b774e43b02ecbb99283a8a46b28b7932fac732/instrumentation/spymemcached-2.12/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedAttributesGetterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/spymemcached-2.12/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedAttributesGetterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a9b774e43b02ecbb99283a8a46b28b7932fac732/instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/MemcachedFutureInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/MemcachedFutureInstrumentation.java"
+      ],
+      "id": "PRRT_kwDODJKVX860vC8j",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c18aa7d7e2cf808349fb30362c3de2363f2dbe5e/instrumentation/spymemcached-2.12/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedFutureStatusInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/spymemcached-2.12/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedFutureStatusInstrumentationTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c18aa7d7e2cf808349fb30362c3de2363f2dbe5e/instrumentation/r2dbc-1.0/testing/src/main/java/io/opentelemetry/instrumentation/r2dbc/v1_0/AbstractR2dbcStatementTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/r2dbc-1.0/testing/src/main/java/io/opentelemetry/instrumentation/r2dbc/v1_0/AbstractR2dbcStatementTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c18aa7d7e2cf808349fb30362c3de2363f2dbe5e/instrumentation/spymemcached-2.12/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/instrumentation/spymemcached-2.12/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX860xoeR",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/975ced55ef0e4d7328e58ff65bd46b9a619a03d9/.github/instructions/java-tests.instructions.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/464fddf15fbfe0fc94c688b645f9a5bfd6468e57/.github/instructions/java-tests.instructions.md"
+      ],
+      "id": "PRRT_kwDODJKVX860yFBb",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

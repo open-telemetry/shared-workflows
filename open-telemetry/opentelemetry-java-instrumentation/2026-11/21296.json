@@ -1,0 +1,62 @@
+{
+  "head": "21e621b5471945a557234ef8027110effb67e2d6",
+  "merge": "eb7812617fd81e33a614525c52fc24c678cd2b54",
+  "merged": "2026-11-20T18:34:10Z",
+  "missing_roots": 0,
+  "number": 21296,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "@trask looks like we currently don't test pre 2.17 versions but the instrumentation seems to work since 2.0. Supported libraries has `2.11+`",
+      "created": "2026-11-13T12:53:26Z",
+      "hunk": "@@ -43,6 +43,28 @@ dependencies {\n }\n \n testing.suites {\n+  listOf(\"2.0\", \"2.8.2\", \"2.9.0\", \"2.17.0\").forEach { log4jVersion ->",
+      "id": "PRRT_kwDODJKVX863GI3d",
+      "opened": "2026-11-13T12:53:26Z",
+      "path": "instrumentation/log4j/log4j-appender-2.17/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-13T15:42:06Z",
+          "body": "Support for Log4j 2.0+ was introduced in #5979, which changed the Muzzle range from [2.11.0,) to [2.0,) and replaced MapMessage.forEach() with getData().forEach(), adding the TODO addressed here.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21296#discussion_r4565405723"
+        },
+        {
+          "at": "2026-11-16T22:55:04Z",
+          "body": "> looks like we currently don't test pre 2.17\n\nthis was done to avoid people flagging the repo for log4shell\n\n> Supported libraries has 2.11+\n\nprobably should change this to 2.17+",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21296#discussion_r4592818783"
+        },
+        {
+          "at": "2026-11-17T02:59:04Z",
+          "body": "Thanks for the context, @trask. I removed the tests for older Log4j versions and kept the pre-2.9 fallback. A Log4j 2.17 unit test now verifies that we capture MapMessage attributes without calling getData().",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21296#discussion_r4594720820"
+        }
+      ],
+      "reviewed": "7bca8fbf9e321da8de2bc0dfb71d07f6c4e825b4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21296#discussion_r4563488183"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The new capability check and fallback are not exercised on pre-2.9 Log4j: the library tests use 2.17, and the shared testing dependency brings Log4j API 2.17 into agent tests. Add an installed-agent suite with matching pre-2.9 API/core dependencies that logs a `MapMessage` and asserts its exported attributes. This should verify helper loading and fallback execution when the newer API is absent, which Muzzle checks alone cannot establish.",
+      "created": "2026-11-17T02:53:52Z",
+      "hunk": "@@ -0,0 +1,47 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.log4j.appender.v2_17.internal;\n+\n+import io.opentelemetry.javaagent.tooling.muzzle.NoMuzzle;\n+import java.lang.invoke.MethodHandles;\n+import java.lang.invoke.MethodType;\n+import java.util.function.BiConsumer;\n+import org.apache.logging.log4j.message.MapMessage;\n+\n+final class MapMessageAccessor {\n+\n+  private static final boolean supportsForEach = supportsForEach();\n+\n+  static void forEach(MapMessage<?, ?> message, BiConsumer<String, Object> action) {\n+    if (supportsForEach) {\n+      forEachLog4j29(message, action);\n+    } else {\n+      message.getData().forEach(action);",
+      "id": "PRRT_kwDODJKVX864P3uD",
+      "opened": "2026-11-17T02:53:53Z",
+      "path": "instrumentation/log4j/log4j-appender-2.17/library/src/main/java/io/opentelemetry/instrumentation/log4j/appender/v2_17/internal/MapMessageAccessor.java",
+      "replies": [
+        {
+          "at": "2026-11-20T17:33:44Z",
+          "body": "Agreed that neither the 2.17 test nor Muzzle exercises the pre-2.9 fallback at runtime. We removed the older-version suite because we intentionally avoid pre-2.17 Log4j test dependencies to avoid Log4Shell scanner flags. Let's keep the fallback and the 2.17 fast-path test without reintroducing those dependencies.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21296#discussion_r4645654799"
+        }
+      ],
+      "reviewed": "d06f639a38cb86974c864399083c3212a32f682d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21296#discussion_r4594682750"
+    }
+  ]
+}

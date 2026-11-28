@@ -1,0 +1,31 @@
+{
+  "head": "72261683970259428bd66213cc4b8fdc284dcf2b",
+  "merge": "11907650552cc70d3d652de10507855b2746b0d8",
+  "merged": "2026-11-02T07:58:41Z",
+  "missing_roots": 0,
+  "number": 21125,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot move id(\"otel.testcontainers-testing\") to the end of the plugins list everywhere",
+      "created": "2026-11-01T23:19:42Z",
+      "hunk": "@@ -1,4 +1,5 @@\n plugins {\n+  id(\"otel.testcontainers-testing\")",
+      "id": "PRRT_kwDODJKVX86yfdcl",
+      "opened": "2026-11-01T23:19:42Z",
+      "path": "instrumentation/jedis/jedis-4.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-01T23:26:24Z",
+          "body": "Moved the declaration to the end of every applicable `plugins` block in 76ff63ee.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21125#discussion_r4437801601"
+        }
+      ],
+      "reviewed": "088fe2c7fb4488fd9786198aef527bc2d4a87fed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21125#discussion_r4437781149"
+    }
+  ]
+}

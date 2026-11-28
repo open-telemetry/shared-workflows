@@ -1,0 +1,91 @@
+{
+  "head": "44cf51db48bb98032e67c2ccb9e3cb1a9d9c8fd9",
+  "merge": "0cf02c0f916d8f124adfe941a42ed5fa04726d90",
+  "merged": "2026-10-28T18:45:58Z",
+  "missing_roots": 0,
+  "number": 21043,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "guess this method will get removed in the next PR",
+      "created": "2026-10-28T08:30:00Z",
+      "hunk": "@@ -31,24 +31,14 @@ public String getSystem(GrpcRequest request) {\n   @Override\n   @Nullable\n   public String getService(GrpcRequest request) {\n-    String fullMethodName = request.getMethod().getFullMethodName();\n-    int slashIndex = fullMethodName.lastIndexOf('/');\n-    if (slashIndex == -1) {\n-      return null;\n-    }\n-    return fullMethodName.substring(0, slashIndex);\n+    return null;\n   }\n \n   @Deprecated\n   @Override\n   @Nullable\n   public String getMethod(GrpcRequest request) {",
+      "id": "PRRT_kwDODJKVX86xCa7J",
+      "opened": "2026-10-28T08:30:00Z",
+      "path": "instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/GrpcRpcAttributesGetter.java",
+      "replies": [],
+      "reviewed": "24cf2680b36178f899cb718ce351232fadcb701b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21043#discussion_r4398401165"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "for http we have `HttpSchemaUrls.SCHEMA_URL` should there be something similar for rpc too?",
+      "created": "2026-10-28T08:31:17Z",
+      "hunk": "@@ -243,7 +240,7 @@ public GrpcTelemetry build() {\n     GrpcRpcAttributesGetter serverRpcAttributesGetter = new GrpcRpcAttributesGetter(false);\n \n     clientInstrumenterBuilder\n-        .setSchemaUrl(RpcSemconvSelection.Selection.forOpenTelemetry(openTelemetry).schemaUrl())\n+        .setSchemaUrl(\"https://opentelemetry.io/schemas/1.44.0\")",
+      "id": "PRRT_kwDODJKVX86xCcWl",
+      "opened": "2026-10-28T08:31:16Z",
+      "path": "instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/GrpcTelemetryBuilder.java",
+      "replies": [],
+      "reviewed": "24cf2680b36178f899cb718ce351232fadcb701b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21043#discussion_r4398410571"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Wondering whether `getService` should be deprecated as `getMethod` is. Is it used in new semconv?",
+      "created": "2026-10-28T08:34:11Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX86xCfn_",
+      "opened": "2026-10-28T08:34:10Z",
+      "path": "instrumentation/apache-dubbo-2.7/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/DubboRpcAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-10-28T16:33:00Z",
+          "body": "this is removed in the next PR",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21043#discussion_r4403309450"
+        }
+      ],
+      "reviewed": "24cf2680b36178f899cb718ce351232fadcb701b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21043#discussion_r4398432396"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "elsewhere `setSchemaUrl(\"https://opentelemetry.io/schemas/1.44.0\")` was used",
+      "created": "2026-10-28T08:35:38Z",
+      "hunk": "@@ -95,28 +93,24 @@ public SofaRpcTelemetry build() {\n     InstrumenterBuilder<SofaRpcRequest, SofaResponse> serverInstrumenterBuilder =\n         Instrumenter.<SofaRpcRequest, SofaResponse>builder(\n                 openTelemetry, INSTRUMENTATION_NAME, spanNameExtractor)\n-            .setSchemaUrl(RpcSemconvSelection.Selection.forOpenTelemetry(openTelemetry).schemaUrl())\n+            .setSchemaUrl(SchemaUrls.V1_44_0)",
+      "id": "PRRT_kwDODJKVX86xChQo",
+      "opened": "2026-10-28T08:35:38Z",
+      "path": "instrumentation/sofa-rpc-5.4/library/src/main/java/io/opentelemetry/instrumentation/sofarpc/v5_4/SofaRpcTelemetryBuilder.java",
+      "replies": [],
+      "reviewed": "24cf2680b36178f899cb718ce351232fadcb701b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21043#discussion_r4398443328"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing PR directly to address both of Laurit's schema URL comments, discussion_r4398410571 and discussion_r4398443328. Do not create another PR.\n\nAdd an internal RpcSchemaUrls helper at instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/internal/RpcSchemaUrls.java, following the existing DbSchemaUrls and HttpSchemaUrls patterns, with SCHEMA_URL backed by SchemaUrls.V1_44_0. Use RpcSchemaUrls.SCHEMA_URL consistently across all RPC instrumenter builders and factories in scope, replacing the duplicated schema 1.44.0 strings and direct SchemaUrls.V1_44_0 references. Relevant consumers include gRPC, GWT RPC, client/server RMI, Spring RMI, Apache Dubbo, Sofa RPC, and Thrift. This addresses both the missing RPC-specific constant and the inconsistent literal-versus-constant usage.\n\nKeep the emitted schema URL exactly https://opentelemetry.io/schemas/1.44.0 and preserve all telemetry payloads and behavior. Keep the existing layer boundary: do not remove or deprecate additional getter APIs or shared compatibility machinery, and do not change the changelog for this refactoring. PR #21045 owns the separate API removal and changelog work.\n\nFollow repository instructions, apply the narrowest relevant formatting, and run focused validation covering the helper and affected consumers where feasible. Preserve this PR's existing base branch and draft/ready state. Do not update other PR branches, reply to human review comments, or resolve Laurit's threads. Acceptance: one RPC schema constant, consistent RPC instrumenter usage, and no schema or behavior changes.",
+      "created": "2026-10-28T15:11:06Z",
+      "hunk": "@@ -243,7 +240,7 @@ public GrpcTelemetry build() {\n     GrpcRpcAttributesGetter serverRpcAttributesGetter = new GrpcRpcAttributesGetter(false);\n \n     clientInstrumenterBuilder\n-        .setSchemaUrl(RpcSemconvSelection.Selection.forOpenTelemetry(openTelemetry).schemaUrl())\n+        .setSchemaUrl(\"https://opentelemetry.io/schemas/1.44.0\")",
+      "id": "PRRT_kwDODJKVX86xLyDi",
+      "opened": "2026-10-28T15:11:06Z",
+      "path": "instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/GrpcTelemetryBuilder.java",
+      "replies": [],
+      "reviewed": "ccacb5223c297da86fb7931d40696869da9cde76",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21043#discussion_r4402337943"
+    }
+  ]
+}

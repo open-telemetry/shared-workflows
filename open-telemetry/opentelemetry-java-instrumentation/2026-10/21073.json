@@ -1,0 +1,217 @@
+{
+  "head": "c1c65fe409fbd6ec5f2c7b5b95fdb9bdc64ee989",
+  "merge": "5e901de01ade4c1f0bc1d86d2471611c9ba37f92",
+  "merged": "2026-10-30T05:55:30Z",
+  "missing_roots": 0,
+  "number": 21073,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the module-local dispatcher design below. Do not create another PR, modify other PRs, merge anything, or change the draft state.\n\nThe user said: \"I don't like encoding this information about specific test suites into here\", referring to the workflow's suite-specific execution conditions, and \"I want this to be simple\". They also objected to adding a shared convention for this one module. They invoked /cloud to implement the following proposed simplification.\n\nReplace the three suite-specific test-execution steps in .github/workflows/build-common.yml with one Test step making one Gradle invocation of :smoke-tests:smokeTest. Keep the existing matrix definitions and the separate compilation-only preparation step. The workflow should pass the suite name, the effective Linux-only reduced-selection flag, the generic OpenJ9 policy, and the existing cache option. Remove suite-specific execution branches such as checks for other/spring-aot and the WebSphere exception from this step. Suite interpretation and the existing vendor exceptions belong inside the smoke-test module, not YAML. Do not redesign the CI matrix.\n\nAdd smokeTest as a plain module-local Gradle lifecycle task with no actions. In smoke-tests/build.gradle.kts, choose its dependencies from the existing suite mapping: an explicit app-server suite in reduced mode selects testRepresentativeAppServers; full mode selects both testRepresentativeAppServers and testRemainingAppServers; non-app-server suites and the default combined suite select the existing test task. Keep test as a real Test task with its existing full/default behavior. Do not turn it into a fake lifecycle wrapper, clear its actions, invoke nested Gradle from an action, or mutate selection after task inputs are calculated.\n\nRemove conventions/src/main/kotlin/io/opentelemetry/instrumentation/gradle/SmokeTestSelection.kt from this PR. Keep the suite map and any small selection helper local to smoke-tests/build.gradle.kts instead of adding a shared plugin, shared convention, framework, or public build-logic API for one consumer. Adapt the associated convention tests so useful regression coverage remains without retaining a general production helper solely for those tests. Keep the Java annotation-based representative/remaining selection.\n\nPreserve the accepted split-task behavior: main executes each effective app-server case once across two disjoint tasks, reduced Linux PRs use the identical representative task recipe that main populates, Windows PRs retain full supported coverage, and TomEE's Linux OpenJ9 representatives are not accidentally excluded by the generic skip policy. Keep empty partitions empty, full/default direct test invocations working, and other/spring-aot/none behavior intact. Retain all meaningful cache inputs including effective container platform and agent/extension/test-app/fixture artifacts. Non-app-server recipes must not vary with irrelevant app-server policy flags. Preserve anonymous read-only PR remote caching and trusted-upload/local-cache safeguards.\n\nRetain or adapt focused regression coverage for dispatcher dependency selection, one invocation without duplicate case execution, platform/vendor cases, empty groups, and representative cache-input equality between PR and main. Apply narrow formatting immediately before behavioral validation. Validate actual selected tasks and inputs, not merely workflow syntax. If remote-cache access, Docker, or other environment limitations prevent a check, report the limitation rather than weakening assertions or claiming a cache hit.\n\nKeep the change focused on simplifying this PR. Do not add changed-file detection, cache warmup steps, dependency-cache persistence, Muzzle changes, new configuration knobs, or unrelated cleanup.",
+      "created": "2026-10-29T17:53:17Z",
+      "hunk": "@@ -0,0 +1,65 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.gradle\n+\n+import org.gradle.api.GradleException\n+import org.gradle.api.tasks.testing.Test\n+\n+fun Test.selectSmokeTests(",
+      "id": "PRRT_kwDODJKVX86xrvPy",
+      "opened": "2026-10-29T17:53:17Z",
+      "path": "conventions/src/main/kotlin/io/opentelemetry/instrumentation/gradle/SmokeTestSelection.kt",
+      "replies": [
+        {
+          "at": "2026-10-29T18:13:55Z",
+          "body": "Updated and pushed in `3834bf47`. The workflow now invokes one module-local `smokeTest` dispatcher; shared selection convention code was removed. Task graphs, representative input equality, WebSphere/OpenJ9 handling, empty partitions, and the focused app-server selection tests were checked.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21073#discussion_r4416171357"
+        }
+      ],
+      "reviewed": "40a8548690874bdf50a6f89ba08378d7c1d17be0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21073#discussion_r4415957681"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the user's newly agreed naming and direct-CI-task design below. This supersedes the earlier request for a smokeTest dispatcher. Do not create another PR, modify other PRs, merge anything, or change the draft state.\n\nThe user chose \"LimitedMatrix / AdditionalVariants\" for the two partitions, explicitly declined JUnit tags for now, and authorized moving the generic choice of whether to run the additional task from Gradle into CI. Keep the existing annotation-based Java selection, normal Gradle caching, and one test Gradle invocation. Do not add a shared convention, plugin, framework, or changed-file detection.\n\nRename the two real, cacheable Test tasks to :smoke-tests:testLimitedMatrix and :smoke-tests:testAdditionalVariants. Remove the smokeTest lifecycle dispatcher. Preserve the existing test task as a real Test task with its normal full/default behavior and support for local --tests filtering. Keep the compilation-only preparation through :smoke-tests:test -PsmokeTestSuite=none. Do not clear test actions, turn test into a wrapper, or execute nested Gradle.\n\nIn the single Test step in .github/workflows/build-common.yml, always request :smoke-tests:testLimitedMatrix and append :smoke-tests:testAdditionalVariants when the run is full or the OS is Windows. Use one generic conditional, not suite-name branches. The agreed selection shape is './gradlew :smoke-tests:testLimitedMatrix ${{ (!inputs.limited-appserver-matrix || matrix.os == 'windows-latest') && ':smoke-tests:testAdditionalVariants' || '' }} -PsmokeTestSuite=${{ matrix.smoke-test-suite }}', retaining the existing cache and effective OpenJ9 options. Rename the workflow input reduced-appserver-tests to limited-appserver-matrix throughout its definitions and callers, including build-pull-request.yml, reusable-pr-build.yml, build-common.yml, and build.yml. Preserve defaults, existing label behavior, matrix definitions, and Windows full supported coverage. Keep the existing 'test full smoke' and 'test openj9' labels unchanged.\n\nThe boolean now stays in CI: remove the Gradle reducedAppServerTests mode property and do not introduce a limitedAppServerMatrix Gradle property. The tasks have fixed partition identities. Keep appServerTestGroup as the internal JVM property, with constant values 'limitedMatrix' and 'additionalVariants' on the respective app-server partitions; keep 'all' for normal full test execution. Rename @AppServer.inReducedMatrix to inLimitedMatrix and update all annotation uses, selector cases, regression names, variables, and directly related comments consistently. Do not change which combinations belong to the limited matrix. Generic AppServerTestSelection and its test class can keep their names.\n\nKeep all suite interpretation in smoke-tests/build.gradle.kts. For explicit app-server suites, testLimitedMatrix selects annotated limited combinations and testAdditionalVariants selects their disjoint complement. For other and spring-aot, testLimitedMatrix must run the normal selected suite and testAdditionalVariants must select nothing. For none both must execute no tests. Preserve the existing normal test task's default combined invocation and direct focused local use. An empty additional partition must never fall back to the full suite. Reject unknown suite or group values explicitly.\n\nPreserve the complete effective platform/vendor policy, including Linux TomEE's limited OpenJ9 combinations, Windows OpenJ9 exclusions, the existing WebSphere exception, and full runs that explicitly skip OpenJ9. Since no Gradle limited-mode flag remains, adjust the generic CI skipOpenJ9SmokeTests forwarding condition as needed to preserve the same effective policy; keep suite/vendor exceptions inside the module, not YAML. For the same suite, platform, and artifacts, trusted main and a limited Linux PR must configure the identical testLimitedMatrix recipe despite different raw CI policy inputs. Full runs execute every supported selected case exactly once across the two tasks. Non-app-server recipes must not vary with irrelevant app-server policy flags.\n\nRetain all meaningful cache inputs already in the PR: effective container platform including the USE_LINUX_CONTAINERS override, agent and extension artifacts, extension test-app JAR, and legacy fixture artifacts. Preserve anonymous read-only PR remote caching and trusted-upload/local-cache safeguards. Do not add duplicate cache warmup runs, cache bypasses, dependency-cache persistence, Muzzle changes, or unrelated cleanup.\n\nUpdate and run focused regression checks for the renamed annotation and selectors, disjointness and union, Windows and OpenJ9 cases, empty partitions, non-app-server handling, and actual task/filter inputs. Check the CI-selected task graph for limited/full/Linux/Windows modes and testLimitedMatrix input equality between main and PR recipes. Apply the narrowest relevant Spotless formatting immediately before behavioral validation. Use existing tooling; do not add a general production helper solely for tests. Report any remote-cache, Docker, or environment limitation explicitly rather than claiming an unobserved cache hit. Do not wait for build/test CI.",
+      "created": "2026-10-29T20:22:00Z",
+      "hunk": "@@ -114,4 +141,32 @@ tasks {\n       )\n     }\n   }\n+\n+  // Keep test/check as full-suite entry points; CI explicitly requests these disjoint partitions.\n+  register<Test>(\"testRepresentativeAppServers\") {\n+    description = \"Runs the representative app-server matrix shared by PRs and main.\"\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+  }\n+  register<Test>(\"testRemainingAppServers\") {\n+    description = \"Runs app-server cases outside the representative matrix.\"\n+    testClassesDirs = sourceSets.test.get().output.classesDirs\n+    classpath = sourceSets.test.get().runtimeClasspath\n+  }\n+\n+  register(\"smokeTest\") {",
+      "id": "PRRT_kwDODJKVX86xvRf-",
+      "opened": "2026-10-29T20:22:00Z",
+      "path": "smoke-tests/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-29T21:07:51Z",
+          "body": "Updated the PR with the LimitedMatrix/AdditionalVariants tasks, renamed CI input and annotation, and module-local selection/OpenJ9 handling. Focused task-graph, filter, and cache-key checks passed. Commit: `d0474a86`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21073#discussion_r4417906905"
+        }
+      ],
+      "reviewed": "3834bf47094c14262d3c17de2ace481e9bfa5655",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21073#discussion_r4417473326"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Build] The PR description says CI calls a module-local `smokeTest` dispatcher and non-app-server suites retain the existing `test` task, but this command selects partitions in YAML and invokes `testLimitedMatrix` for `other` and `spring-aot` too. There is also no `smokeTest` dispatcher in `smoke-tests/build.gradle.kts`. Please implement and call the described dispatcher, or correct the PR description if direct partition invocation is intentional.",
+      "created": "2026-10-29T21:17:46Z",
+      "hunk": "@@ -464,13 +465,12 @@ jobs:\n       - name: Test\n         env:\n           DEVELOCITY_ACCESS_KEY: ${{ secrets.DEVELOCITY_ACCESS_KEY }}\n-        # Reduced app-server mode owns the OpenJ9 policy; disabling it here would make the TomEE suite run no tests.\n         run: >\n           ./gradlew\n-          :smoke-tests:test\n+          :smoke-tests:testLimitedMatrix\n+          ${{ (!inputs.limited-appserver-matrix || matrix.os == 'windows-latest') && ':smoke-tests:testAdditionalVariants' || '' }}",
+      "id": "PRRT_kwDODJKVX86xwfSH",
+      "opened": "2026-10-29T21:17:46Z",
+      "path": ".github/workflows/build-common.yml",
+      "replies": [
+        {
+          "at": "2026-10-29T21:20:57Z",
+          "body": "The description has been corrected to match the intentional direct-task design. CI invokes `testLimitedMatrix` and adds `testAdditionalVariants` for full runs or Windows. Non-app-server suites run through `testLimitedMatrix`, with no dispatcher.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21073#discussion_r4418023041"
+        }
+      ],
+      "reviewed": "d0474a8643bbc460645927857a6a5fc9b57ff157",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21073#discussion_r4417995281"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-29T21:21:01Z",
+      "hunk": "@@ -15,6 +15,8 @@ jobs:\n   common:\n     uses: $/.github/workflows/build-common.yml\n     with:\n+      # Run the limited task and its disjoint complement.\n+      limited-appserver-matrix: false",
+      "id": "PRRT_kwDODJKVX86xwjeh",
+      "opened": "2026-10-29T21:21:01Z",
+      "path": ".github/workflows/build.yml",
+      "replies": [],
+      "reviewed": "d0474a8643bbc460645927857a6a5fc9b57ff157",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21073#discussion_r4418023649"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-29T21:21:27Z",
+      "hunk": "@@ -30,7 +30,8 @@ jobs:\n     with:\n       skip-openj9-tests: ${{ inputs.skip-openj9-tests }}\n       skip-windows-smoke-tests: ${{ inputs.skip-windows-smoke-tests }}\n-      reduced-appserver-tests: ${{ inputs.reduced-appserver-tests }}\n+      # Selects whether Linux also runs the additional task, not a different limited-matrix recipe.",
+      "id": "PRRT_kwDODJKVX86xwkES",
+      "opened": "2026-10-29T21:21:27Z",
+      "path": ".github/workflows/reusable-pr-build.yml",
+      "replies": [],
+      "reviewed": "3fca5f14490290bf2d88ad811b62a88b3db3516b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21073#discussion_r4418027562"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-29T21:23:21Z",
+      "hunk": "@@ -114,4 +138,16 @@ tasks {\n       )\n     }\n   }\n+\n+  // Keep test/check as full-suite entry points; CI explicitly requests these disjoint partitions.",
+      "id": "PRRT_kwDODJKVX86xwmoo",
+      "opened": "2026-10-29T21:23:21Z",
+      "path": "smoke-tests/build.gradle.kts",
+      "replies": [],
+      "reviewed": "abbe4a7a039a8ed9f4bd326df4a5d32a257a0287",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21073#discussion_r4418044542"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the agreed boolean simplification below. This supersedes the earlier requirement to use appServerTestGroup and its string values. Do not create another PR, modify other PRs, merge anything, or change the draft state.\n\nThe user asked whether AppServerTestSelection is still needed and whether passing a boolean into the test would be simpler than converting it to an app-server group. They accepted this design through /cloud: replace the group strings with one optional per-task JVM boolean property named inLimitedMatrix. testLimitedMatrix sets it to true, testAdditionalVariants sets it to false, and the original test task leaves it unset so it runs all supported selected variants. Each partition's value is fixed, not derived from the CI limited-appserver-matrix mode flag.\n\nIn smoke-tests/build.gradle.kts, remove appServerGroup, appServerTestGroup, and the limitedMatrix/additionalVariants/all string-group translation. Configure the fixed boolean directly on the respective partition tasks. Keep the existing annotation inLimitedMatrix and compare its value directly with the optional boolean in Java. Absence means no matrix filtering, not false. Reject an explicitly malformed boolean rather than silently treating it as false. Keep irrelevant app-server properties absent from non-app-server task recipes.\n\nRemove the separate AppServerTestSelection.java helper. Put the small selection predicate in a package-private static method on AppServerTest, so the existing focused regression tests can exercise it without a separate selector class. Adapt the tests and directly related names to the boolean contract. Do not replace the helper with a new selector class, shared convention, framework, or elaborate abstraction. Keep selection checks focused without starting app-server containers solely for those assertions.\n\nPreserve the two real cacheable Test tasks, the existing direct generic CI task-selection conditional, the workflow input and label behavior, and the original real test task's full/default and local --tests behavior. Do not add a dispatcher, pass the CI mode flag into the test JVM, or reintroduce a Gradle full/limited mode property. For the same suite, platform, and artifacts, main and a limited PR must still have identical testLimitedMatrix inputs.\n\nPreserve every annotated matrix member and the complete effective platform/vendor policy: Linux TomEE's limited OpenJ9 combinations, Windows OpenJ9 exclusions and full supported coverage across both tasks, the WebSphere exception, and full runs explicitly skipping OpenJ9. Full runs must execute every supported selected case exactly once across disjoint partitions. Keep other and spring-aot on testLimitedMatrix with testAdditionalVariants empty, keep none compilation-only, and never let an empty partition turn into an unfiltered task.\n\nRetain the meaningful artifact/container-platform cache inputs and the existing remote-cache access safeguards. Preserve the user's latest cleanup commits, including omitted false-default workflow inputs and removed comments. Do not add changed-file detection, duplicate cache warmup, cache bypasses, JUnit tags, or unrelated cleanup.\n\nUpdate and run focused regression checks for true/false/unset selection, invalid explicit values, disjointness and union, platform/vendor cases, empty partitions, non-app-server input normalization, and actual task/filter inputs. Recheck testLimitedMatrix input equality between main and PR recipes. Apply the narrowest relevant Spotless formatting immediately before behavioral validation. Report environment or remote-cache limitations explicitly rather than claiming an unobserved cache hit. Do not wait for build/test CI.",
+      "created": "2026-10-29T21:28:36Z",
+      "hunk": "@@ -49,38 +61,47 @@ tasks {\n     // In addition to that we disable them on normal test task to only run when explicitly requested.\n     enabled = enabled && gradle.startParameter.taskNames.any { it.startsWith(\":smoke-tests:\") }\n \n-    val suites = mapOf(\n-      \"payara\" to listOf(\"**/Payara*.*\"),\n-      \"jetty\" to listOf(\"**/Jetty*.*\"),\n-      \"liberty\" to listOf(\"**/Liberty*.*\"),\n-      \"tomcat\" to listOf(\"**/Tomcat*.*\"),\n-      \"tomee\" to listOf(\"**/Tomee*.*\"),\n-      \"websphere\" to listOf(\"**/Websphere*.*\"),\n-      \"wildfly\" to listOf(\"**/Wildfly*.*\"),\n-      \"spring-aot\" to listOf(\"**/SpringBootAotSmokeTest.*\"),\n+    inputs.property(\n+      \"useWindowsContainers\",\n+      project.providers.systemProperty(\"os.name\")\n+        .zip(project.providers.environmentVariable(\"USE_LINUX_CONTAINERS\").orElse(\"\")) { os, linux ->\n+          linux != \"1\" && os.lowercase().contains(\"windows\")\n+        },\n     )\n \n-    val smokeTestSuite = project.findProperty(\"smokeTestSuite\") as String?\n-    val skipOpenJ9SmokeTests = (findProperty(\"skipOpenJ9SmokeTests\") as String?) == \"true\"\n-    systemProperty(\"reducedAppServerTests\", findProperty(\"reducedAppServerTests\") == \"true\")\n-    if (smokeTestSuite != null) {\n-      val suite = suites[smokeTestSuite]\n-      if (suite != null) {\n-        include(suite)\n-      } else if (smokeTestSuite == \"other\") {\n-        suites.values.forEach {\n-          exclude(it)\n+    val appServerGroup = when (name) {",
+      "id": "PRRT_kwDODJKVX86xwtV-",
+      "opened": "2026-10-29T21:28:35Z",
+      "path": "smoke-tests/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-29T21:47:31Z",
+          "body": "Updated in `94668041`. The partitions now pass fixed `inLimitedMatrix` booleans; the predicate and strict property parsing live in `AppServerTest`, and the standalone selector was removed. Focused selection tests, formatting, and task-configuration checks passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21073#discussion_r4418255420"
+        }
+      ],
+      "reviewed": "6b72df01dec62ee3dee4dba91ff69a0f983db43b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21073#discussion_r4418089231"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the user's requested smaller cleanup. Do not create another PR, modify other PRs, merge anything, or change the draft state.\n\nThe user considers parseInLimitedMatrix and smoke-tests/src/test/java/io/opentelemetry/smoketest/appserver/AppServerTestSelectionTest.java excessive and authorized removing them through /cloud. This supersedes my previous request for strict malformed-boolean validation and the broad selector regression class. The JVM property is an internal value set to fixed true/false literals by Gradle; do not retain custom validation for arbitrary text.\n\nIn AppServerTest.setUpServer(), read System.getProperty(\"inLimitedMatrix\") into a local variable and inline the simple assumption: assumeTrue(inLimitedMatrix == null || appServer.inLimitedMatrix() == Boolean.parseBoolean(inLimitedMatrix)). An absent property must continue to mean no matrix filtering. Keep the existing Windows/OpenJ9 exclusion directly in setup, using the original assumeFalse(isWindows && jdk.endsWith(\"-openj9\")) check and its required import.\n\nRemove both the parseInLimitedMatrix and includes methods. Delete AppServerTestSelectionTest.java entirely. Do not replace these with another parser, selector helper, test class, reflection scan, exhaustive matrix test, or abstraction.\n\nLeave the Gradle tasks, fixed per-task true/false properties, workflow selection, suite handling, annotation membership, cache inputs, and cache-access safeguards unchanged. Preserve normal test full/default and --tests behavior, Linux TomEE/OpenJ9 selection, Windows supported coverage, the existing WebSphere/skip policy, and empty/non-app-server partitions. Preserve the user's other cleanup commits and do not restore removed comments or redundant false-default inputs.\n\nKeep the change limited to this simplification. Apply narrow formatting immediately before relevant compilation or existing checks, and report any validation limitations. Do not add replacement test infrastructure or wait for build/test CI.",
+      "created": "2026-10-29T21:53:24Z",
+      "hunk": "@@ -85,6 +80,26 @@ protected boolean testJsp() {\n     return true;\n   }\n \n+  static boolean includes(AppServer appServer, Boolean inLimitedMatrix, boolean windows) {\n+    if (windows && appServer.jdk().endsWith(\"-openj9\")) {\n+      return false;\n+    }\n+    return inLimitedMatrix == null || appServer.inLimitedMatrix() == inLimitedMatrix;\n+  }\n+\n+  static Boolean parseInLimitedMatrix(String value) {",
+      "id": "PRRT_kwDODJKVX86xxNNL",
+      "opened": "2026-10-29T21:53:24Z",
+      "path": "smoke-tests/src/test/java/io/opentelemetry/smoketest/appserver/AppServerTest.java",
+      "replies": [
+        {
+          "at": "2026-10-29T22:03:25Z",
+          "body": "Applied in `3f9a04c5`: inlined the optional matrix assumption, restored the direct Windows/OpenJ9 exclusion, and removed the parser, selector helper, and selection test class. `:smoke-tests:compileTestJava` passes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21073#discussion_r4418377379"
+        }
+      ],
+      "reviewed": "946680414c6f35c79cb6c4343e95389426e227cd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21073#discussion_r4418301369"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the user's approved comment clarifications below. This is a comments-only change. Do not create another PR, modify other PRs, merge anything, or change the draft state.\n\nIn smoke-tests/src/test/java/io/opentelemetry/smoketest/appserver/AppServerTest.java, immediately before the local String inLimitedMatrix = System.getProperty(\"inLimitedMatrix\") declaration, add these two consecutive comment lines exactly: \"// An unset property runs the full matrix.\" and \"// Otherwise, true selects the limited matrix and false selects the additional variants.\" Immediately before the existing assumeFalse(isWindows && jdk.endsWith(\"-openj9\")) line, add \"// OpenJ9 images are unavailable for supported Windows containers.\" Keep that Windows explanation next to the Windows exclusion, not above the matrix filter.\n\nIn smoke-tests/build.gradle.kts, inside the existing if (name == \"testAdditionalVariants\" && !appServerSuite) block, replace \"// An empty partition must not turn into an unfiltered Test task.\" with \"// Non-app-server suites run only in testLimitedMatrix.\" Keep exclude(\"**/*\") and the condition unchanged.\n\nPreserve all code, behavior, task/CI/cache configuration, matrix membership, and prior user cleanup. Do not add helpers, tests, validation infrastructure, or unrelated comments or formatting changes. Apply narrow formatting only if needed; no build/test execution is needed for these comment-only edits.",
+      "created": "2026-10-29T22:32:02Z",
+      "hunk": "@@ -51,12 +51,10 @@ void setUpServer() {\n     var jdk = appServer.jdk();\n     isWindows = TestContainerManager.useWindowsContainers();\n \n-    // In reduced app-server mode (PR builds), only run a representative subset of the full matrix.\n-    // The full matrix runs on merge to main.\n-    assumeTrue(appServer.inReducedMatrix() || !Boolean.getBoolean(\"reducedAppServerTests\"));\n-\n-    // ibm-semeru-runtimes doesn't publish windows images\n-    // adoptopenjdk is deprecated and doesn't publish Windows 2022 images\n+    String inLimitedMatrix = System.getProperty(\"inLimitedMatrix\");",
+      "id": "PRRT_kwDODJKVX86xx4mD",
+      "opened": "2026-10-29T22:32:02Z",
+      "path": "smoke-tests/src/test/java/io/opentelemetry/smoketest/appserver/AppServerTest.java",
+      "replies": [
+        {
+          "at": "2026-10-29T22:34:50Z",
+          "body": "Applied the requested comment-only clarifications in `da040ea6`. The task conditions and behavior are unchanged.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21073#discussion_r4418613762"
+        }
+      ],
+      "reviewed": "3f9a04c5afcda28bd57f7100d8fffadc5b5589a2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21073#discussion_r4418593206"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to move Spring AOT into the existing \"other\" smoke-test suite, alongside the other non-app-server tests. The user chose this simplification knowing it removes AOT's separate CI job and independent cache entry. Do not create another PR, modify other PRs, merge anything, or change the draft state.\n\nIn smoke-tests/build.gradle.kts, remove the extra suites map that adds spring-aot to appServerSuites. Use appServerSuites directly for named app-server includes and for the exclusions defining \"other\", so SpringBootAotSmokeTest runs in \"other\" rather than a separate spring-aot suite.\n\nIn .github/workflows/build-common.yml, remove the spring-aot smoke-test-suite matrix entry and its now-unnecessary Windows matrix exclusion. Keep \"other\" on both existing platforms and leave the generic Gradle task invocation intact.\n\nPreserve SpringBootAotSmokeTest's existing DisabledIf guard for Windows containers, so supported AOT coverage stays unchanged. Preserve all remaining smoke tests, app-server matrix membership, the two disjoint fixed tasks, normal test and local --tests behavior, the \"none\" preparation mode, cache-access safeguards, and the user's prior cleanups and comments. Do not introduce a replacement suite, new flags, selection helpers, or validation infrastructure.\n\nRun narrow formatting and focused validation appropriate to this configuration change. Verify that \"other\" now includes AOT, testAdditionalVariants remains empty for \"other\", and the remaining CI matrix still covers all supported cases. Full Docker smoke matrices are not required.",
+      "created": "2026-10-29T22:52:50Z",
+      "hunk": "@@ -6,6 +6,18 @@ plugins {\n \n description = \"smoke-tests\"\n \n+val appServerSuites = mapOf(\n+  \"payara\" to \"**/Payara*.*\",\n+  \"jetty\" to \"**/Jetty*.*\",\n+  \"liberty\" to \"**/Liberty*.*\",\n+  \"tomcat\" to \"**/Tomcat*.*\",\n+  \"tomee\" to \"**/Tomee*.*\",\n+  \"websphere\" to \"**/Websphere*.*\",\n+  \"wildfly\" to \"**/Wildfly*.*\",\n+)\n+val suites = appServerSuites + (\"spring-aot\" to \"**/SpringBootAotSmokeTest.*\")",
+      "id": "PRRT_kwDODJKVX86xyNFa",
+      "opened": "2026-10-29T22:52:50Z",
+      "path": "smoke-tests/build.gradle.kts",
+      "replies": [],
+      "reviewed": "da040ea6e77879379dddef924bf9bf9a3cbd6b18",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21073#discussion_r4418733736"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Complete the requested Spring AOT consolidation by updating this PR directly. The preceding coding session 4bdec7a3-6121-4ec8-9e37-95c1da89f301 finished, but delivery inspection found zero new commits, an unchanged head da040ea6e77879379dddef924bf9bf9a3cbd6b18, and an actual PR diff identical to the pre-request baseline. No code changes or explanatory handoff were delivered. The requested changes below are still missing.\n\nThe user wants SpringBootAotSmokeTest in the existing \"other\" smoke-test suite, alongside the other non-app-server tests. In smoke-tests/build.gradle.kts, remove val suites = appServerSuites + (\"spring-aot\" to \"**/SpringBootAotSmokeTest.*\"), use appServerSuites directly for named app-server includes, and define \"other\" by excluding only appServerSuites.values. Spring AOT must then run in \"other\", with no separate spring-aot suite selector.\n\nIn .github/workflows/build-common.yml, remove the spring-aot matrix entry and its Windows matrix exclusion. Keep \"other\" on both existing platforms and preserve the generic Gradle invocation. Keep SpringBootAotSmokeTest's existing DisabledIf Windows-container guard, so supported AOT coverage is retained.\n\nPreserve the two disjoint fixed tasks, all app-server membership and platform policy, all remaining smoke tests, original test and local --tests behavior, \"none\" preparation mode, cache-access safeguards, and prior user cleanups and comments. The user accepted losing AOT's separate CI job and independent cache entry. Do not introduce a replacement suite, new flags, selection helpers, or validation infrastructure.\n\nApply narrow formatting and focused configuration validation, including that \"other\" includes AOT and testAdditionalVariants selects no non-app-server tests. Full Docker smoke matrices are not required. Commit the requested changes to this PR's existing branch; do not create another PR, modify other PRs, merge, or change draft state. If execution is blocked, explain the concrete blocker rather than ending without changes or an explanation.",
+      "created": "2026-10-29T23:00:48Z",
+      "hunk": "@@ -6,6 +6,18 @@ plugins {\n \n description = \"smoke-tests\"\n \n+val appServerSuites = mapOf(\n+  \"payara\" to \"**/Payara*.*\",\n+  \"jetty\" to \"**/Jetty*.*\",\n+  \"liberty\" to \"**/Liberty*.*\",\n+  \"tomcat\" to \"**/Tomcat*.*\",\n+  \"tomee\" to \"**/Tomee*.*\",\n+  \"websphere\" to \"**/Websphere*.*\",\n+  \"wildfly\" to \"**/Wildfly*.*\",\n+)\n+val suites = appServerSuites + (\"spring-aot\" to \"**/SpringBootAotSmokeTest.*\")",
+      "id": "PRRT_kwDODJKVX86xyU2R",
+      "opened": "2026-10-29T23:00:47Z",
+      "path": "smoke-tests/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-29T23:07:40Z",
+          "body": "Implemented and pushed in `c1c65fe4`. AOT now belongs to `other`; its separate selector, CI matrix entry, and Windows exclusion are removed. The AOT Windows-container guard and remaining task/cache configuration are unchanged. Narrow Spotless, Gradle task-graph dry runs, and source-filter/matrix checks passed; secret scanning and CodeQL found no issues. Full Docker smoke tests were not run.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21073#discussion_r4418828673"
+        }
+      ],
+      "reviewed": "da040ea6e77879379dddef924bf9bf9a3cbd6b18",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21073#discussion_r4418786471"
+    }
+  ]
+}

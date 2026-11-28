@@ -1,0 +1,100 @@
+{
+  "head": "2ab117ae2696786b5235c04f47a5d351062ff41e",
+  "merge": "6cdc435a5f934d659cf23181828c6113b530e839",
+  "merged": "2026-10-21T00:38:20Z",
+  "missing_roots": 0,
+  "number": 885,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "camn we pass in functions isntead of using classes ? I feel like that would be simpler.. also can we improve the typing of these functions so the arguments aren't of type object but something more specific..",
+      "created": "2026-10-13T13:21:38Z",
+      "hunk": "@@ -415,39 +416,136 @@ def _start_agent_invocation(\n     return invocation\n \n \n+def _count_history_messages(history: object) -> int | None:\n+    messages: object = (\n+        cast(Mapping[str, object], history).get(\"messages\")\n+        if isinstance(history, Mapping)\n+        else getattr(history, \"messages\", None)\n+    )\n+    if isinstance(messages, Sequence) and not isinstance(\n+        messages, (str, bytes)\n+    ):\n+        return len(cast(Sequence[object], messages))\n+    return None\n+\n+\n+class _AgentRun(ABC):",
+      "id": "PRRT_kwDOSbspP86r4NCu",
+      "opened": "2026-10-13T13:30:02Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/src/opentelemetry/instrumentation/genai/dspy/patch.py",
+      "replies": [],
+      "reviewed": "4433f816bb62ba4c4c9fc2c1760a4c95f9fe0a36",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/885#discussion_r4259156257"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "i dont think this cast statement is needed.",
+      "created": "2026-10-13T13:26:27Z",
+      "hunk": "@@ -415,39 +416,136 @@ def _start_agent_invocation(\n     return invocation\n \n \n+def _count_history_messages(history: object) -> int | None:\n+    messages: object = (\n+        cast(Mapping[str, object], history).get(\"messages\")\n+        if isinstance(history, Mapping)\n+        else getattr(history, \"messages\", None)\n+    )\n+    if isinstance(messages, Sequence) and not isinstance(\n+        messages, (str, bytes)\n+    ):\n+        return len(cast(Sequence[object], messages))",
+      "id": "PRRT_kwDOSbspP86r4VNw",
+      "opened": "2026-10-13T13:30:02Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/src/opentelemetry/instrumentation/genai/dspy/patch.py",
+      "replies": [],
+      "reviewed": "4433f816bb62ba4c4c9fc2c1760a4c95f9fe0a36",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/885#discussion_r4259208449"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`OutputMessage.finish_reason` is deprecated in util in favor of `gen_ai.response.finish_reasons`, which this PR now sets, so we could drop it here (and the matching assertion in `assert_agent_finish_reason`).\n\n```suggestion\n```",
+      "created": "2026-10-16T02:53:33Z",
+      "hunk": "@@ -415,39 +419,122 @@ def _start_agent_invocation(\n     return invocation\n \n \n+def _count_history_messages(\n+    history: History | Mapping[str, Any] | None,\n+) -> int | None:\n+    messages: object = (\n+        history.get(\"messages\")\n+        if isinstance(history, Mapping)\n+        else getattr(history, \"messages\", None)\n+    )\n+    return len(messages) if isinstance(messages, Sized) else None\n+\n+\n+def _get_max_iters(instance: Module, kwargs: Mapping[str, Any]) -> int | None:\n+    max_iters: object = kwargs.get(\n+        \"max_iters\", getattr(instance, \"max_iters\", None)\n+    )\n+    return max_iters if isinstance(max_iters, int) else None\n+\n+\n+def _react_finish_reason(\n+    result: Prediction, max_iters: int | None, input_history_length: int\n+) -> str | None:\n+    trajectory: Mapping[str, Any] | None = getattr(result, \"trajectory\", None)\n+    if not isinstance(trajectory, Mapping):\n+        return None\n+    tool_names = [\n+        value\n+        for key, value in trajectory.items()\n+        if key.startswith(\"tool_name_\")\n+    ]\n+    if tool_names and tool_names[-1] == \"finish\":\n+        return \"stop\"\n+    if max_iters is None:\n+        return None\n+    # Truncation drops the oldest trajectory steps but keeps the newest.\n+    if max_iters <= 0 or f\"tool_name_{max_iters - 1}\" in trajectory:\n+        return \"max_iters\"\n+    return \"error\"\n+\n+\n+def _react_v2_finish_reason(\n+    result: Prediction, max_iters: int | None, input_history_length: int\n+) -> str | None:\n+    termination_reason: str | None = getattr(\n+        result, \"termination_reason\", None\n+    )\n+    if termination_reason == \"submit\":\n+        return \"stop\"\n+    if termination_reason == \"forced_submit\":\n+        history_length = _count_history_messages(\n+            getattr(result, \"history\", None)\n+        )\n+        if max_iters is None or history_length is None:\n+            return None\n+        # Each completed turn and the forced submit add one history event.\n+        turns = history_length - input_history_length - 1\n+        return \"max_iters\" if turns >= max_iters else \"error\"\n+    # DSPy < 3.4 returns the break reason when the forced submit fails.\n+    if termination_reason == \"max_iters\":\n+        return \"max_iters\"\n+    if termination_reason in (\n+        \"parse_error\",\n+        \"context_window_exceeded\",\n+        \"empty_tool_calls\",\n+    ):\n+        return \"error\"\n+    return None\n+\n+\n def _set_agent_invocation_output(\n+    handler: TelemetryHandler,\n     invocation: LocalAgentInvocation,\n     instance: Module,\n     result: Prediction | None,\n+    finish_reason: str | None,\n ) -> None:\n+    if finish_reason is not None:\n+        invocation.finish_reasons = [finish_reason]\n+    if not handler.should_capture_content():\n+        return\n     signature: Any = getattr(instance, \"signature\", None)\n     output_str = extract_output_content(result, signature)\n     invocation.output_messages = [\n         OutputMessage(\n             role=\"assistant\",\n             parts=[TextPart(content=output_str)],\n-            finish_reason=\"stop\",\n+            finish_reason=finish_reason,",
+      "id": "PRRT_kwDOSbspP86tC039",
+      "opened": "2026-10-16T03:19:04Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/src/opentelemetry/instrumentation/genai/dspy/patch.py",
+      "replies": [],
+      "reviewed": "6a21a000e5dc9c416eb925798f73986490b996a2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/885#discussion_r4290391496"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Telling `max_iters` apart by checking whether the step count reached the limit is a weak signal. It depends on how DSPy numbers and truncates steps, and it guesses at a cause DSPy doesn't report. Not reaching `finish` is an abnormal end either way, which semconv covers with `error`:\n\n```suggestion\ndef _react_finish_reason(result: Prediction) -> str:\n    trajectory: object = getattr(result, \"trajectory\", None)\n    if isinstance(trajectory, Mapping):\n        tool_names = [\n            value\n            for key, value in trajectory.items()\n            if key.startswith(\"tool_name_\")\n        ]\n        if tool_names and tool_names[-1] == \"finish\":\n            return \"stop\"\n    return \"error\"\n```\n",
+      "created": "2026-10-16T02:57:09Z",
+      "hunk": "@@ -415,39 +419,122 @@ def _start_agent_invocation(\n     return invocation\n \n \n+def _count_history_messages(\n+    history: History | Mapping[str, Any] | None,\n+) -> int | None:\n+    messages: object = (\n+        history.get(\"messages\")\n+        if isinstance(history, Mapping)\n+        else getattr(history, \"messages\", None)\n+    )\n+    return len(messages) if isinstance(messages, Sized) else None\n+\n+\n+def _get_max_iters(instance: Module, kwargs: Mapping[str, Any]) -> int | None:\n+    max_iters: object = kwargs.get(\n+        \"max_iters\", getattr(instance, \"max_iters\", None)\n+    )\n+    return max_iters if isinstance(max_iters, int) else None\n+\n+\n+def _react_finish_reason(\n+    result: Prediction, max_iters: int | None, input_history_length: int\n+) -> str | None:\n+    trajectory: Mapping[str, Any] | None = getattr(result, \"trajectory\", None)\n+    if not isinstance(trajectory, Mapping):\n+        return None\n+    tool_names = [\n+        value\n+        for key, value in trajectory.items()\n+        if key.startswith(\"tool_name_\")\n+    ]\n+    if tool_names and tool_names[-1] == \"finish\":\n+        return \"stop\"\n+    if max_iters is None:\n+        return None\n+    # Truncation drops the oldest trajectory steps but keeps the newest.\n+    if max_iters <= 0 or f\"tool_name_{max_iters - 1}\" in trajectory:\n+        return \"max_iters\"\n+    return \"error\"",
+      "id": "PRRT_kwDOSbspP86tC3UU",
+      "opened": "2026-10-16T03:19:04Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/src/opentelemetry/instrumentation/genai/dspy/patch.py",
+      "replies": [],
+      "reviewed": "6a21a000e5dc9c416eb925798f73986490b996a2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/885#discussion_r4290408209"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Counting history events to tell `max_iters` from other forced submits depends on DSPy internals. A forced submit means the agent didn't finish on its own, which semconv's `error` (\"ended abnormally ... inferred by the instrumentation\") already covers. How about mapping the known values and passing the rest through, like the anthropic and bedrock instrumentations do?\n\n```suggestion\ndef _react_v2_finish_reason(result: Prediction) -> str | None:\n    termination_reason: object = getattr(result, \"termination_reason\", None)\n    if termination_reason == \"submit\":\n        return \"stop\"\n    if termination_reason in (\"forced_submit\", \"parse_error\"):\n        return \"error\"\n    return termination_reason if isinstance(termination_reason, str) else None\n```\n\nThis also removes `_count_history_messages`, `_get_max_iters`, and the extra arguments on `_FinishReasonFn`.",
+      "created": "2026-10-16T03:08:56Z",
+      "hunk": "@@ -415,39 +419,122 @@ def _start_agent_invocation(\n     return invocation\n \n \n+def _count_history_messages(\n+    history: History | Mapping[str, Any] | None,\n+) -> int | None:\n+    messages: object = (\n+        history.get(\"messages\")\n+        if isinstance(history, Mapping)\n+        else getattr(history, \"messages\", None)\n+    )\n+    return len(messages) if isinstance(messages, Sized) else None\n+\n+\n+def _get_max_iters(instance: Module, kwargs: Mapping[str, Any]) -> int | None:\n+    max_iters: object = kwargs.get(\n+        \"max_iters\", getattr(instance, \"max_iters\", None)\n+    )\n+    return max_iters if isinstance(max_iters, int) else None\n+\n+\n+def _react_finish_reason(\n+    result: Prediction, max_iters: int | None, input_history_length: int\n+) -> str | None:\n+    trajectory: Mapping[str, Any] | None = getattr(result, \"trajectory\", None)\n+    if not isinstance(trajectory, Mapping):\n+        return None\n+    tool_names = [\n+        value\n+        for key, value in trajectory.items()\n+        if key.startswith(\"tool_name_\")\n+    ]\n+    if tool_names and tool_names[-1] == \"finish\":\n+        return \"stop\"\n+    if max_iters is None:\n+        return None\n+    # Truncation drops the oldest trajectory steps but keeps the newest.\n+    if max_iters <= 0 or f\"tool_name_{max_iters - 1}\" in trajectory:\n+        return \"max_iters\"\n+    return \"error\"\n+\n+\n+def _react_v2_finish_reason(\n+    result: Prediction, max_iters: int | None, input_history_length: int\n+) -> str | None:\n+    termination_reason: str | None = getattr(\n+        result, \"termination_reason\", None\n+    )\n+    if termination_reason == \"submit\":\n+        return \"stop\"\n+    if termination_reason == \"forced_submit\":\n+        history_length = _count_history_messages(\n+            getattr(result, \"history\", None)\n+        )\n+        if max_iters is None or history_length is None:\n+            return None\n+        # Each completed turn and the forced submit add one history event.\n+        turns = history_length - input_history_length - 1\n+        return \"max_iters\" if turns >= max_iters else \"error\"\n+    # DSPy < 3.4 returns the break reason when the forced submit fails.\n+    if termination_reason == \"max_iters\":\n+        return \"max_iters\"\n+    if termination_reason in (\n+        \"parse_error\",\n+        \"context_window_exceeded\",\n+        \"empty_tool_calls\",\n+    ):\n+        return \"error\"\n+    return None",
+      "id": "PRRT_kwDOSbspP86tDAOr",
+      "opened": "2026-10-16T03:19:04Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/src/opentelemetry/instrumentation/genai/dspy/patch.py",
+      "replies": [],
+      "reviewed": "6a21a000e5dc9c416eb925798f73986490b996a2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/885#discussion_r4290467218"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: changelog entries are meant to be one short line - the mapping details are in the code and tests.\n\n```suggestion\nRecord `gen_ai.response.finish_reasons` on `dspy.ReAct` and `dspy.ReActV2` agent spans regardless of content capture.\n```",
+      "created": "2026-10-20T02:52:17Z",
+      "hunk": "@@ -0,0 +1 @@\n+Record `gen_ai.response.finish_reasons` on `dspy.ReAct` and `dspy.ReActV2` agent spans regardless of content capture: `stop` when the agent calls `finish` or `submit`, `error` when ReAct ends without `finish` or ReActV2 reports a forced submit or parse error, and other ReActV2 termination reasons as reported. The output message no longer sets the deprecated `finish_reason`.",
+      "id": "PRRT_kwDOSbspP86uLnC2",
+      "opened": "2026-10-20T02:54:12Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/.changelog/885.fixed",
+      "replies": [],
+      "reviewed": "856a86d9bd84053c4f79894e2d867cbb5a6f260d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/885#discussion_r4320988778"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "head": "0a3f6b30d38eba8f7fe4776808e5c5123297b634",
+  "merge": "ec37f892eeb152b4829980f453717807bc26dc79",
+  "merged": "2026-10-07T06:04:21Z",
+  "missing_roots": 0,
+  "number": 268,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "A single target with 200 changed signals produces a 201-line block, so this branch rejects the entire first block and renders only “1 further target” with no actual change details. That defeats the diff precisely for a large target. Truncate within an oversized block (with an explicit omitted-change marker) instead of dropping the whole target.",
+      "created": "2026-10-05T15:08:27Z",
+      "hunk": "@@ -106,22 +116,70 @@ def index(document: Mapping[str, Any]) -> dict[str, Mapping[str, Any]]:\n         return {t[\"id\"]: t for t in document.get(\"targets\", [])}\n \n     old, new = index(before), index(after)\n-    # Keep registry changes visible even when the diff is truncated.\n-    changes: list[str] = list(_registry_diff(before, after))\n+    # Registry pins first and outside the fold: they explain the rest.\n+    lines: list[str] = list(_registry_diff(before, after))\n+\n+    moved = {\n+        target_id: _findings(new[target_id]) - _findings(old[target_id])\n+        for target_id in old.keys() & new.keys()\n+    }\n+    falling = {\n+        target_id: _findings(old[target_id]) - _findings(new[target_id])\n+        for target_id in moved\n+    }\n+    widespread: set[tuple[str, bool]] = set()\n+    for rising, deltas in ((True, moved), (False, falling)):\n+        spread = collections.Counter(k for d in deltas.values() for k in d)\n+        for name, count in sorted(spread.items()):\n+            if count < _WIDESPREAD:\n+                continue\n+            widespread.add((name, rising))\n+            change = sum(d[name] for d in deltas.values())\n+            lines.append(\n+                f\"- finding `{name}` {'+' if rising else '−'}{change} \"\n+                f\"across {count} targets\"\n+            )\n+\n+    blocks: list[list[str]] = []\n     for target_id in sorted(set(old) | set(new)):\n         if target_id not in old:\n-            changes.append(f\"- added `{target_id}`\")\n-            continue\n-        if target_id not in new:\n-            changes.append(f\"- removed `{target_id}`\")\n-            continue\n-        changes.extend(_target_diff(target_id, old[target_id], new[target_id]))\n-    if not changes:\n+            blocks.append([f\"- added `{target_id}`\"])\n+        elif target_id not in new:\n+            blocks.append([f\"- removed `{target_id}`\"])\n+        else:\n+            items = list(\n+                _target_diff(old[target_id], new[target_id], widespread)\n+            )\n+            if items:\n+                blocks.append(\n+                    [f\"- `{target_id}`\", *(f\"  {item}\" for item in items)]\n+                )\n+\n+    if blocks:\n+        shown: list[str] = []\n+        kept = 0\n+        for block in blocks:\n+            if len(shown) + len(block) > _CHANGES:\n+                break",
+      "id": "PRRT_kwDOTuzK5c6pF3pr",
+      "opened": "2026-10-05T15:08:28Z",
+      "path": "tools/report/src/conformance_report/_markdown.py",
+      "replies": [],
+      "reviewed": "44aede520096ced0cb5d6aa1125f63e4acd91d57",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/268#discussion_r4185532487"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This hides every non-required coverage change whenever any attribute changed, including denominator changes the attribute list cannot explain. For example, an unrelated attribute replacement combined with `recommended` coverage moving from 1/1 to 1/2 would omit the registry-driven denominator change. Keep denominator changes visible while suppressing only numerator-only noise.",
+      "created": "2026-10-05T15:08:28Z",
+      "hunk": "@@ -173,41 +234,42 @@ def _signal_diff(\n         return\n     if was is None or now is None:\n         state = \"now\" if was is None else \"no longer\"\n-        yield f\"- `{target_id}` `{signal}` {state} declared by the registry\"\n+        yield f\"- `{signal}` {state} declared by the registry\"\n         return\n     for level in sorted(set(was) | set(now)):\n         before = was.get(level, {\"emitted\": 0, \"declared\": 0})\n         after = now.get(level, {\"emitted\": 0, \"declared\": 0})\n-        if before != after:\n+        # The attribute line already explains most moves; a required one\n+        # is still worth spelling out.\n+        if before != after and (not attributes or level == \"required\"):",
+      "id": "PRRT_kwDOTuzK5c6pF3qp",
+      "opened": "2026-10-05T15:08:28Z",
+      "path": "tools/report/src/conformance_report/_markdown.py",
+      "replies": [],
+      "reviewed": "44aede520096ced0cb5d6aa1125f63e4acd91d57",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/268#discussion_r4185532580"
+    }
+  ]
+}

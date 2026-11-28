@@ -1,0 +1,43 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "5640b96e248195fc31e98095a997c1b9023e7f4ed1d0005778ea78a94b813a08",
+  "input_digest": "3b3e4cb48e492e7217aa1d91e0cfbc4d5aa5b8759d5ec609a6a10abb3e72220c",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "id": "PRRT_kwDODJKVX86rSZtP",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/020744f01ec58bc4386b10a520ad94dc59aea1d3/instrumentation/jmx-metrics/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/428d1b987f975c3aa000c6f976e393cfb8206061/instrumentation/jmx-metrics/library/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86rSbHt",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/020744f01ec58bc4386b10a520ad94dc59aea1d3/instrumentation/jmx-metrics/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/428d1b987f975c3aa000c6f976e393cfb8206061/instrumentation/jmx-metrics/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/5a6bf5b3049210d6c305e0b1a22c3af64f6774fd"
+      ],
+      "id": "PRRT_kwDODJKVX86rYN1O",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86r77Zr",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86rYN1O",
+      "status": "duplicate"
+    }
+  ]
+}

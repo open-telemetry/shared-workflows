@@ -1,0 +1,211 @@
+{
+  "head": "9ed8a8dea70d4c2098f68a8e4b4a759b11c4d5c8",
+  "merge": "f7ee4bcabe0fcdab83d6b98745ff0d3d18ca6a5c",
+  "merged": "2026-10-09T16:22:12Z",
+  "missing_roots": 0,
+  "number": 20418,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] This unconditional default is not implemented for the Spring Boot Log4j path. `OpenTelemetryAppenderAutoConfiguration.Log4jAppenderConfig` only calls `OpenTelemetryAppender.install()`, which only injects `OpenTelemetry`; the Log4j appender builder still returns `null` for an unconfigured MapMessage selector. Consequently Spring Boot applications using Log4j still capture no MapMessage attributes and do not apply this common selector, contrary to this metadata and the PR description. Please wire the common selector into the Spring Log4j setup while preserving explicit standalone appender controls.",
+      "created": "2026-10-07T04:01:23Z",
+      "hunk": "@@ -462,7 +462,7 @@\n     {\n       \"name\": \"otel.instrumentation.common.logging.structured-attributes.included\",\n       \"type\": \"java.util.List<java.lang.String>\",\n-      \"description\": \"Comma-separated list of case-sensitive glob patterns for event-local structured log attribute keys to capture. `*` matches any number of characters and `?` matches one character. Applies to Log4j MapMessage entries, SLF4J key-value pairs, Logback Logstash markers, and Logstash structured arguments. Excluded patterns take precedence. An exclude-only selector captures every key not excluded. Under v3-preview, an absent or empty selector captures all structured attributes by default. MDC and logger-context attributes remain separate and opt-in.\"\n+      \"description\": \"Comma-separated list of case-sensitive glob patterns for event-local structured log attribute keys to capture. `*` matches any number of characters and `?` matches one character. Applies to Log4j MapMessage entries, SLF4J key-value pairs, Logback Logstash markers, and Logstash structured arguments. Excluded patterns take precedence. An exclude-only selector captures every key not excluded. An absent or empty selector captures all structured attributes by default. MDC and logger-context attributes remain separate and opt-in.\"",
+      "id": "PRRT_kwDODJKVX86pwC3O",
+      "opened": "2026-10-07T04:01:24Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/resources/META-INF/additional-spring-configuration-metadata.json",
+      "replies": [],
+      "reviewed": "1b85f999e3ea62d9f73f1b40f30af9d379831d4f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20418#discussion_r4202925315"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] Removing the source-specific properties leaves the standalone Logback appender's deprecation warnings stale: `OpenTelemetryAppender` still recommends `otel.instrumentation.logback-appender.experimental.{key-value-pair-attributes,logstash-marker-attributes,logstash-structured-argument-attributes}.included`, even though this PR no longer reads those properties. Update those warning messages and their assertions so users are directed only to supported standalone setters or the common property where applicable.",
+      "created": "2026-10-07T04:01:24Z",
+      "hunk": "@@ -2,33 +2,28 @@\n \n | System property                                                                                       | Type    | Default | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |\n | ----------------------------------------------------------------------------------------------------- | ------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |\n-| `otel.instrumentation.common.logging.structured-attributes.included`                                  | String  |         | Comma-separated list of case-sensitive glob patterns for event-local structured log attribute keys to capture. Applies to Log4j `MapMessage` entries, SLF4J key-value pairs, Logback Logstash markers, and Logstash structured arguments. `*` matches any number of characters and `?` matches one character. Excluded patterns take precedence. An exclude-only selector captures every key not excluded. Under v3-preview, an absent or empty selector captures all structured attributes by default. MDC and logger-context attributes remain separate and opt-in.                                                                                                                                       |\n+| `otel.instrumentation.common.logging.structured-attributes.included`                                  | String  |         | Comma-separated list of case-sensitive glob patterns for event-local structured log attribute keys to capture. Applies to Log4j `MapMessage` entries, SLF4J key-value pairs, Logback Logstash markers, and Logstash structured arguments. `*` matches any number of characters and `?` matches one character. Excluded patterns take precedence. An exclude-only selector captures every key not excluded. An absent or empty selector captures all structured attributes by default. MDC and logger-context attributes remain separate and opt-in.                                                                                                                                       |",
+      "id": "PRRT_kwDODJKVX86pwC37",
+      "opened": "2026-10-07T04:01:24Z",
+      "path": "instrumentation/logback/logback-appender-1.0/javaagent/README.md",
+      "replies": [],
+      "reviewed": "1b85f999e3ea62d9f73f1b40f30af9d379831d4f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20418#discussion_r4202925388"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "should we list the unsupported property names?",
+      "created": "2026-10-07T05:02:18Z",
+      "hunk": "@@ -4,6 +4,13 @@\n \n ### ⚠️ Breaking changes\n \n+- The Java agent and Spring Boot appender setup now capture structured log attributes from Log4j\n+  `MapMessage` entries, SLF4J key-value pairs, Logback Logstash markers, and Logstash structured\n+  arguments by default, even when v3-preview is disabled. Use\n+  `otel.instrumentation.common.logging.structured-attributes.excluded` to exclude selected keys, or\n+  set it to `*` to exclude all. The source-specific structured-attribute configuration properties",
+      "id": "PRRT_kwDODJKVX86pwyGd",
+      "opened": "2026-10-07T05:02:17Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "2cb6844585b9e3527f9331ebfccfab6982725fdf",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20418#discussion_r4203228613"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This non-null fallback predicate makes `LogEventMapper.captureMessage()` iterate every `MapMessage` entry even for standalone appenders installed through `install(OpenTelemetry)` with capture left disabled; previously a null selector skipped `getData().forEach(...)` entirely. That adds per-entry predicate and atomic-read overhead to the logging hot path for users whose behavior should remain unchanged. Keep the mapper selector nullable while the default is unset, and update it when the two-argument installer supplies a selector (for example, via mutable selector state in the mapper).",
+      "created": "2026-10-07T19:14:18Z",
+      "hunk": "@@ -445,16 +473,23 @@ private OpenTelemetryAppender(\n         DeclarativeConfigUtil.getInstrumentationConfig(openTelemetry, \"common\");\n     boolean v3Preview = commonConfig.getBoolean(\"v3_preview\", false);\n \n+    this.mapMessageAttributesConfigured = mapMessageAttributesConfigured;\n+    Predicate<String> effectiveMapMessageAttributes =\n+        mapMessageAttributes != null\n+            ? mapMessageAttributes\n+            : key -> {\n+              Predicate<String> selector = defaultMapMessageAttributes.get();\n+              return selector != null && selector.test(key);\n+            };",
+      "id": "PRRT_kwDODJKVX86qDpUL",
+      "opened": "2026-10-07T19:14:19Z",
+      "path": "instrumentation/log4j/log4j-appender-2.17/library/src/main/java/io/opentelemetry/instrumentation/log4j/appender/v2_17/OpenTelemetryAppender.java",
+      "replies": [
+        {
+          "at": "2026-10-07T20:42:14Z",
+          "body": "Addressed in 7501a3c94a5d054b5a9553fa186229b555d9128d.\n\nAnalysis: Confirmed: fallback lambda was always non-null so captureMessage iterated every entry. Mapper selector is now nullable and updated on install.\n\nUpsides: No hot-path overhead when unset.\n\nDownsides: Mutable volatile field.\n\n<!-- copilot-loop:70d71f115b880875b51218d9e7b57ce53823084fabb94914432b72e0917f823b:4210941371:ceb54fe61d8541539b910bcb25566db4 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20418#discussion_r4211762767"
+        }
+      ],
+      "reviewed": "9fac7077948bd1427cadff3b45732cd5d6c5d620",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20418#discussion_r4210941371"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This migration note only names the four deprecated boolean toggles, but this PR also removes every source-specific `.included`/`.excluded` selector. Users of those selectors will otherwise have their settings silently ignored while the new default captures all structured attributes, which can unexpectedly export keys they had filtered. Please list those removed selector families (or explicitly state that both their include and exclude properties were removed) alongside the booleans.",
+      "created": "2026-10-07T19:14:19Z",
+      "hunk": "@@ -4,6 +4,18 @@\n \n ### ⚠️ Breaking changes\n \n+- The Java agent and Spring Boot appender setup now capture structured log attributes from Log4j\n+  `MapMessage` entries, SLF4J key-value pairs, Logback Logstash markers, and Logstash structured\n+  arguments by default. Replace the former flat settings for Log4j MapMessage\n+  (`otel.instrumentation.log4j-appender.experimental.capture-map-message-attributes`), Logback\n+  key/value pairs (`otel.instrumentation.logback-appender.experimental.capture-key-value-pair-attributes`),\n+  Logstash markers (`otel.instrumentation.logback-appender.experimental.capture-logstash-marker-attributes`),\n+  and structured arguments\n+  (`otel.instrumentation.logback-appender.experimental.capture-logstash-structured-arguments`) with\n+  the common `otel.instrumentation.common.logging.structured-attributes.included` and\n+  `otel.instrumentation.common.logging.structured-attributes.excluded` selectors. Exclusions take",
+      "id": "PRRT_kwDODJKVX86qDpWo",
+      "opened": "2026-10-07T19:14:19Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-10-07T20:43:25Z",
+          "body": "Addressed in 45cc4284259328636fafb6af040986f9591b4a8a.\n\nAnalysis: Confirmed: removed selector properties were absent from the migration note.\n\nUpsides: Clear migration guidance.\n\nDownsides: Longer entry.\n\n<!-- copilot-loop:70d71f115b880875b51218d9e7b57ce53823084fabb94914432b72e0917f823b:4210941564:52f41896a2e842f19a40d4ab785bc84f -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20418#discussion_r4211773722"
+        }
+      ],
+      "reviewed": "9fac7077948bd1427cadff3b45732cd5d6c5d620",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20418#discussion_r4210941564"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Removing the prefix means this loop now passes raw `MapMessage` keys to `AttributeKey.stringKey`. Log4j accepts an empty-string map key, but OpenTelemetry rejects an empty attribute key, so one such entry makes the appender throw and drop the log; the old `log4j.map_message.` prefix kept this case valid. Skip empty keys before creating the attribute key.",
+      "created": "2026-10-07T20:52:32Z",
+      "hunk": "@@ -188,6 +189,7 @@ void captureMessage(LogRecordBuilder builder, Message message) {\n       builder.setEventName(eventName);\n     }\n \n+    Predicate<String> mapMessageAttributes = this.mapMessageAttributes;",
+      "id": "PRRT_kwDODJKVX86qF3J7",
+      "opened": "2026-10-07T20:52:32Z",
+      "path": "instrumentation/log4j/log4j-appender-2.17/library/src/main/java/io/opentelemetry/instrumentation/log4j/appender/v2_17/internal/LogEventMapper.java",
+      "replies": [
+        {
+          "at": "2026-10-08T04:55:43Z",
+          "body": "Addressed in cd6a4376389ce9a99cac6583a227995cdf7b7da0.\n\nAnalysis: Confirmed: key.isEmpty() was not filtered before AttributeKey.stringKey.\n\nUpsides: Appender no longer throws on empty key.\n\nDownsides: Empty keys dropped.\n\n<!-- copilot-loop:d1aa240010c8ebbac1821d27f0fa8d44e91b54e85c30ade489488c42ca09bcd8:4211861168:1f7fcf81af9449a7b3196e4f6f30b184 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20418#discussion_r4214886913"
+        }
+      ],
+      "reviewed": "45cc4284259328636fafb6af040986f9591b4a8a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20418#discussion_r4211861168"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Structured capture now defaults to all, so empty keys supplied through SLF4J key-value pairs or Logstash markers reach `captureAttribute`. OpenTelemetry rejects empty attribute names, causing that log record to be dropped instead of merely omitting the invalid structured entry. Filter empty keys in the shared structured selector before any structured source is processed.",
+      "created": "2026-10-08T05:00:28Z",
+      "hunk": "@@ -70,23 +70,19 @@ public final class LoggingEventMapper {\n   @Nullable private final Predicate<String> mdcAttributes;\n   private final boolean captureCodeAttributes;\n   private final boolean captureMarkerAttribute;\n-  @Nullable private final Predicate<String> keyValuePairAttributes;\n+  @Nullable private final Predicate<String> structuredAttributes;\n   @Nullable private final Predicate<String> loggerContextAttributes;\n   private final boolean captureTemplate;\n   private final boolean captureArguments;\n-  @Nullable private final Predicate<String> logstashMarkerAttributes;\n-  @Nullable private final Predicate<String> logstashStructuredArgumentAttributes;\n \n   private LoggingEventMapper(Builder builder) {\n     this.captureExperimentalAttributes = builder.captureExperimentalAttributes;\n     this.captureCodeAttributes = builder.captureCodeAttributes;\n     this.captureMarkerAttribute = builder.captureMarkerAttribute;\n-    this.keyValuePairAttributes = builder.keyValuePairAttributes;\n+    this.structuredAttributes = builder.structuredAttributes;",
+      "id": "PRRT_kwDODJKVX86qNFvr",
+      "opened": "2026-10-08T05:00:29Z",
+      "path": "instrumentation/logback/logback-appender-1.0/library/src/main/java/io/opentelemetry/instrumentation/logback/appender/v1_0/internal/LoggingEventMapper.java",
+      "replies": [
+        {
+          "at": "2026-10-08T07:17:42Z",
+          "body": "Addressed in 6d7fd897827f297be74670a38e074e48c054d04b.\n\nAnalysis: Default capture-all let empty keys reach captureAttribute; the builder now wraps the selector to reject empty/null keys for KVPs, markers and structured args.\n\nUpsides: Prevents dropped log records.\n\nDownsides: Empty-named keys are silently omitted.\n\n<!-- copilot-loop:207aa48cb1d061c58aad93eb11cd2015e5472e10e7f32179a62a37b0f0195a79:4214926202:0f0b27e6e5cf44569b91acdf9faab751 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20418#discussion_r4216083980"
+        }
+      ],
+      "reviewed": "cd6a4376389ce9a99cac6583a227995cdf7b7da0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20418#discussion_r4214926202"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] Converting an absent or empty common selector into an explicit `included=[\"*\"]` selector makes it override `structuredAttributesIncluded` / `structuredAttributesExcluded` declared in `logback.xml`. For example, a Spring application with `<structuredAttributesExcluded>*</structuredAttributesExcluded>` and no corresponding Spring property will unexpectedly capture everything. Preserve an empty selector here so the appender can fall back to its XML selector and only use the capture-all default when both sources are empty.",
+      "created": "2026-10-08T05:00:29Z",
+      "hunk": "@@ -0,0 +1,93 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.spring.autoconfigure.internal.instrumentation.logging;\n+\n+import static java.util.Collections.emptyList;\n+import static java.util.Collections.singletonList;\n+\n+import io.opentelemetry.instrumentation.api.config.IncludeExclude;\n+import io.opentelemetry.instrumentation.spring.autoconfigure.internal.EarlyConfig;\n+import java.util.ArrayList;\n+import java.util.List;\n+import javax.annotation.Nullable;\n+import org.springframework.core.env.ConfigurableEnvironment;\n+\n+final class StructuredAttributesConfig {\n+\n+  private static final String INCLUDED =\n+      \"otel.instrumentation.common.logging.structured-attributes.included\";\n+  private static final String EXCLUDED =\n+      \"otel.instrumentation.common.logging.structured-attributes.excluded\";\n+\n+  static IncludeExclude getSelector(ConfigurableEnvironment environment) {\n+    List<String> included = getListProperty(environment, INCLUDED);\n+    List<String> excluded = getListProperty(environment, EXCLUDED);\n+    return IncludeExclude.builder()\n+        .setIncluded(\n+            isEmpty(included) && isEmpty(excluded)\n+                ? singletonList(\"*\")\n+                : included == null ? emptyList() : included)",
+      "id": "PRRT_kwDODJKVX86qNFwi",
+      "opened": "2026-10-08T05:00:29Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/logging/StructuredAttributesConfig.java",
+      "replies": [],
+      "reviewed": "cd6a4376389ce9a99cac6583a227995cdf7b7da0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20418#discussion_r4214926310"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This test only calls the installer helper on a capturing setter and checks `IncludeExclude.matches`; it does not verify the changed Spring Boot initialization path or emitted logs. It would still pass if the listener failed to apply/restart the real appender or if the mapper ignored the selector. Add an end-to-end Spring Logback test that starts the application with the common property, emits a supported structured source, and asserts the exported attributes (including an exclusion).",
+      "created": "2026-10-08T15:35:05Z",
+      "hunk": "@@ -77,6 +80,85 @@ OpenTelemetry openTelemetry() {\n     }\n   }\n \n+  @Test\n+  void absentStructuredSelectorDefersToAppenderConfiguration() {\n+    Map<String, Object> properties = new HashMap<>();\n+\n+    assertStructuredSelector(\n+        structuredAttributes(properties),\n+        selector -> assertThat(selector.isEmpty()).isTrue());\n+  }\n+\n+  @Test\n+  void emptyStructuredSelectorDefersToAppenderConfiguration() {\n+    Map<String, Object> properties = new HashMap<>();\n+    properties.put(\"otel.instrumentation.common.logging.structured-attributes.included\", \"\");\n+    properties.put(\"otel.instrumentation.common.logging.structured-attributes.excluded\", \"\");\n+\n+    assertStructuredSelector(\n+        structuredAttributes(properties),\n+        selector -> assertThat(selector.isEmpty()).isTrue());\n+  }\n+\n+  @Test\n+  void structuredSelectorAppliesToAllAppenderSources() {\n+    Map<String, Object> properties = new HashMap<>();\n+    properties.put(\"otel.file_format\", \"1.1\");\n+    properties.put(\n+        \"otel.instrumentation/development.java.common.logging.structured_attributes.included[0]\",\n+        \"key*\");\n+    properties.put(\n+        \"otel.instrumentation/development.java.common.logging.structured_attributes.excluded[0]\",\n+        \"key2\");\n+\n+    assertStructuredSelector(\n+        structuredAttributes(properties),",
+      "id": "PRRT_kwDODJKVX86qb0Pi",
+      "opened": "2026-10-08T15:35:06Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/testLogbackAppender/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/logging/LogbackAppenderTest.java",
+      "replies": [
+        {
+          "at": "2026-10-09T05:46:38Z",
+          "body": "Addressed in cfb6796ca0b2f0d2dd54ce7ba949430d5c04834d.\n\nAnalysis: The frozen test calls only initializeStructuredAttributesFromProperties on a capturing setter, so it cannot detect listener initialization/restart or mapper filtering regressions. The added SpringApplication integration test emits real Logstash structured arguments and asserts exactly key1=val1, excluding key2 and the nonincluded other key. Four cases cover flat and indexed declarative properties with both XML-declared/restarted and automatically installed appenders. All 36 LogbackAppenderTest cases and module formatting checks passed.\n\nUpsides: Detects broken Spring listener wiring, appender restart, selector application, duplicate export, and inclusion/exclusion filtering through actual exported logs.\n\nDownsides: Adds a test-only Logstash encoder dependency and four Spring application startups; production dependencies and behavior are unchanged.\n\n<!-- copilot-loop:9497d5eb6af0e7c287d218b44fa852a980f0829efb65b40f750ae103f595af66:4220991978:352bfa1d92bd4b34b9df6e12d3b645e4 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20418#discussion_r4227020702"
+        }
+      ],
+      "reviewed": "0cfe7766dbd1c5632f29a68ce991172645197b71",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20418#discussion_r4220991978"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-08T15:37:49Z",
+      "hunk": "@@ -83,6 +83,9 @@ public class Application {\n \n #### Settings for the Log4j Appender\n \n+When used with the Spring Boot starter, appender settings are configured through XML or the\n+programmatic builder. The starter attaches its `OpenTelemetry` instance to the configured appenders.\n+",
+      "id": "PRRT_kwDODJKVX86qb4uo",
+      "opened": "2026-10-08T15:37:49Z",
+      "path": "instrumentation/log4j/log4j-appender-2.17/library/README.md",
+      "replies": [],
+      "reviewed": "0cfe7766dbd1c5632f29a68ce991172645197b71",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20418#discussion_r4221020385"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Test code in this repository should not add nullability annotations. Remove `@Nullable` from this test double's field and override, along with the now-unused import; the production API already carries the nullability contract.",
+      "created": "2026-10-09T09:12:32Z",
+      "hunk": "@@ -77,6 +82,136 @@ OpenTelemetry openTelemetry() {\n     }\n   }\n \n+  @Test\n+  void absentStructuredSelectorDefersToAppenderConfiguration() {\n+    Map<String, Object> properties = new HashMap<>();\n+\n+    assertStructuredSelector(\n+        structuredAttributes(properties), selector -> assertThat(selector.isEmpty()).isTrue());\n+  }\n+\n+  @Test\n+  void emptyStructuredSelectorDefersToAppenderConfiguration() {\n+    Map<String, Object> properties = new HashMap<>();\n+    properties.put(\"otel.instrumentation.common.logging.structured-attributes.included\", \"\");\n+    properties.put(\"otel.instrumentation.common.logging.structured-attributes.excluded\", \"\");\n+\n+    assertStructuredSelector(\n+        structuredAttributes(properties), selector -> assertThat(selector.isEmpty()).isTrue());\n+  }\n+\n+  @Test\n+  void structuredSelectorAppliesToAllAppenderSources() {\n+    Map<String, Object> properties = new HashMap<>();\n+    properties.put(\"otel.file_format\", \"1.1\");\n+    properties.put(\n+        \"otel.instrumentation/development.java.common.logging.structured_attributes.included[0]\",\n+        \"key*\");\n+    properties.put(\n+        \"otel.instrumentation/development.java.common.logging.structured_attributes.excluded[0]\",\n+        \"key2\");\n+\n+    assertStructuredSelector(\n+        structuredAttributes(properties),\n+        selector -> {\n+          assertThat(selector.matches(\"key1\")).isTrue();\n+          assertThat(selector.matches(\"key2\")).isFalse();\n+          assertThat(selector.matches(\"other\")).isFalse();\n+        });\n+  }\n+\n+  @Test\n+  void structuredSelectorCanExcludeAllSources() {\n+    Map<String, Object> properties = new HashMap<>();\n+    properties.put(\"otel.instrumentation.common.logging.structured-attributes.excluded\", \"*\");\n+\n+    assertStructuredSelector(\n+        structuredAttributes(properties),\n+        selector -> {\n+          assertThat(selector.matches(\"key1\")).isFalse();\n+          assertThat(selector.matches(\"key2\")).isFalse();\n+        });\n+  }\n+\n+  @ParameterizedTest\n+  @CsvSource({\n+    \"logback-test-no-mdc.xml, false\",\n+    \"logback-no-otel-appenders.xml, false\",\n+    \"logback-test-no-mdc.xml, true\",\n+    \"logback-no-otel-appenders.xml, true\"\n+  })\n+  void shouldApplyStructuredSelectorToEmittedLogs(\n+      String configurationFile, boolean declarativeConfig) {\n+    Map<String, Object> properties = new HashMap<>();\n+    properties.put(\"logging.config\", \"classpath:\" + configurationFile);\n+    if (declarativeConfig) {\n+      properties.put(\"otel.file_format\", \"1.1\");\n+      properties.put(\n+          \"otel.instrumentation/development.java.common.logging.structured_attributes.included[0]\",\n+          \"key*\");\n+      properties.put(\n+          \"otel.instrumentation/development.java.common.logging.structured_attributes.excluded[0]\",\n+          \"key2\");\n+      properties.put(\n+          \"otel.instrumentation/development.java.logback_appender.capture_code_attributes/development\",\n+          false);\n+    } else {\n+      properties.put(\"otel.instrumentation.common.logging.structured-attributes.included\", \"key*\");\n+      properties.put(\"otel.instrumentation.common.logging.structured-attributes.excluded\", \"key2\");\n+      properties.put(\n+          \"otel.instrumentation.logback-appender.experimental.capture-code-attributes\", false);\n+    }\n+\n+    SpringApplication app =\n+        new SpringApplication(\n+            TestingOpenTelemetryConfiguration.class, OpenTelemetryAppenderAutoConfiguration.class);\n+    app.setDefaultProperties(properties);\n+    ConfigurableApplicationContext context = app.run();\n+    cleanup.deferCleanup(context);\n+    testing.clearData();\n+\n+    assertThat(countAppenders(openTelemetryAppenderClass)).isEqualTo(1);\n+\n+    LoggerFactory.getLogger(\"test\")\n+        .info(\n+            \"structured log message\",\n+            StructuredArguments.keyValue(\"key1\", \"val1\"),\n+            StructuredArguments.keyValue(\"key2\", \"val2\"),\n+            StructuredArguments.keyValue(\"other\", \"val3\"));\n+\n+    testing.waitAndAssertLogRecords(\n+        logRecord ->\n+            logRecord\n+                .hasBody(\"structured log message\")\n+                .hasAttributesSatisfyingExactly(equalTo(stringKey(\"key1\"), \"val1\")));\n+  }\n+\n+  private static CapturingOpenTelemetryAppender structuredAttributes(\n+      Map<String, Object> properties) {\n+    StandardEnvironment environment = new StandardEnvironment();\n+    environment.getPropertySources().addFirst(new MapPropertySource(\"test\", properties));\n+    CapturingOpenTelemetryAppender appender = new CapturingOpenTelemetryAppender();\n+\n+    LogbackAppenderInstaller.initializeStructuredAttributesFromProperties(environment, appender);\n+\n+    return appender;\n+  }\n+\n+  private static void assertStructuredSelector(\n+      CapturingOpenTelemetryAppender appender, Consumer<IncludeExclude> assertion) {\n+    IncludeExclude selector = requireNonNull(appender.structuredAttributes);\n+    assertion.accept(selector);\n+  }\n+\n+  private static final class CapturingOpenTelemetryAppender extends OpenTelemetryAppender {\n+    @Nullable private IncludeExclude structuredAttributes;\n+\n+    @Override\n+    public void setStructuredAttributes(@Nullable IncludeExclude structuredAttributes) {",
+      "id": "PRRT_kwDODJKVX86qt7uA",
+      "opened": "2026-10-09T09:12:33Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/testLogbackAppender/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/logging/LogbackAppenderTest.java",
+      "replies": [
+        {
+          "at": "2026-10-09T15:24:25Z",
+          "body": "Addressed in 9ed8a8dea70d4c2098f68a8e4b4a759b11c4d5c8.\n\nAnalysis: Both @Nullable annotations and the import are still present at the frozen commit and violate the explicit test-code convention. Removed exactly those annotations and import. Production OpenTelemetryAppender.setStructuredAttributes remains nullable, and all 36 focused tests, Checkstyle, and formatting checks pass.\n\nUpsides: Eliminates redundant test nullability annotations while preserving the fixture assignment, selector assertions, and production API contract.\n\nDownsides: Nullable intent is no longer duplicated in the test double; the superclass contract remains authoritative.\n\n<!-- copilot-loop:f16f5966ea2b60f48dea70ab28cfa40b6cafc00428bfac35dcc84b7a6cd92627:4228525431:0019b967a91447b9932784d9413db158 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20418#discussion_r4231730895"
+        }
+      ],
+      "reviewed": "3b2a5e972dcbf7dc4e011a085cc0ea3e30eb8639",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20418#discussion_r4228525431"
+    }
+  ]
+}

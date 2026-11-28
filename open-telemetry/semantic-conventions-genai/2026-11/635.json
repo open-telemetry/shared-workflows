@@ -1,0 +1,151 @@
+{
+  "head": "07443f1d6173afccf2298f67df10fe5ed2c28ac6",
+  "merge": "da2b5736d7a3533fd7d324872b77e4c2eabbe392",
+  "merged": "2026-11-05T19:06:25Z",
+  "missing_roots": 0,
+  "number": 635,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "the findings here (and in the other agent scenarios) disappear because the pinned conformance runner matches span definitions by the `gen_ai.<op>...<kind>` pattern, so it doesn't recognize `gen_ai.client.invoke_agent` and skips expected-attribute checks for it. That's also why the scenario runs report some `expected_violations` as \"no longer reported\".\r\n\r\n#629 bumps the conformance pin to a version that supports both span type formats",
+      "created": "2026-10-28T21:09:24Z",
+      "hunk": "@@ -20,39 +40,19 @@\n       \"gen_ai.tool.description\",\n       \"gen_ai.tool.name\",\n       \"gen_ai.tool.type\"\n-    ],\n-    \"gen_ai.invoke_agent.client\": [\n-      \"gen_ai.agent.description\",\n-      \"gen_ai.agent.id\",\n+    ]\n+  },\n+  \"events\": {},\n+  \"metrics\": {\n+    \"gen_ai.client.invoke_agent.duration\": [\n       \"gen_ai.agent.name\",\n-      \"gen_ai.conversation.id\",\n-      \"gen_ai.input.messages\",\n       \"gen_ai.operation.name\",\n-      \"gen_ai.output.messages\",\n       \"gen_ai.provider.name\",\n-      \"gen_ai.request.max_tokens\",\n       \"gen_ai.request.model\",\n-      \"gen_ai.request.temperature\",\n-      \"gen_ai.request.top_p\",\n-      \"gen_ai.system_instructions\",\n-      \"gen_ai.tool.definitions\",\n-      \"gen_ai.usage.input_tokens\",\n-      \"gen_ai.usage.output_tokens\",\n       \"server.address\",\n       \"server.port\"\n     ]\n   },\n-  \"events\": {},\n-  \"metrics\": {},\n-  \"findings\": [\n-    {\n-      \"id\": \"genai_expected_attribute_missing\",\n-      \"message\": \"Span 'invoke_agent refimpl-test-assistant' (operation 'invoke_agent') is missing expected attribute 'gen_ai.response.finish_reasons'\",\n-      \"context\": {\n-        \"missing_attribute\": \"gen_ai.response.finish_reasons\",\n-        \"operation\": \"invoke_agent\"\n-      }\n-    }\n-  ],\n+  \"findings\": [],",
+      "id": "PRRT_kwDOSUeMrM6xUmqe",
+      "opened": "2026-10-28T21:09:23Z",
+      "path": "reference/scenarios/openai-assistants/data.json",
+      "replies": [],
+      "reviewed": "758406dd2259b3b50f62b1aa41cd3988cf59c08f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/635#discussion_r4406109743"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "None of the four scenarios emits the new metric's `error.type` attribute in its committed data; the added handlers have no demonstrated failed invocation. This leaves an added field without reference coverage, contrary to `.github/instructions/evaluate-reference.instructions.md:41-43`. Add an expected SDK-failure case to at least one affected scenario and regenerate its data to demonstrate the error dimension.",
+      "created": "2026-10-28T21:32:15Z",
+      "hunk": "@@ -81,6 +82,32 @@ metrics:\n         examples: [\"text-embedding-3-small\", \"gemini-embedding-001\"]\n       - ref: gen_ai.response.model\n         examples: [\"text-embedding-3-small\"]\n+  - name: gen_ai.client.invoke_agent.duration\n+    requirement_level: recommended\n+    instrument: histogram\n+    unit: \"s\"\n+    brief: 'GenAI client invoke agent operation duration.'\n+    note: >\n+      Represents the end-to-end duration of a remote agent invocation,\n+      measured from when the client issues the invocation request to when the\n+      final response is fully received or the operation ends with an error or cancellation.\n+\n+      When this metric is reported alongside a `gen_ai.client.invoke_agent`\n+      span, the metric value SHOULD be the same as the span duration.\n+    stability: development\n+    annotations:\n+      code_generation:\n+        metric_value_type: double\n+    attributes:\n+      - ref_group: attributes.gen_ai.address_and_port\n+      - ref_group: attributes.gen_ai.error",
+      "id": "PRRT_kwDOSUeMrM6xVC6C",
+      "opened": "2026-10-28T21:32:17Z",
+      "path": "model/gen-ai/metrics.yaml",
+      "replies": [],
+      "reviewed": "bbbf060107feb3983a7da53662d2c8fa9b0b9ca7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/635#discussion_r4406301722"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The pinned conformance policy's `_matching_span_type` requires `gen_ai.invoke_agent` as the prefix and `.client` as the suffix, so this rename disables its expected-attribute checks. Missing finish-reason and token-usage findings disappear from the committed results even though those attributes remain in the model. Update the policy and `CONFORMANCE_REF` to recognize the renamed type, then regenerate results and retain exceptions for attributes the providers cannot supply.",
+      "created": "2026-10-28T21:32:16Z",
+      "hunk": "@@ -598,7 +598,7 @@ spans:\n         note: \"\"  # note is not needed here\n \n \n-  - type: gen_ai.invoke_agent.client\n+  - type: gen_ai.client.invoke_agent",
+      "id": "PRRT_kwDOSUeMrM6xVC6f",
+      "opened": "2026-10-28T21:32:17Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "bbbf060107feb3983a7da53662d2c8fa9b0b9ca7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/635#discussion_r4406301771"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The timed `client.interactions.create` call selects a model and conversation context, not a remote agent, so the new metric incorrectly counts inference as an agent invocation. `interactions_agent` is also neither passed to nor returned by the SDK, making the reported agent-name coverage unsupported. Exercise a real remote-agent invocation, or report this path as inference and remove the invented agent name from both span and metric attributes.",
+      "created": "2026-10-28T21:32:16Z",
+      "hunk": "@@ -345,56 +366,74 @@ def run_interactions_continuation():\n         \"gen_ai.request.previous_response.id\": previous_interaction_id,\n         \"server.address\": _SERVER_ADDRESS,\n     }\n+    metric_attributes = {\n+        \"gen_ai.operation.name\": \"invoke_agent\",\n+        \"gen_ai.provider.name\": \"gcp.gemini\",\n+        \"gen_ai.request.model\": request_model,\n+        \"gen_ai.agent.name\": \"interactions_agent\",",
+      "id": "PRRT_kwDOSUeMrM6xVC7C",
+      "opened": "2026-10-28T21:32:17Z",
+      "path": "reference/scenarios/google-genai/scenario.py",
+      "replies": [],
+      "reviewed": "bbbf060107feb3983a7da53662d2c8fa9b0b9ca7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/635#discussion_r4406301829"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new metric includes `server.address` but omits `server.port`. Its model inherits `attributes.gen_ai.address_and_port`, which requires the port whenever the address is set. The mock endpoint's port is available in `MOCK_LLM_URL`; include it so this reference emits the required metric dimension.",
+      "created": "2026-10-28T21:32:16Z",
+      "hunk": "@@ -345,56 +366,74 @@ def run_interactions_continuation():\n         \"gen_ai.request.previous_response.id\": previous_interaction_id,\n         \"server.address\": _SERVER_ADDRESS,\n     }\n+    metric_attributes = {\n+        \"gen_ai.operation.name\": \"invoke_agent\",\n+        \"gen_ai.provider.name\": \"gcp.gemini\",\n+        \"gen_ai.request.model\": request_model,\n+        \"gen_ai.agent.name\": \"interactions_agent\",\n+        \"server.address\": _SERVER_ADDRESS,",
+      "id": "PRRT_kwDOSUeMrM6xVC7f",
+      "opened": "2026-10-28T21:32:17Z",
+      "path": "reference/scenarios/google-genai/scenario.py",
+      "replies": [],
+      "reviewed": "bbbf060107feb3983a7da53662d2c8fa9b0b9ca7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/635#discussion_r4406301875"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This timer combines run creation, application-owned tool execution, tool-output submission, polling, and message retrieval into one client operation. No single SDK invocation owns that interval, contrary to the library-API boundary required by `.github/instructions/evaluate-reference.instructions.md:39`. Measure an SDK invocation or helper that owns the full operation, or omit this scenario's metric if no such boundary exists.",
+      "created": "2026-10-28T21:32:17Z",
+      "hunk": "@@ -102,6 +126,8 @@ def get_weather(location):\n         \"server.address\": _SERVER_ADDRESS,\n         \"server.port\": _SERVER_PORT,\n     }\n+    metric_attributes = dict(span_attributes_2)\n+    start_time = time.perf_counter()",
+      "id": "PRRT_kwDOSUeMrM6xVC76",
+      "opened": "2026-10-28T21:32:17Z",
+      "path": "reference/scenarios/openai-assistants/scenario.py",
+      "replies": [
+        {
+          "at": "2026-10-28T21:54:10Z",
+          "body": "Assistants runs can be one instrumentable call - `runs.stream(..., event_handler=handler)` with `until_done()`, where tool calls are handled in the handler callbacks. The conformance mock does not support Assistants streaming yet, so the scenario keeps the create/submit/poll flow for now. Mock streaming support: https://github.com/open-telemetry/semantic-conventions-conformance/pull/413; the scenario will switch to `runs.stream` once it is pinned.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/635#discussion_r4406472892"
+        }
+      ],
+      "reviewed": "bbbf060107feb3983a7da53662d2c8fa9b0b9ca7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/635#discussion_r4406301922"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "maybe\n\ndocs/gen-ai/client-invoke-agent.md\n\nto avoid overlap with `create_agent`, etc",
+      "created": "2026-11-02T02:31:11Z",
+      "hunk": "",
+      "id": "PRRT_kwDOSUeMrM6yhAkp",
+      "opened": "2026-11-02T02:36:01Z",
+      "path": "docs/gen-ai/client-invoke-agent.md",
+      "replies": [],
+      "reviewed": "87c22f44d9eae02a7ee2747705824246ecf10c3d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/635#discussion_r4438432803"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "(related to above)\n```suggestion\n# Semantic conventions for generative AI client agent invocations\n```",
+      "created": "2026-11-02T02:32:24Z",
+      "hunk": "@@ -0,0 +1,579 @@\n+<!--- Hugo front matter used to generate the website version of this page:\n+linkTitle: Client Agent\n+--->\n+\n+# Semantic conventions for generative AI client agent operations",
+      "id": "PRRT_kwDOSUeMrM6yhBPi",
+      "opened": "2026-11-02T02:36:01Z",
+      "path": "docs/gen-ai/client-agent.md",
+      "replies": [],
+      "reviewed": "87c22f44d9eae02a7ee2747705824246ecf10c3d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/635#discussion_r4438436978"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "(also could leave out events and remove the generic event from that page)\n```suggestion\n* [Client Agent Invocations](client-invoke-agent.md): Semantic Conventions for Generative AI remote agent invocations - *spans, events, and metrics*.\n```",
+      "created": "2026-11-02T02:35:03Z",
+      "hunk": "@@ -10,6 +10,7 @@ Semantic conventions for Generative AI operations are defined for the following\n \n * [Client Inference](client-inference.md): Semantic Conventions for Generative AI inference operations - *spans, events, and metrics*.\n * [Client Embeddings](client-embeddings.md): Semantic Conventions for Generative AI embeddings operations - *spans and metrics*.\n+* [Client Agent](client-agent.md): Semantic Conventions for Generative AI remote agent invocations - *spans and metrics*.",
+      "id": "PRRT_kwDOSUeMrM6yhC0J",
+      "opened": "2026-11-02T02:36:01Z",
+      "path": "docs/gen-ai/README.md",
+      "replies": [],
+      "reviewed": "87c22f44d9eae02a7ee2747705824246ecf10c3d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/635#discussion_r4438447112"
+    }
+  ]
+}

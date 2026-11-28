@@ -1,0 +1,52 @@
+{
+  "head": "70fe368a7963ae663c8dbddaad02f436219a914e",
+  "merge": "49446ad2171132af51e72fa3afb5e0acf5285a00",
+  "merged": "2026-11-25T02:46:14Z",
+  "missing_roots": 0,
+  "number": 21453,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "[Simplification] Make the same change here: type-inferred `mock()` removes the raw class mock and its unchecked suppression.\n\n```suggestion\n    Invoker<Object> provider = mock();\n```",
+      "created": "2026-11-24T15:55:02Z",
+      "hunk": "@@ -0,0 +1,92 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.apachedubbo.v2_7.internal;\n+\n+import static java.util.Arrays.asList;\n+import static org.assertj.core.api.Assertions.assertThat;\n+import static org.mockito.ArgumentMatchers.any;\n+import static org.mockito.Mockito.mock;\n+import static org.mockito.Mockito.when;\n+\n+import org.apache.dubbo.common.URL;\n+import org.apache.dubbo.registry.Registry;\n+import org.apache.dubbo.rpc.AppResponse;\n+import org.apache.dubbo.rpc.Invoker;\n+import org.apache.dubbo.rpc.Result;\n+import org.apache.dubbo.rpc.RpcInvocation;\n+import org.apache.dubbo.rpc.cluster.Cluster;\n+import org.apache.dubbo.rpc.cluster.Directory;\n+import org.apache.dubbo.rpc.cluster.directory.StaticDirectory;\n+import org.apache.dubbo.rpc.cluster.support.registry.ZoneAwareClusterInvoker;\n+import org.apache.dubbo.rpc.cluster.support.wrapper.MockClusterInvoker;\n+import org.apache.dubbo.rpc.cluster.support.wrapper.MockClusterWrapper;\n+import org.junit.jupiter.api.Test;\n+\n+class ZoneAwareClusterInvokerTest {\n+\n+  @Test\n+  void routesToPreferredRegistryAndCapturesItsAddress() {\n+    Invoker<Object> first = registryInvoker(\"zookeeper://localhost:2181\");\n+    Invoker<Object> preferred =\n+        registryInvoker(\"zookeeper://localhost:2182?registry.preferred=true\");\n+    ZoneAwareClusterInvoker<Object> router =\n+        new ZoneAwareClusterInvoker<>(new StaticDirectory<>(asList(first, preferred)));\n+    RpcInvocation invocation = new RpcInvocation();\n+    invocation.setMethodName(\"echo\");\n+\n+    Result result = router.invoke(invocation);\n+\n+    assertThat(result.getValue()).isEqualTo(\"zookeeper://localhost:2182\");\n+    assertThat(DubboRegistryUtil.extractRegistryAddress(new RpcInvocation())).isNull();\n+  }\n+\n+  @Test\n+  void preservesCustomMockClusterInvoker() {\n+    RegistryBackedDirectory directory = registryDirectory(\"zookeeper://localhost:2181\");\n+    @SuppressWarnings(\"unchecked\")\n+    Invoker<Object> provider = mock(Invoker.class);\n+    MockClusterInvoker<Object> custom =\n+        new MockClusterInvoker<Object>(directory, provider) {\n+          @Override\n+          public boolean isAvailable() {\n+            return false;\n+          }\n+        };\n+    Cluster cluster = mock();\n+    when(cluster.join(directory)).thenReturn(custom);\n+\n+    assertThat(new RegistryCapturingClusterWrapper(cluster).join(directory)).isSameAs(custom);\n+  }\n+\n+  private static Invoker<Object> registryInvoker(String address) {\n+    RegistryBackedDirectory directory = registryDirectory(address);\n+    @SuppressWarnings(\"unchecked\")\n+    Invoker<Object> provider = mock(Invoker.class);",
+      "id": "PRRT_kwDODJKVX867dH0H",
+      "opened": "2026-11-24T15:55:02Z",
+      "path": "instrumentation/apache-dubbo-2.7/library-autoconfigure/src/testDubbo277/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/internal/ZoneAwareClusterInvokerTest.java",
+      "replies": [
+        {
+          "at": "2026-11-25T01:59:28Z",
+          "body": "Updated this provider in 70fe368a79 as well. Both sites now use `ProviderInvoker provider = mock()`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21453#discussion_r4689218791"
+        }
+      ],
+      "reviewed": "a6acb9d8a46e82b63f51c3e72c88ff2a9905b752",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21453#discussion_r4682718587"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "[Simplification] Use type-inferred `mock()` here, as the nearby `Cluster`, `Registry` and directory mocks already do. That removes the raw `Invoker.class` mock and the `@SuppressWarnings(\"unchecked\")` it needs.\n\n```suggestion\n    Invoker<Object> provider = mock();\n```",
+      "created": "2026-11-24T15:55:02Z",
+      "hunk": "@@ -0,0 +1,92 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.apachedubbo.v2_7.internal;\n+\n+import static java.util.Arrays.asList;\n+import static org.assertj.core.api.Assertions.assertThat;\n+import static org.mockito.ArgumentMatchers.any;\n+import static org.mockito.Mockito.mock;\n+import static org.mockito.Mockito.when;\n+\n+import org.apache.dubbo.common.URL;\n+import org.apache.dubbo.registry.Registry;\n+import org.apache.dubbo.rpc.AppResponse;\n+import org.apache.dubbo.rpc.Invoker;\n+import org.apache.dubbo.rpc.Result;\n+import org.apache.dubbo.rpc.RpcInvocation;\n+import org.apache.dubbo.rpc.cluster.Cluster;\n+import org.apache.dubbo.rpc.cluster.Directory;\n+import org.apache.dubbo.rpc.cluster.directory.StaticDirectory;\n+import org.apache.dubbo.rpc.cluster.support.registry.ZoneAwareClusterInvoker;\n+import org.apache.dubbo.rpc.cluster.support.wrapper.MockClusterInvoker;\n+import org.apache.dubbo.rpc.cluster.support.wrapper.MockClusterWrapper;\n+import org.junit.jupiter.api.Test;\n+\n+class ZoneAwareClusterInvokerTest {\n+\n+  @Test\n+  void routesToPreferredRegistryAndCapturesItsAddress() {\n+    Invoker<Object> first = registryInvoker(\"zookeeper://localhost:2181\");\n+    Invoker<Object> preferred =\n+        registryInvoker(\"zookeeper://localhost:2182?registry.preferred=true\");\n+    ZoneAwareClusterInvoker<Object> router =\n+        new ZoneAwareClusterInvoker<>(new StaticDirectory<>(asList(first, preferred)));\n+    RpcInvocation invocation = new RpcInvocation();\n+    invocation.setMethodName(\"echo\");\n+\n+    Result result = router.invoke(invocation);\n+\n+    assertThat(result.getValue()).isEqualTo(\"zookeeper://localhost:2182\");\n+    assertThat(DubboRegistryUtil.extractRegistryAddress(new RpcInvocation())).isNull();\n+  }\n+\n+  @Test\n+  void preservesCustomMockClusterInvoker() {\n+    RegistryBackedDirectory directory = registryDirectory(\"zookeeper://localhost:2181\");\n+    @SuppressWarnings(\"unchecked\")\n+    Invoker<Object> provider = mock(Invoker.class);",
+      "id": "PRRT_kwDODJKVX867dHz4",
+      "opened": "2026-11-24T15:55:02Z",
+      "path": "instrumentation/apache-dubbo-2.7/library-autoconfigure/src/testDubbo277/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/internal/ZoneAwareClusterInvokerTest.java",
+      "replies": [
+        {
+          "at": "2026-11-25T01:59:23Z",
+          "body": "Changed in 70fe368a79. I tried `Invoker<Object> provider = mock()` first. With Mockito 4.11, javac reports unchecked generic array creation for `Invoker<Object>[]`, which fails the build under `-Werror`. A test-local `ProviderInvoker extends Invoker<Object>` lets Mockito infer the type without a warning suppression.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21453#discussion_r4689218207"
+        }
+      ],
+      "reviewed": "a6acb9d8a46e82b63f51c3e72c88ff2a9905b752",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21453#discussion_r4682718549"
+    }
+  ]
+}

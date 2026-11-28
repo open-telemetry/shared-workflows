@@ -1,0 +1,57 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "912978d13164a13104a2f13482ef4b7194c5f05d42374af6194103ee4e67230a",
+  "input_digest": "ce4ff1d98676c1cb70435e82b5762505630fbe8adbdfb56287c57077a2ae671d",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/35a7c4c9c8225be282c56b24e281acf542fd9609/instrumentation/oshi-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/oshi/v5_0/OshiInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/35a7c4c9c8225be282c56b24e281acf542fd9609/instrumentation/oshi-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/oshi/v5_0/OshiMetricsInstaller.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/18bc2cab0aff92dac50bff99e28bba74006fc1eb/instrumentation/oshi-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/oshi/v5_0/OshiInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/18bc2cab0aff92dac50bff99e28bba74006fc1eb/instrumentation/oshi-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/oshi/v5_0/OshiMetricsInstaller.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e8e222963b2f020b6b1b55e8da4bff338b5b1a9c"
+      ],
+      "id": "PRRT_kwDODJKVX86pwCnm",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9354d102156213a6d940330be72c68582881ac7b/instrumentation/oshi-5.0/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/18bc2cab0aff92dac50bff99e28bba74006fc1eb/instrumentation/oshi-5.0/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/7c8c154d3de8380d2bf73dcf44b20160ac6b980e"
+      ],
+      "id": "PRRT_kwDODJKVX86pxwiD",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86qGCYX",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86qGzFs",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/712c4a2a096a23bb9a75720bdbd12070253a2256/instrumentation/oshi-5.0/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/18bc2cab0aff92dac50bff99e28bba74006fc1eb/instrumentation/oshi-5.0/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1a539ab01917861221c4f5f04d1a5e543bdf06e2"
+      ],
+      "id": "PRRT_kwDODJKVX86qG09D",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

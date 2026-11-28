@@ -1,0 +1,45 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "5e603e4c9a4f6714e29497fd1bcd6005d8c949ea0157ffbe929a75c424642d2c",
+  "input_digest": "3ed7517575b5f11fca78dd3ebb4d2d078afcbaadcc168e83c91c8db5e565a7fc",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0da3a389566c6dde8a879cd9f5e6152e373ed9fe/instrumentation/sofa-rpc-5.4/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e49428c98c4e382126404488ec7e5327da02fe5a/instrumentation/sofa-rpc-5.4/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/bd2e74e91fe1412af47869b0294c6d38ac4ac43c"
+      ],
+      "id": "PRRT_kwDODJKVX86tjlV4",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0da3a389566c6dde8a879cd9f5e6152e373ed9fe/instrumentation/apache-dubbo-2.7/library-autoconfigure/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e49428c98c4e382126404488ec7e5327da02fe5a/instrumentation/apache-dubbo-2.7/library-autoconfigure/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/bd2e74e91fe1412af47869b0294c6d38ac4ac43c"
+      ],
+      "id": "PRRT_kwDODJKVX86tjlV5",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0da3a389566c6dde8a879cd9f5e6152e373ed9fe/instrumentation/apache-dubbo-2.7/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e49428c98c4e382126404488ec7e5327da02fe5a/instrumentation/apache-dubbo-2.7/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/bd2e74e91fe1412af47869b0294c6d38ac4ac43c"
+      ],
+      "id": "PRRT_kwDODJKVX86tjlV9",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

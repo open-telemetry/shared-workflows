@@ -1,0 +1,61 @@
+{
+  "head": "e31d22bbe31fe7d72876edce602023908c8bf594",
+  "merge": "7fa548b7acc76ad1d435e7731621ed89c1fed6ae",
+  "merged": "2026-10-28T00:55:35Z",
+  "missing_roots": 0,
+  "number": 890,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "rads-1996"
+      },
+      "body": "Could we also assert that the inference span is current inside the underlying stream’s  close()  /  aclose() ? The producer assertions cover activation during reads, but these close cases currently only check context restoration and that a span was exported. A small fake stream with an assertion in its close method would protect that part of the contract, including closing before the first read.",
+      "created": "2026-10-13T19:54:00Z",
+      "hunk": "@@ -0,0 +1,112 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Context scoping tests for Portkey AI streaming instrumentation.\"\"\"\n+\n+from __future__ import annotations\n+\n+import asyncio\n+from collections.abc import AsyncIterator, Iterator\n+from types import SimpleNamespace\n+\n+import pytest\n+\n+from opentelemetry import context, trace\n+from opentelemetry.instrumentation.genai.portkey.wrappers import (\n+    AsyncPortkeyStreamWrapper,\n+    PortkeyStreamWrapper,\n+)\n+from opentelemetry.util.genai.handler import TelemetryHandler\n+\n+\n+def _chunk(content: str, finish_reason: str | None = None) -> SimpleNamespace:\n+    return SimpleNamespace(\n+        id=\"stream-chunk-1\",\n+        model=\"gpt-4o\",\n+        choices=[\n+            SimpleNamespace(\n+                index=0,\n+                delta=SimpleNamespace(role=\"assistant\", content=content),\n+                finish_reason=finish_reason,\n+            )\n+        ],\n+        usage=None,\n+    )\n+\n+\n+@pytest.mark.asyncio\n+@pytest.mark.parametrize(\"asynchronous\", [False, True])\n+@pytest.mark.parametrize(\"ending\", [\"drain\", \"close\", \"close_early\", \"error\"])\n+async def test_stream_activates_only_during_reads(\n+    tracer_provider,\n+    span_exporter,\n+    caplog,\n+    asynchronous: bool,\n+    ending: str,\n+) -> None:\n+    before = context.get_current()\n+    invocation = TelemetryHandler(\n+        tracer_provider=tracer_provider,\n+    ).inference(\"portkey\", request_model=\"test-model\")\n+    error = ConnectionError(\"stream failed\")\n+    chunk = _chunk(\"Hello \", \"stop\")\n+\n+    def produce() -> Iterator[SimpleNamespace]:\n+        assert (\n+            trace.get_current_span().get_span_context()\n+            == trace.get_current_span(invocation.context).get_span_context()\n+        )\n+        yield chunk\n+        assert (\n+            trace.get_current_span().get_span_context()\n+            == trace.get_current_span(invocation.context).get_span_context()\n+        )\n+        if ending == \"error\":\n+            raise error\n+\n+    async def aproduce() -> AsyncIterator[SimpleNamespace]:\n+        for item in produce():\n+            await asyncio.sleep(0)\n+            yield item\n+\n+    if asynchronous:\n+        stream = AsyncPortkeyStreamWrapper(aproduce(), invocation, False)\n+    else:\n+        stream = PortkeyStreamWrapper(produce(), invocation, False)\n+    # The stream sits in the caller's context unconsumed: the invocation must\n+    # not be current here.\n+    assert context.get_current() is before\n+\n+    if ending != \"close_early\":\n+        if asynchronous:\n+            assert await asyncio.create_task(anext(stream)) is chunk\n+        else:\n+            assert next(stream) is chunk\n+        assert context.get_current() is before\n+        assert span_exporter.get_finished_spans() == ()\n+\n+    if ending in (\"close\", \"close_early\"):\n+        if asynchronous:\n+            await stream.aclose()\n+        else:\n+            stream.close()",
+      "id": "PRRT_kwDOSbspP86sCQ2Q",
+      "opened": "2026-10-13T19:54:01Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-portkey/tests/test_stream_context.py",
+      "replies": [
+        {
+          "at": "2026-10-17T07:37:28Z",
+          "body": "Done in 5d91f8c2: the fake stream now asserts the inference span is current inside close() / aclose(), for sync and async, both with and without a first read.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/890#discussion_r4301917205"
+        }
+      ],
+      "reviewed": "d486bc91648e9b6aed9b1b910afacf47cbf24cc0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/890#discussion_r4263325513"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: this ends up as a single bullet in the release notes, could we shorten it?\n\n```suggestion\nThe inference span is no longer current in the caller's context while a streamed completion is unconsumed.\n```",
+      "created": "2026-10-22T21:03:28Z",
+      "hunk": "@@ -0,0 +1 @@\n+Suspend the Portkey completion invocation while a streamed response is unconsumed and re-activate it only while a chunk is read or the stream is cleaned up: the inference span is no longer current in the caller's context between reads, so spans a caller creates between chunks are siblings of the inference span, not children.",
+      "id": "PRRT_kwDOSbspP86vYMFu",
+      "opened": "2026-10-22T21:05:27Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-portkey/.changelog/890.fixed",
+      "replies": [],
+      "reviewed": "5d91f8c2bf00688c622bb8d360cf58690d2234d0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/890#discussion_r4353504543"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: the assertion message already says this, the docstring could go.\n\n```suggestion\n```",
+      "created": "2026-10-22T21:03:29Z",
+      "hunk": "@@ -0,0 +1,209 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Context scoping tests for Portkey AI streaming instrumentation.\"\"\"\n+\n+from __future__ import annotations\n+\n+import asyncio\n+from collections.abc import AsyncIterator, Iterator\n+from types import SimpleNamespace\n+from typing import Any\n+\n+import pytest\n+\n+from opentelemetry import context, trace\n+from opentelemetry.instrumentation.genai.portkey.wrappers import (\n+    AsyncPortkeyStreamWrapper,\n+    PortkeyStreamWrapper,\n+)\n+from opentelemetry.util.genai.handler import TelemetryHandler\n+\n+\n+def _chunk(content: str, finish_reason: str | None = None) -> SimpleNamespace:\n+    return SimpleNamespace(\n+        id=\"stream-chunk-1\",\n+        model=\"gpt-4o\",\n+        choices=[\n+            SimpleNamespace(\n+                index=0,\n+                delta=SimpleNamespace(role=\"assistant\", content=content),\n+                finish_reason=finish_reason,\n+            )\n+        ],\n+        usage=None,\n+    )\n+\n+\n+@pytest.mark.asyncio\n+@pytest.mark.parametrize(\"asynchronous\", [False, True])\n+@pytest.mark.parametrize(\"ending\", [\"drain\", \"close\", \"close_early\", \"error\"])\n+async def test_stream_activates_only_during_reads(\n+    tracer_provider,\n+    span_exporter,\n+    caplog,\n+    asynchronous: bool,\n+    ending: str,\n+) -> None:\n+    before = context.get_current()\n+    invocation = TelemetryHandler(\n+        tracer_provider=tracer_provider,\n+    ).inference(\"portkey\", request_model=\"test-model\")\n+    error = ConnectionError(\"stream failed\")\n+    chunk = _chunk(\"Hello \", \"stop\")\n+\n+    def produce() -> Iterator[SimpleNamespace]:\n+        assert (\n+            trace.get_current_span().get_span_context()\n+            == trace.get_current_span(invocation.context).get_span_context()\n+        )\n+        yield chunk\n+        assert (\n+            trace.get_current_span().get_span_context()\n+            == trace.get_current_span(invocation.context).get_span_context()\n+        )\n+        if ending == \"error\":\n+            raise error\n+\n+    async def aproduce() -> AsyncIterator[SimpleNamespace]:\n+        for item in produce():\n+            await asyncio.sleep(0)\n+            yield item\n+\n+    if asynchronous:\n+        stream = AsyncPortkeyStreamWrapper(aproduce(), invocation, False)\n+    else:\n+        stream = PortkeyStreamWrapper(produce(), invocation, False)\n+    # The stream sits in the caller's context unconsumed: the invocation must\n+    # not be current here.\n+    assert context.get_current() is before\n+\n+    if ending != \"close_early\":\n+        if asynchronous:\n+            assert await asyncio.create_task(anext(stream)) is chunk\n+        else:\n+            assert next(stream) is chunk\n+        assert context.get_current() is before\n+        assert span_exporter.get_finished_spans() == ()\n+\n+    if ending in (\"close\", \"close_early\"):\n+        if asynchronous:\n+            await stream.aclose()\n+        else:\n+            stream.close()\n+    elif ending == \"error\":\n+        with pytest.raises(ConnectionError) as raised:\n+            if asynchronous:\n+                await anext(stream)\n+            else:\n+                next(stream)\n+        assert raised.value is error\n+    elif asynchronous:\n+        async for _ in stream:\n+            pass\n+    else:\n+        list(stream)\n+\n+    assert context.get_current() is before\n+    assert len(span_exporter.get_finished_spans()) == 1\n+    assert not [\n+        r\n+        for r in caplog.records\n+        if r.name == \"opentelemetry.context\" and r.levelno >= 40\n+    ]\n+\n+\n+class _CloseAssertingStream:\n+    \"\"\"Stream that checks the inference span while the wrapper closes it.\n+\n+    The close path runs the underlying ``close``/``aclose`` inside the\n+    invocation context the wrapper restores, so the span that is current there\n+    must be the inference span -- including when the caller closes before the\n+    first read.\n+    \"\"\"",
+      "id": "PRRT_kwDOSbspP86vYMF5",
+      "opened": "2026-10-22T21:05:27Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-portkey/tests/test_stream_context.py",
+      "replies": [],
+      "reviewed": "5d91f8c2bf00688c622bb8d360cf58690d2234d0",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/890#discussion_r4353504564"
+    }
+  ]
+}

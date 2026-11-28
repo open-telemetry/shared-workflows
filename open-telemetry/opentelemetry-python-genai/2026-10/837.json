@@ -1,0 +1,133 @@
+{
+  "head": "f3cf107a16609f4964a5c9b4a13701873bca2bc5",
+  "merge": "2f899c2b5710fef0a0ec57b3363c1e8ed20aa3c5",
+  "merged": "2026-10-11T16:33:38Z",
+  "missing_roots": 0,
+  "number": 837,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This guard only checks for the computer-call model, not whether `Response.output` accepts `computer_call_output`. For example, OpenAI SDK v1.66.5 ships both computer model modules but omits `ResponseComputerToolCallOutputItem` from the `ResponseOutputItem` union, so the output test below runs and `_make_response()` fails validation instead of being skipped. Please gate the call and output cases separately based on their actual `Response` parsing support.",
+      "created": "2026-10-02T18:32:46Z",
+      "hunk": "@@ -55,12 +55,19 @@\n         )\n         is not None\n     )\n+    _has_computer_tool_types = (\n+        importlib.util.find_spec(\n+            \"openai.types.responses.response_computer_tool_call\"\n+        )\n+        is not None\n+    )",
+      "id": "PRRT_kwDOSbspP86ocolK",
+      "opened": "2026-10-02T18:32:46Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_response_extractors.py",
+      "replies": [],
+      "reviewed": "486200c8553427b2b151b9be0097644640bff569",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/837#discussion_r4168658646"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Sorry, #831 got the fix wrong. Computer use isn't a server tool: the model returns `computer_call`, the app performs the action and sends a screenshot back as `computer_call_output` on the next request, the same loop as `function_call` / `function_call_output`. So it should be recorded as a client `ToolCall` with `finish_reason=\"tool_call\"`, not as a `ServerToolCallPart` with `stop`.\n\nIt's skipped today only because `_is_tool_call_item` / `_tool_call_arguments` expect `name` + `arguments`/`input`, and `computer_call` has neither. Something along these lines in `get_output_messages_from_response`, reusing the existing absorb/append logic:\n\n```python\ndef _computer_call_to_tool_call(item: ResponseComputerToolCall) -> ToolCall:\n    return ToolCall(\n        id=item.call_id,\n        name=\"computer\",\n        # newer SDKs batch actions into `actions`; older ones send a single `action`\n        arguments=item.model_dump(\n            include={\"action\", \"actions\"}, exclude_none=True, mode=\"json\"\n        ),\n    )\n```\n\n`extract_finish_reasons` would need to count it as `tool_calls` as well.",
+      "created": "2026-10-02T22:33:15Z",
+      "hunk": "@@ -405,6 +405,7 @@ def _extract_reasoning_parts(\n \n \n _SERVER_TOOL_NAMES = {\n+    \"computer_call\": \"computer\",",
+      "id": "PRRT_kwDOSbspP86ogwWg",
+      "opened": "2026-10-02T22:41:20Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_extractors.py",
+      "replies": [
+        {
+          "at": "2026-10-07T22:28:55Z",
+          "body": "Done in https://github.com/open-telemetry/opentelemetry-python-genai/commit/8b1c61fe5bc1cb16c20853726296c53bd218e7c1. Computer calls now use client tool_call parts and the tool_calls finish reason, with both action and actions supported.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/837#discussion_r4212678805"
+        }
+      ],
+      "reviewed": "3963d7bc39ed554f28d882f22359f95bb332761f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/837#discussion_r4170367641"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`computer_call_output` is an input item the app sends on the next request, so `responses.create` won't return it in `output`. It probably belongs in `_get_input_message` as a `ToolCallResponsePart`, with the replayed `computer_call` input item recorded as a `ToolCall`:\n\n```python\n_TOOL_OUTPUT_TYPES = frozenset(\n    {\"function_call_output\", \"custom_tool_call_output\", \"computer_call_output\"}\n)\n```\n\n(plus a `computer_call` branch next to `_TOOL_CALL_ARGUMENT_FIELDS` that uses `action`/`actions` as the arguments).",
+      "created": "2026-10-02T22:33:15Z",
+      "hunk": "@@ -415,6 +416,7 @@ def _extract_reasoning_parts(\n }\n \n _SERVER_TOOL_RESPONSE_NAMES = {\n+    \"computer_call_output\": \"computer\",",
+      "id": "PRRT_kwDOSbspP86ogwWn",
+      "opened": "2026-10-02T22:41:20Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_extractors.py",
+      "replies": [
+        {
+          "at": "2026-10-07T22:28:58Z",
+          "body": "Done in https://github.com/open-telemetry/opentelemetry-python-genai/commit/8b1c61fe5bc1cb16c20853726296c53bd218e7c1. The next request records the replayed computer call and screenshot response with matching call IDs.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/837#discussion_r4212679241"
+        }
+      ],
+      "reviewed": "3963d7bc39ed554f28d882f22359f95bb332761f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/837#discussion_r4170367649"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "These tests feed hand-built payloads to the extractor, so they confirm the mapping we chose rather than what the API actually does, which is how the client/server mix-up got through. Could you replace them with a multi-turn VCR test in `test_responses.py` (sync + async), next to `test_responses_create_captures_custom_tool_history`? Turn 1 gets a real `computer_call`, turn 2 replays it and sends the screenshot back using the SDK input types:\n\n```python\nfrom openai.types.responses import ResponseComputerToolCall\nfrom openai.types.responses.response_input_item_param import ComputerCallOutput\n\nCOMPUTER_TOOL = {\n    \"type\": \"computer_use_preview\",\n    \"display_width\": 1024,\n    \"display_height\": 768,\n    \"environment\": \"browser\",\n}\n\n\n@pytest.mark.vcr()\ndef test_responses_create_captures_computer_call_loop(\n    request, span_exporter, openai_client, instrument_with_content\n):\n    _skip_if_not_latest()\n\n    history = [{\"role\": \"user\", \"content\": \"Open bing.com\"}]\n    first = openai_client.responses.create(\n        model=\"computer-use-preview\",\n        tools=[COMPUTER_TOOL],\n        input=history,\n        truncation=\"auto\",\n    )\n    (computer_call,) = [\n        item for item in first.output if isinstance(item, ResponseComputerToolCall)\n    ]\n\n    openai_client.responses.create(\n        model=\"computer-use-preview\",\n        tools=[COMPUTER_TOOL],\n        truncation=\"auto\",\n        input=[\n            *history,\n            *first.output,\n            ComputerCallOutput(\n                type=\"computer_call_output\",\n                call_id=computer_call.call_id,\n                output={\"type\": \"computer_screenshot\", \"image_url\": SCREENSHOT_DATA_URL},\n            ),\n        ],\n    )\n\n    first_span, second_span = span_exporter.get_finished_spans()\n\n    assert first_span.attributes[GenAIAttributes.GEN_AI_RESPONSE_FINISH_REASONS] == (\"tool_calls\",)\n    output_messages = _load_span_messages(first_span, GenAIAttributes.GEN_AI_OUTPUT_MESSAGES)\n    (tool_call,) = [\n        p for m in output_messages for p in m[\"parts\"] if p[\"type\"] == \"tool_call\"\n    ]\n    assert tool_call[\"name\"] == \"computer\"\n    assert tool_call[\"id\"] == computer_call.call_id\n    assert isinstance(tool_call[\"arguments\"], dict)\n\n    input_messages = _load_span_messages(second_span, GenAIAttributes.GEN_AI_INPUT_MESSAGES)\n    input_parts = [p for m in input_messages for p in m[\"parts\"]]\n    (replayed_call,) = [p for p in input_parts if p[\"type\"] == \"tool_call\"]\n    (tool_response,) = [p for p in input_parts if p[\"type\"] == \"tool_call_response\"]\n    assert replayed_call[\"name\"] == \"computer\"\n    assert replayed_call[\"id\"] == tool_response[\"id\"] == computer_call.call_id\n    assert input_messages[-1][\"role\"] == \"tool\"\n```\n\nIf you don't have access to the computer-use model, it's fine to have AI generate the cassette from the documented response shape, just start it with `# TODO: this is generated by AI, re-record` so it gets re-recorded later.",
+      "created": "2026-10-02T22:33:15Z",
+      "hunk": "@@ -761,6 +803,37 @@ def test_extract_output_messages_maps_parts_and_finish_reasons(loaded_module):\n                 \"outputs\": [{\"type\": \"logs\", \"logs\": \"1\"}],\n             },\n         ),\n+        pytest.param(",
+      "id": "PRRT_kwDOSbspP86ogwWt",
+      "opened": "2026-10-02T22:41:20Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_response_extractors.py",
+      "replies": [
+        {
+          "at": "2026-10-07T22:29:01Z",
+          "body": "Done in https://github.com/open-telemetry/opentelemetry-python-genai/commit/53156c54da7c73e64e36d73652c19fe8b200cbf1. Sync and async tests now use real provider recordings and replay without credentials. The preview model is retired, so the recordings use gpt-6-luna with the GA computer tool.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/837#discussion_r4212679569"
+        }
+      ],
+      "reviewed": "3963d7bc39ed554f28d882f22359f95bb332761f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/837#discussion_r4170367660"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`local_responses_server` (and `get_recorded_responses_create_response_payload` below) aren't used by any test in this PR - looks like leftovers. Could you drop them along with the `http.server`, `threading`, `yaml`, `cast`, etc. imports they pulled in?",
+      "created": "2026-10-08T01:18:32Z",
+      "hunk": "@@ -41,8 +47,56 @@\n     \"QQ0AIAwAsSnZG4lInJxJwMRICGlyAvq9yF1PFUBAQEBAQBdAXWskICAgICAg\"\n     \"ICAgICAgIOcKBAQEBPQd6ACUHHNEU5qggAAAAABJRU5ErkJggg==\"\n )\n+COMPUTER_SCREENSHOT_DATA_URL: str = f\"data:image/png;base64,{_REAL_PNG_B64}\"\n _REAL_PNG_BYTES = base64.b64decode(_REAL_PNG_B64)\n \n+\n+class _LocalResponsesHTTPServer(ThreadingHTTPServer):\n+    response_payloads: list[dict[str, object]]\n+    request_payloads: list[dict[str, object]]\n+\n+    @property\n+    def base_url(self) -> str:\n+        host, port = self.server_address\n+        return f\"http://{host}:{port}/v1\"\n+\n+\n+class _ResponsesRequestHandler(BaseHTTPRequestHandler):\n+    def do_POST(self) -> None:\n+        server = cast(\"_LocalResponsesHTTPServer\", self.server)\n+        request_payload = json.loads(\n+            self.rfile.read(int(self.headers[\"Content-Length\"]))\n+        )\n+        server.request_payloads.append(request_payload)\n+        response_payload = json.dumps(server.response_payloads.pop(0)).encode(\n+            \"utf-8\"\n+        )\n+        self.send_response(200)\n+        self.send_header(\"Content-Type\", \"application/json\")\n+        self.send_header(\"Content-Length\", str(len(response_payload)))\n+        self.end_headers()\n+        self.wfile.write(response_payload)\n+\n+\n+@contextmanager\n+def local_responses_server(\n+    response_payloads: list[dict[str, object]],\n+) -> Iterator[_LocalResponsesHTTPServer]:\n+    server = _LocalResponsesHTTPServer(\n+        (\"127.0.0.1\", 0), _ResponsesRequestHandler\n+    )\n+    server.response_payloads = response_payloads\n+    server.request_payloads = []\n+    thread = Thread(target=server.serve_forever, daemon=True)\n+    thread.start()\n+    try:\n+        yield server\n+    finally:\n+        server.shutdown()\n+        server.server_close()\n+        thread.join()",
+      "id": "PRRT_kwDOSbspP86qKHDb",
+      "opened": "2026-10-09T02:04:20Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_utils.py",
+      "replies": [],
+      "reviewed": "99178d59dcabb2e68490b3c63c1749fb3640e56f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/837#discussion_r4213656443"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "With this helper a missing or renamed cassette makes the test skip silently in CI instead of failing. The other tests here use `@pytest.mark.vcr()`, which resolves the same `{node.name}.yaml` cassette and fails when it's missing. How about using that on both sync/async tests and dropping this helper and the manual `vcr.use_cassette` block?\n\n```python\n@pytest.mark.vcr()\n@pytest.mark.skipif(...)\ndef test_responses_create_captures_computer_tool_loop(\n    span_exporter, openai_client, instrument_with_content\n):\n    _skip_if_not_latest()\n    history = [...]\n    first_response = openai_client.responses.create(...)\n    ...\n```",
+      "created": "2026-10-08T01:18:32Z",
+      "hunk": "@@ -127,6 +174,54 @@ def _load_span_messages(span, attribute):\n     return json.loads(value)\n \n \n+def _local_computer_call_response_item() -> dict[str, object]:\n+    computer_call = ResponseComputerToolCall(\n+        id=\"ct_local_computer_call\",\n+        call_id=\"call_local_computer\",\n+        pending_safety_checks=[],\n+        status=\"completed\",\n+        type=\"computer_call\",\n+        actions=[\n+            {\n+                \"type\": \"click\",\n+                \"x\": 1,\n+                \"y\": 2,\n+                \"button\": \"left\",\n+            }\n+        ],\n+    )\n+    return computer_call.model_dump(mode=\"json\", exclude_none=True)\n+\n+\n+def _supports_computer_call_response_output() -> bool:\n+    if (\n+        not _has_computer_call_type\n+        or _COMPUTER_CALL_RESPONSE_OUTPUT_ADAPTER is None\n+    ):\n+        return False\n+    try:\n+        response_item = _COMPUTER_CALL_RESPONSE_OUTPUT_ADAPTER.validate_python(\n+            _local_computer_call_response_item()\n+        )\n+    except ValidationError:\n+        return False\n+    return getattr(response_item, \"actions\", None) is not None\n+\n+\n+def _skip_without_computer_tool_cassette(\n+    request: pytest.FixtureRequest,\n+) -> None:\n+    cassette_path = (\n+        Path(__file__).parent / \"cassettes\" / f\"{request.node.name}.yaml\"\n+    )\n+    if not cassette_path.is_file() and not request.config.getoption(\n+        \"--vcr-record\"\n+    ):\n+        pytest.skip(\n+            \"No provider cassette; rerun with --vcr-record=once to record it\"\n+        )",
+      "id": "PRRT_kwDOSbspP86qKHDf",
+      "opened": "2026-10-09T02:04:20Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/tests/test_responses.py",
+      "replies": [],
+      "reviewed": "99178d59dcabb2e68490b3c63c1749fb3640e56f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/837#discussion_r4213656448"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: could you drop these lines? The commit-pinned links will go stale, and the code below already shows that computer calls and their outputs go through the same path as function calls.\n\n```suggestion\n```",
+      "created": "2026-10-09T02:02:29Z",
+      "hunk": "@@ -266,12 +273,21 @@ def _get_call_id(item: object) -> str | None:\n \n # Client-side tool calls, by the field holding the call's arguments. A custom\n # tool takes free-form text where a function takes a JSON arguments string.\n+# OpenAI places computer calls in response output and their results in request\n+# input; action/actions and call_id belong to the call item.\n+# https://github.com/openai/openai-python/blob/03b3ec474241fe3a73c4818dc6b886da28faaf91/src/openai/types/responses/response_output_item.py#L277-L285\n+# https://github.com/openai/openai-python/blob/03b3ec474241fe3a73c4818dc6b886da28faaf91/src/openai/types/responses/response_computer_tool_call.py#L226-L255\n+# https://github.com/openai/openai-python/blob/03b3ec474241fe3a73c4818dc6b886da28faaf91/src/openai/types/responses/response_input_item_param.py#L713-L719",
+      "id": "PRRT_kwDOSbspP86qnqLO",
+      "opened": "2026-10-09T02:04:20Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai/src/opentelemetry/instrumentation/genai/openai/response_extractors.py",
+      "replies": [],
+      "reviewed": "99178d59dcabb2e68490b3c63c1749fb3640e56f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/837#discussion_r4225934506"
+    }
+  ]
+}

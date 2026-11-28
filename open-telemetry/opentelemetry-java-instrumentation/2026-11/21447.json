@@ -1,0 +1,46 @@
+{
+  "head": "d2671a164a43166a1d8aa85dba06bd6a6c9b657b",
+  "merge": "864c3b39b99deb466f7d92daacabcf3c53298805",
+  "merged": "2026-11-25T11:19:57Z",
+  "missing_roots": 0,
+  "number": 21447,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "On Java 17+, `otel.instrumentation.runtime-telemetry.emit-experimental-jfr-metrics=true` enables experimental JFR metrics even when both selector lists are empty, so the new “unless” condition incorrectly implies that explicit patterns are required. Include the shorthand as another way to enable collection. Apply the same qualification in `instrumentation/runtime-telemetry/metadata.yaml:24–26` and `instrumentation/runtime-telemetry/library/README.md:99`.",
+      "created": "2026-11-24T04:38:25Z",
+      "hunk": "@@ -1,10 +1,10 @@\n # Settings for the Runtime Telemetry instrumentation\n \n-| System property                                                                       | Type    | Default | Description                                                                                                                        |\n-| ------------------------------------------------------------------------------------- | ------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------- |\n-| `otel.instrumentation.runtime-telemetry.emit-experimental-metrics`                    | Boolean | `false` | Enable the capture of experimental JMX-based metrics.                                                                              |\n-| `otel.instrumentation.runtime-telemetry.emit-experimental-jfr-metrics`                | Boolean | `false` | Add the experimental metrics that JFR can produce to the JFR metric selector on Java 17+.                                          |\n-| `otel.instrumentation.runtime-telemetry.experimental.jfr-metrics.included`            | List    |         | Include metrics to source from JFR using case-sensitive `*` and `?` glob patterns. Use `*` to select all metrics.                  |\n-| `otel.instrumentation.runtime-telemetry.experimental.jfr-metrics.excluded`            | List    |         | Exclude metrics from JFR using case-sensitive `*` and `?` glob patterns. Excluded patterns take precedence over included patterns. |\n-| `otel.instrumentation.runtime-telemetry.experimental.package-emitter.enabled`         | Boolean | `false` | Enable creating events for JAR libraries used by the application.                                                                  |\n-| `otel.instrumentation.runtime-telemetry.experimental.package-emitter.jars-per-second` | Integer | 10      | The number of JAR files processed per second.                                                                                      |\n+| System property                                                                       | Type    | Default | Description                                                                                                                                                                                                                                                                 |\n+| ------------------------------------------------------------------------------------- | ------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |\n+| `otel.instrumentation.runtime-telemetry.emit-experimental-metrics`                    | Boolean | `false` | Enable the capture of experimental JMX-based metrics.                                                                                                                                                                                                                       |\n+| `otel.instrumentation.runtime-telemetry.emit-experimental-jfr-metrics`                | Boolean | `false` | Add the experimental metrics that JFR can produce to the JFR metric selector on Java 17+.                                                                                                                                                                                   |\n+| `otel.instrumentation.runtime-telemetry.experimental.jfr-metrics.included`            | List    |         | Include metrics to source from JFR on Java 17+ using case-sensitive `*` and `?` glob patterns. Configuring either JFR metric selector property activates JFR. No metrics are sourced from JFR unless included or excluded patterns are configured. `*` selects all metrics. |",
+      "id": "PRRT_kwDODJKVX867MdRo",
+      "opened": "2026-11-24T04:38:26Z",
+      "path": "instrumentation/runtime-telemetry/README.md",
+      "replies": [
+        {
+          "at": "2026-11-24T15:30:07Z",
+          "body": "Updated both READMEs and the metadata to say that the experimental JFR flag selects metrics on Java 17+ even when both selector lists are empty. The `setJfrMetrics` Javadoc now also points to `setEmitExperimentalJfrMetrics`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21447#discussion_r4682362559"
+        }
+      ],
+      "reviewed": "2d07f051d41ada81ee683bad6864e448c274053b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21447#discussion_r4675580090"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "I found it slightly odd that there is a sensitive info warning for exclude but not include. Maybe it would be better to add the same `Capturing message headers may expose sensitive information.` notice to both?",
+      "created": "2026-11-25T09:26:30Z",
+      "hunk": "@@ -127,14 +127,14 @@ configurations:\n   messaging.headers.included:\n     name: otel.instrumentation.common.messaging.headers.included\n     declarative_name: java.common.messaging.headers.included\n-    description: \"A comma-separated list of case-sensitive message header name glob patterns to capture as span attributes. Captured attribute keys preserve the header name's original spelling, including dashes. `?` matches one character and `*` matches zero or more characters. Excluded patterns take precedence over included patterns. An absent or empty selector captures no headers; an exclude-only selector captures every header not excluded.\"\n+    description: \"A comma-separated list of case-sensitive message header name glob patterns to capture as span attributes. Captured attribute keys preserve the header name's original spelling, including dashes. `?` matches one character and `*` matches zero or more characters. No headers are captured unless included or excluded patterns are configured. `*` captures all headers.\"\n     type: list\n     default: \"\"\n \n   messaging.headers.excluded:\n     name: otel.instrumentation.common.messaging.headers.excluded\n     declarative_name: java.common.messaging.headers.excluded\n-    description: \"A comma-separated list of case-sensitive message header name glob patterns to exclude from span attributes. Captured attribute keys preserve the header name's original spelling, including dashes. `?` matches one character and `*` matches zero or more characters. Excluded patterns take precedence over included patterns. An absent or empty selector captures no headers; an exclude-only selector captures every header not excluded, which may expose sensitive information.\"\n+    description: \"A comma-separated list of case-sensitive message header name glob patterns to exclude from span attributes. Captured attribute keys preserve the header name's original spelling, including dashes. `?` matches one character and `*` matches zero or more characters. Excluded patterns take precedence over included patterns. If only excluded patterns are configured, all other headers are captured, which may expose sensitive information.\"",
+      "id": "PRRT_kwDODJKVX8670XhI",
+      "opened": "2026-11-25T09:26:29Z",
+      "path": "instrumentation-docs/src/main/resources/shared-config-definitions.yaml",
+      "replies": [],
+      "reviewed": "d2671a164a43166a1d8aa85dba06bd6a6c9b657b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21447#discussion_r4692827657"
+    }
+  ]
+}

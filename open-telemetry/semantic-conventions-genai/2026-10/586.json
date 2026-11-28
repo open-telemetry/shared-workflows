@@ -1,0 +1,31 @@
+{
+  "head": "f787143ded18ab26de0956724b5541eb07b18b81",
+  "merge": "5293effb97f18ddb0602da884dadee6119d67679",
+  "merged": "2026-10-12T19:06:15Z",
+  "missing_roots": 0,
+  "number": 586,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This snapshot marks two malformed known part types as valid. `TextPart.content` and `BlobPart.modality`/`content` are required, but the broad `GenericPart` union branch accepts both objects, so `errors: []` locks that fallback in as intended behavior and would make CI reject a future schema fix. Restrict `GenericPart` to unknown `type` values, regenerate the schema, and snapshot the resulting required-property errors here.",
+      "created": "2026-10-08T04:46:37Z",
+      "hunk": "@@ -0,0 +1,14 @@\n+# yaml-language-server: $schema=../case.schema.json\n+description: A text part without `content`, and a blob part without `modality` or `content`\n+schema: gen-ai-input-messages.json\n+document: [\n+  {\n+    \"role\": \"user\",\n+    \"parts\": [\n+      { \"type\": \"text\" },\n+      { \"type\": \"blob\", \"mime_type\": \"image/png\" }\n+    ]\n+  }\n+]\n+# Regenerate with `uv run pytest --update-snapshots`, do not edit by hand.\n+errors: []",
+      "id": "PRRT_kwDOSUeMrM6qM0zB",
+      "opened": "2026-10-08T04:46:37Z",
+      "path": "docs/gen-ai/non-normative/tests/cases/input-messages-parts-missing-required.yaml",
+      "replies": [
+        {
+          "at": "2026-10-08T05:17:15Z",
+          "body": "`input-messages-parts-missing-required.yaml` was added in the base PR (#583) to snapshot `main`'s existing behavior where `GenericPart` (`type: str`) accepts malformed `text` and `blob` parts. The `GenericPart` fix (`type: \"generic\"`) and the updated `required` error snapshots are in the next PR in the stack (#584).",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/586#discussion_r4215067785"
+        }
+      ],
+      "reviewed": "9c0a579a3c92c22ef7ca6bfac1971b5d5c84f1d4",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/586#discussion_r4214810105"
+    }
+  ]
+}

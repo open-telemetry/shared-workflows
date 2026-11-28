@@ -1,0 +1,154 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "535e6c1c190edae9e5f87ba4b707a5c2cf06a32dafa6e313f751bac4fddf5334",
+  "input_digest": "757faeb58947ba567dc4d91cb0b089215e1a997893fe647ae0a83606efe48786",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4d53d22e9fb878891d46622c7f1aade48216184e/docs/instrumentation-list.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/61f6efba0d4413704e7f0aa447beb5c716119d5d/docs/instrumentation-list.yaml",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/compare/4d53d22e9fb878891d46622c7f1aade48216184e...6e435e2219c3fd24fa734afb05d305b9535359d7",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/61f6efba0d4413704e7f0aa447beb5c716119d5d",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/5e7a4ca074f7e28593f87b641d641ec4a0e28b44"
+      ],
+      "id": "PRRT_kwDODJKVX86yThvp",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86yTjnu",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86yThvp",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5e7a4ca074f7e28593f87b641d641ec4a0e28b44/instrumentation/play/play-mvc/play-mvc-2.6/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/61f6efba0d4413704e7f0aa447beb5c716119d5d/instrumentation/play/play-mvc/play-mvc-2.6/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5e7a4ca074f7e28593f87b641d641ec4a0e28b44/instrumentation-docs/src/test/java/io/opentelemetry/instrumentation/docs/parsers/GradleParserTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/61f6efba0d4413704e7f0aa447beb5c716119d5d/instrumentation-docs/src/test/java/io/opentelemetry/instrumentation/docs/parsers/GradleParserTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/482e54f0cb505cbc958117c56094d098fab1c1ed"
+      ],
+      "id": "PRRT_kwDODJKVX86yT1lD",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/482e54f0cb505cbc958117c56094d098fab1c1ed/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/GradleParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/61f6efba0d4413704e7f0aa447beb5c716119d5d/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/GradleParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/482e54f0cb505cbc958117c56094d098fab1c1ed/instrumentation/play/play-mvc/play-mvc-2.6/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/61f6efba0d4413704e7f0aa447beb5c716119d5d/instrumentation/play/play-mvc/play-mvc-2.6/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/02bdc14dd445c66928d81da898073139286c7655"
+      ],
+      "id": "PRRT_kwDODJKVX86yUFVM",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02bdc14dd445c66928d81da898073139286c7655/instrumentation-docs/src/test/java/io/opentelemetry/instrumentation/docs/parsers/GradleParserTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/61f6efba0d4413704e7f0aa447beb5c716119d5d/instrumentation-docs/src/test/java/io/opentelemetry/instrumentation/docs/parsers/GradleParserTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/d1a34007a0c072bcef33b8c2d61998a067705f9b"
+      ],
+      "id": "PRRT_kwDODJKVX86yUW8B",
+      "kind": "improvement",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d1a34007a0c072bcef33b8c2d61998a067705f9b/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/GradleParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/61f6efba0d4413704e7f0aa447beb5c716119d5d/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/GradleParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/b2d397a2acb1f8532ad760f9fa3a9343576fca80"
+      ],
+      "id": "PRRT_kwDODJKVX86yUkGp",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b2d397a2acb1f8532ad760f9fa3a9343576fca80/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/GradleParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/61f6efba0d4413704e7f0aa447beb5c716119d5d/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/GradleParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f98f91c55f6ad8ba9dfddd46406a2fff4e5bd1b1"
+      ],
+      "id": "PRRT_kwDODJKVX86yUvnv",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f98f91c55f6ad8ba9dfddd46406a2fff4e5bd1b1/instrumentation-docs/src/test/java/io/opentelemetry/instrumentation/docs/parsers/GradleParserTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/61f6efba0d4413704e7f0aa447beb5c716119d5d/instrumentation-docs/src/test/java/io/opentelemetry/instrumentation/docs/parsers/GradleParserTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/998c69c090619db208ad87518b0a246617f11516"
+      ],
+      "id": "PRRT_kwDODJKVX86yU4JB",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/998c69c090619db208ad87518b0a246617f11516/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/GradleParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/998c69c090619db208ad87518b0a246617f11516/instrumentation-docs/src/test/java/io/opentelemetry/instrumentation/docs/parsers/GradleParserTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/61f6efba0d4413704e7f0aa447beb5c716119d5d/instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/GradleParser.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/61f6efba0d4413704e7f0aa447beb5c716119d5d/instrumentation-docs/src/test/java/io/opentelemetry/instrumentation/docs/parsers/GradleParserTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86yU-vV",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/998c69c090619db208ad87518b0a246617f11516/instrumentation-docs/src/test/java/io/opentelemetry/instrumentation/docs/parsers/GradleParserTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/61f6efba0d4413704e7f0aa447beb5c716119d5d/instrumentation-docs/src/test/java/io/opentelemetry/instrumentation/docs/parsers/GradleParserTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/76b09be2ca03009229a51c80659f0ff9ce3bda0f"
+      ],
+      "id": "PRRT_kwDODJKVX86yVG9P",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/76b09be2ca03009229a51c80659f0ff9ce3bda0f/instrumentation-docs/src/test/java/io/opentelemetry/instrumentation/docs/parsers/GradleParserTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/61f6efba0d4413704e7f0aa447beb5c716119d5d/instrumentation-docs/src/test/java/io/opentelemetry/instrumentation/docs/parsers/GradleParserTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/67aff4ae779e90ff7f619eaa5e6c0f604745e720"
+      ],
+      "id": "PRRT_kwDODJKVX86yVSBd",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67aff4ae779e90ff7f619eaa5e6c0f604745e720/docs/contributing/muzzle.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/61f6efba0d4413704e7f0aa447beb5c716119d5d/docs/contributing/muzzle.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/6e435e2219c3fd24fa734afb05d305b9535359d7"
+      ],
+      "id": "PRRT_kwDODJKVX86yVSMj",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

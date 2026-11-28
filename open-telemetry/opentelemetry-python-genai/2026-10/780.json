@@ -1,0 +1,165 @@
+{
+  "head": "ef1349e635d55ee4d5341a8f587964c5bd786195",
+  "merge": "dac1229d0b500fe0da2e4c5509ed5b6a0c663141",
+  "merged": "2026-10-07T20:41:46Z",
+  "missing_roots": 0,
+  "number": 780,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`ColBERTv2` accepts the endpoint port separately from `url` (the new test constructs it that way), but this helper only parses a port embedded in the URL. As a result, direct ColBERT spans omit `server.port` even though the SDK knows it, and malformed endpoint URLs can also raise from telemetry before the retrieval call runs. Read the instance/RM `port` attribute and make URL parsing best-effort so instrumentation cannot change the call's behavior.",
+      "created": "2026-09-23T19:05:09Z",
+      "hunk": "@@ -428,41 +507,94 @@ def _extract_retrieval_k(\n     return None\n \n \n+def _extract_server_address_and_port(\n+    instance: Any,\n+    rm: Any,\n+) -> tuple[str | None, int | None]:\n+    url: Any = getattr(instance, \"url\", None) or (\n+        getattr(rm, \"url\", None) if rm is not None else None\n+    )\n+    if not isinstance(url, str) or not url:\n+        return None, None\n+    parsed = urllib.parse.urlparse(url if \"://\" in url else f\"http://{url}\")\n+    try:\n+        port = parsed.port\n+    except ValueError:\n+        port = None\n+    return parsed.hostname, port",
+      "id": "PRRT_kwDOSbspP86lS8RB",
+      "opened": "2026-09-23T19:05:10Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/src/opentelemetry/instrumentation/genai/dspy/patch.py",
+      "replies": [],
+      "reviewed": "2475257feba3f64c0bc42d2123a1f65841a39b56",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/780#discussion_r4086212794"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The added wrappers cover three new retrieval entry-point families, but the tests exercise only successful calls. Add failure cases for ColBERT, Embeddings/EmbeddingsWithScores, and the custom `Retrieve` subclass that assert the original exception is re-raised and the retrieval span records `error.type` and ERROR status; otherwise regressions in the shared wrapper's error finalization can pass unnoticed for the newly added APIs.",
+      "created": "2026-09-23T19:05:09Z",
+      "hunk": "@@ -341,3 +341,188 @@ def test_retrieve_uninstrument(\n \n     retrieve(\"Uninstrumented query\")\n     assert len(span_exporter.get_finished_spans()) == 0\n+\n+\n+def test_colbertv2_direct_and_via_retrieve(\n+    tracer_provider: TracerProvider,\n+    logger_provider: LoggerProvider,\n+    meter_provider: MeterProvider,\n+    span_exporter: InMemorySpanExporter,\n+    monkeypatch: pytest.MonkeyPatch,\n+) -> None:\n+    import dspy.dsp.colbertv2 as colbert_mod\n+\n+    from opentelemetry.semconv.attributes import server_attributes\n+\n+    monkeypatch.setattr(\n+        colbert_mod,\n+        \"colbertv2_get_request\",\n+        lambda url, query, k: [\n+            {\"long_text\": f\"Doc {i}\", \"pid\": 100 + i, \"score\": 0.9 - 0.1 * i}\n+            for i in range(k)\n+        ],\n+    )\n+\n+    with instrument(\n+        DSPyInstrumentor(),\n+        tracer_provider=tracer_provider,\n+        logger_provider=logger_provider,\n+        meter_provider=meter_provider,\n+        content_capture=\"SPAN_ONLY\",\n+    ):\n+        colbert = dspy.ColBERTv2(url=\"http://colbert.local\", port=8893)\n+        res = colbert(\"ColBERT direct query\", k=2)",
+      "id": "PRRT_kwDOSbspP86lS8Rr",
+      "opened": "2026-09-23T19:05:10Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/tests/test_retrieve.py",
+      "replies": [],
+      "reviewed": "2475257feba3f64c0bc42d2123a1f65841a39b56",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/780#discussion_r4086212849"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "do you know if there are other places where it's an array? Also what does it indicate? a batch retrieval?\n\nCreated https://github.com/open-telemetry/semantic-conventions-genai/issues/539 to track in semconv, please add a TODO comment pointing to this issue to maybe come back and update it later",
+      "created": "2026-09-24T09:55:16Z",
+      "hunk": "@@ -410,59 +476,139 @@ def _extract_retrieval_query(\n     bound: Mapping[str, object],\n ) -> str | None:\n     val = bound.get(\"query\")\n-    return str(val) if val is not None else None\n+    if val is None:\n+        val = bound.get(\"query_or_queries\")\n+    if val is None:\n+        return None\n+    if isinstance(val, str):\n+        return val\n+    if isinstance(val, Sequence) and not isinstance(val, bytes):\n+        str_items = [\n+            item\n+            for item in cast(Sequence[object], val)\n+            if isinstance(item, str)\n+        ]\n+        if str_items:\n+            return \", \".join(str_items)",
+      "id": "PRRT_kwDOSbspP86lh1ln",
+      "opened": "2026-09-24T10:09:19Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/src/opentelemetry/instrumentation/genai/dspy/patch.py",
+      "replies": [
+        {
+          "at": "2026-09-24T14:12:20Z",
+          "body": "https://github.com/stanfordnlp/dspy/blob/main/dspy/retrievers/weaviate_rm.py#L73\n\nIt indicates a batch/multi-query retrieval within a single retrieval call, where multiple queries are executed against the database and the retrieved passages are concatenated and returned together.\n\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/780#discussion_r4094585009"
+        },
+        {
+          "at": "2026-09-24T14:12:29Z",
+          "body": "Added a TODO",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/780#discussion_r4094586448"
+        }
+      ],
+      "reviewed": "be8a6131949169c4a25901c5d00214b34aadc71f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/780#discussion_r4092255732"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "any opportunity to reuse things from utils or add this code there?",
+      "created": "2026-09-24T09:56:02Z",
+      "hunk": "@@ -410,59 +476,139 @@ def _extract_retrieval_query(\n     bound: Mapping[str, object],\n ) -> str | None:\n     val = bound.get(\"query\")\n-    return str(val) if val is not None else None\n+    if val is None:\n+        val = bound.get(\"query_or_queries\")\n+    if val is None:\n+        return None\n+    if isinstance(val, str):\n+        return val\n+    if isinstance(val, Sequence) and not isinstance(val, bytes):\n+        str_items = [\n+            item\n+            for item in cast(Sequence[object], val)\n+            if isinstance(item, str)\n+        ]\n+        if str_items:\n+            return \", \".join(str_items)\n+        return None\n+    return str(val)\n \n \n def _extract_retrieval_k(\n-    instance: Any,\n+    instance: _RetrieverInstance,\n     bound: Mapping[str, object],\n ) -> int | None:\n     k = bound.get(\"k\")\n-    if k is None and hasattr(instance, \"k\"):\n+    if k is None:\n         k = getattr(instance, \"k\", None)\n-    if k is not None:\n+    if isinstance(k, (int, str)) and not isinstance(k, bool):\n         try:\n-            return int(cast(Any, k))\n+            return int(k)\n         except (ValueError, TypeError):\n             return None\n     return None\n \n \n+def _extract_server_address_and_port(",
+      "id": "PRRT_kwDOSbspP86lh2lV",
+      "opened": "2026-09-24T10:09:19Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/src/opentelemetry/instrumentation/genai/dspy/patch.py",
+      "replies": [
+        {
+          "at": "2026-09-24T14:15:26Z",
+          "body": "Hmm a lot of libraries do use urlparse to get this, theres nothing in utils currently.. i think lets look at it in a follow up PR",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/780#discussion_r4094616504"
+        }
+      ],
+      "reviewed": "be8a6131949169c4a25901c5d00214b34aadc71f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/780#discussion_r4092261868"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "is it retrieval or embedding?  should this be recorded as embedding instead? ",
+      "created": "2026-09-24T09:58:12Z",
+      "hunk": "@@ -58,3 +67,98 @@ def run(\n         ):\n             retrieve = dspy.Retrieve(k=2)\n             retrieve(\"What is OpenTelemetry?\")\n+\n+\n+class ColBERTv2Scenario(Scenario):\n+    expected_spans = {\"retrieval\": 1}\n+    expected_metrics = (\"gen_ai.client.operation.duration\",)\n+\n+    def run(\n+        self,\n+        *,\n+        tracer_provider: TracerProvider,\n+        meter_provider: MeterProvider,\n+        logger_provider: LoggerProvider,\n+        vcr: Any,\n+    ) -> None:\n+        from unittest.mock import patch\n+\n+        from dspy.dsp.utils import dotdict\n+\n+        def fake_get_request(url: str, query: str, k: int) -> list[Any]:\n+            return [\n+                dotdict(\n+                    {\n+                        \"long_text\": f\"ColBERT result {i} for {query}\",\n+                        \"pid\": 100 + i,\n+                        \"score\": round(0.95 - (i * 0.1), 2),\n+                    }\n+                )\n+                for i in range(k)\n+            ]\n+\n+        colbert = dspy.ColBERTv2(\n+            url=\"http://colbert.example.com:8893/api/search\"\n+        )\n+        with patch(\n+            \"dspy.dsp.colbertv2.colbertv2_get_request\",\n+            side_effect=fake_get_request,\n+        ):\n+            with instrument(\n+                DSPyInstrumentor(),\n+                tracer_provider=tracer_provider,\n+                logger_provider=logger_provider,\n+                meter_provider=meter_provider,\n+                content_capture=\"SPAN_ONLY\",\n+            ):\n+                colbert(\"What is OpenTelemetry?\", k=2)\n+\n+\n+class EmbeddingsScenario(Scenario):",
+      "id": "PRRT_kwDOSbspP86lh5z5",
+      "opened": "2026-09-24T10:09:19Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/tests/conformance/retrieve.py",
+      "replies": [
+        {
+          "at": "2026-09-24T13:57:28Z",
+          "body": "No its a retrieval, they just use the term Embedding to refer to it https://dspy.ai/current/api/tools/Embeddings/ .. they have real embeddings to, i'm working on the PR for that.. I've renamed it EmbeddingsRetrievalScenario",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/780#discussion_r4094437097"
+        }
+      ],
+      "reviewed": "be8a6131949169c4a25901c5d00214b34aadc71f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/780#discussion_r4092282088"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Checking `sys.modules.get` creates an import order dependency: if `dspy.retrievers.embeddings` is imported after `instrument()`, `EmbeddingsWithScores` is never patched. Match the `ReActV2` pattern.\n\n```suggestion\n    try:\n        import_module(_EMBEDDINGS_MODULE)\n        _wrap_function(\n            _EMBEDDINGS_MODULE,\n            f\"{_EMBEDDINGS_WITH_SCORES_CLASS}.forward\",\n            _retrieve_forward(handler),\n        )\n    except (ImportError, AttributeError):\n        pass\n```",
+      "created": "2026-09-24T10:02:43Z",
+      "hunk": "@@ -185,12 +195,52 @@ def patch_dspy(handler: TelemetryHandler) -> None:\n \n     retrieve_module = dspy.Retrieve.__module__\n     retrieve_name = dspy.Retrieve.__name__\n+    _wrap_function(\n+        retrieve_module,\n+        f\"{retrieve_name}.__call__\",\n+        _retrieve_forward(handler),\n+    )\n     _wrap_function(\n         retrieve_module,\n         f\"{retrieve_name}.forward\",\n         _retrieve_forward(handler),\n     )\n \n+    if hasattr(dspy, \"ColBERTv2\"):\n+        colbert_module = dspy.ColBERTv2.__module__\n+        colbert_name = dspy.ColBERTv2.__name__\n+        _wrap_function(\n+            colbert_module,\n+            f\"{colbert_name}.__call__\",\n+            _retrieve_forward(handler),\n+        )\n+\n+    if hasattr(dspy, \"Embeddings\"):\n+        emb_module = dspy.Embeddings.__module__\n+        emb_name = dspy.Embeddings.__name__\n+        _wrap_function(\n+            emb_module,\n+            f\"{emb_name}.__call__\",\n+            _retrieve_forward(handler),\n+        )\n+        _wrap_function(\n+            emb_module,\n+            f\"{emb_name}.forward\",\n+            _retrieve_forward(handler),\n+        )\n+\n+    embeddings_with_scores_cls = getattr(\n+        sys.modules.get(_EMBEDDINGS_MODULE),\n+        _EMBEDDINGS_WITH_SCORES_CLASS,\n+        None,\n+    )\n+    if embeddings_with_scores_cls is not None:\n+        _wrap_function(\n+            _EMBEDDINGS_MODULE,\n+            f\"{_EMBEDDINGS_WITH_SCORES_CLASS}.forward\",\n+            _retrieve_forward(handler),\n+        )",
+      "id": "PRRT_kwDOSbspP86lh_rT",
+      "opened": "2026-09-24T10:09:19Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/src/opentelemetry/instrumentation/genai/dspy/patch.py",
+      "replies": [
+        {
+          "at": "2026-09-24T14:07:59Z",
+          "body": "good call..done",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/780#discussion_r4094541350"
+        }
+      ],
+      "reviewed": "be8a6131949169c4a25901c5d00214b34aadc71f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/780#discussion_r4092319654"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "The exact type check skips the `dspy.settings.rm` fallback for subclasses of `Retrieve`.\n\n```suggestion\n    if rm is None and isinstance(instance, dspy.Retrieve):\n```",
+      "created": "2026-09-24T10:02:48Z",
+      "hunk": "@@ -410,59 +476,139 @@ def _extract_retrieval_query(\n     bound: Mapping[str, object],\n ) -> str | None:\n     val = bound.get(\"query\")\n-    return str(val) if val is not None else None\n+    if val is None:\n+        val = bound.get(\"query_or_queries\")\n+    if val is None:\n+        return None\n+    if isinstance(val, str):\n+        return val\n+    if isinstance(val, Sequence) and not isinstance(val, bytes):\n+        str_items = [\n+            item\n+            for item in cast(Sequence[object], val)\n+            if isinstance(item, str)\n+        ]\n+        if str_items:\n+            return \", \".join(str_items)\n+        return None\n+    return str(val)\n \n \n def _extract_retrieval_k(\n-    instance: Any,\n+    instance: _RetrieverInstance,\n     bound: Mapping[str, object],\n ) -> int | None:\n     k = bound.get(\"k\")\n-    if k is None and hasattr(instance, \"k\"):\n+    if k is None:\n         k = getattr(instance, \"k\", None)\n-    if k is not None:\n+    if isinstance(k, (int, str)) and not isinstance(k, bool):\n         try:\n-            return int(cast(Any, k))\n+            return int(k)\n         except (ValueError, TypeError):\n             return None\n     return None\n \n \n+def _extract_server_address_and_port(\n+    instance: _RetrieverInstance,\n+    rm: _RetrieverInstance | Callable[..., Any] | None,\n+) -> tuple[str | None, int | None]:\n+    url: object = getattr(instance, \"url\", None) or (\n+        getattr(rm, \"url\", None) if rm is not None else None\n+    )\n+    hostname: str | None = None\n+    port: int | None = None\n+    if isinstance(url, str) and url:\n+        try:\n+            parsed = urllib.parse.urlparse(\n+                url if \"://\" in url else f\"http://{url}\"\n+            )\n+            hostname = parsed.hostname\n+            port = parsed.port\n+        except ValueError:\n+            pass\n+\n+    if port is None:\n+        raw_port: object = getattr(instance, \"port\", None)\n+        if raw_port is None and rm is not None:\n+            raw_port = getattr(rm, \"port\", None)\n+        if isinstance(raw_port, (int, str)) and not isinstance(raw_port, bool):\n+            try:\n+                port = int(raw_port)\n+            except (ValueError, TypeError):\n+                port = None\n+\n+    return hostname, port\n+\n+\n def _start_retrieval_invocation(\n     handler: TelemetryHandler,\n-    instance: Retrieve,\n+    instance: _RetrieverInstance,\n     args: tuple[Any, ...],\n     kwargs: dict[str, Any],\n     wrapped: Callable[..., Any],\n ) -> RetrievalInvocation:\n-    rm: Any = getattr(instance, \"rm\", None)\n-    if rm is None:\n-        import dspy\n+    import dspy\n \n+    rm: _RetrieverInstance | Callable[..., Any] | None = getattr(\n+        instance, \"rm\", None\n+    )\n+    if rm is None and type(instance) is dspy.Retrieve:",
+      "id": "PRRT_kwDOSbspP86lh_xo",
+      "opened": "2026-09-24T10:09:19Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/src/opentelemetry/instrumentation/genai/dspy/patch.py",
+      "replies": [
+        {
+          "at": "2026-09-24T14:10:03Z",
+          "body": "Ack, fixed",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/780#discussion_r4094562280"
+        }
+      ],
+      "reviewed": "be8a6131949169c4a25901c5d00214b34aadc71f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/780#discussion_r4092320316"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Exclude booleans so `True`/`False` are not coerced to `1.0`/`0.0`, matching `_extract_retrieval_k`.\n\n```suggestion\n    if isinstance(val, (int, float, str)) and not isinstance(val, bool):\n```",
+      "created": "2026-09-24T10:02:54Z",
+      "hunk": "@@ -410,59 +476,139 @@ def _extract_retrieval_query(\n     bound: Mapping[str, object],\n ) -> str | None:\n     val = bound.get(\"query\")\n-    return str(val) if val is not None else None\n+    if val is None:\n+        val = bound.get(\"query_or_queries\")\n+    if val is None:\n+        return None\n+    if isinstance(val, str):\n+        return val\n+    if isinstance(val, Sequence) and not isinstance(val, bytes):\n+        str_items = [\n+            item\n+            for item in cast(Sequence[object], val)\n+            if isinstance(item, str)\n+        ]\n+        if str_items:\n+            return \", \".join(str_items)\n+        return None\n+    return str(val)\n \n \n def _extract_retrieval_k(\n-    instance: Any,\n+    instance: _RetrieverInstance,\n     bound: Mapping[str, object],\n ) -> int | None:\n     k = bound.get(\"k\")\n-    if k is None and hasattr(instance, \"k\"):\n+    if k is None:\n         k = getattr(instance, \"k\", None)\n-    if k is not None:\n+    if isinstance(k, (int, str)) and not isinstance(k, bool):\n         try:\n-            return int(cast(Any, k))\n+            return int(k)\n         except (ValueError, TypeError):\n             return None\n     return None\n \n \n+def _extract_server_address_and_port(\n+    instance: _RetrieverInstance,\n+    rm: _RetrieverInstance | Callable[..., Any] | None,\n+) -> tuple[str | None, int | None]:\n+    url: object = getattr(instance, \"url\", None) or (\n+        getattr(rm, \"url\", None) if rm is not None else None\n+    )\n+    hostname: str | None = None\n+    port: int | None = None\n+    if isinstance(url, str) and url:\n+        try:\n+            parsed = urllib.parse.urlparse(\n+                url if \"://\" in url else f\"http://{url}\"\n+            )\n+            hostname = parsed.hostname\n+            port = parsed.port\n+        except ValueError:\n+            pass\n+\n+    if port is None:\n+        raw_port: object = getattr(instance, \"port\", None)\n+        if raw_port is None and rm is not None:\n+            raw_port = getattr(rm, \"port\", None)\n+        if isinstance(raw_port, (int, str)) and not isinstance(raw_port, bool):\n+            try:\n+                port = int(raw_port)\n+            except (ValueError, TypeError):\n+                port = None\n+\n+    return hostname, port\n+\n+\n def _start_retrieval_invocation(\n     handler: TelemetryHandler,\n-    instance: Retrieve,\n+    instance: _RetrieverInstance,\n     args: tuple[Any, ...],\n     kwargs: dict[str, Any],\n     wrapped: Callable[..., Any],\n ) -> RetrievalInvocation:\n-    rm: Any = getattr(instance, \"rm\", None)\n-    if rm is None:\n-        import dspy\n+    import dspy\n \n+    rm: _RetrieverInstance | Callable[..., Any] | None = getattr(\n+        instance, \"rm\", None\n+    )\n+    if rm is None and type(instance) is dspy.Retrieve:\n         rm = getattr(dspy.settings, \"rm\", None)\n \n     # DSPy retrieval models lack a uniform identifier schema, so inspect common index\n-    # attributes across the Retrieve instance and configured RM.\n+    # attributes across the retriever instance and configured RM.\n     data_source_id: str | None = (\n         getattr(instance, \"data_source_id\", None)\n         or getattr(instance, \"index_name\", None)\n-        or (getattr(rm, \"data_source_id\", None) if rm is not None else None)\n-        or (getattr(rm, \"index_name\", None) if rm is not None else None)\n-        or (getattr(rm, \"collection_name\", None) if rm is not None else None)\n+        or getattr(instance, \"collection_name\", None)\n+        or getattr(instance, \"_weaviate_collection_name\", None)\n+        or getattr(instance, \"databricks_index_name\", None)\n+    )\n+    if data_source_id is None and rm is not None:\n+        data_source_id = (\n+            getattr(rm, \"data_source_id\", None)\n+            or getattr(rm, \"index_name\", None)\n+            or getattr(rm, \"collection_name\", None)\n+            or getattr(rm, \"_weaviate_collection_name\", None)\n+            or getattr(rm, \"databricks_index_name\", None)\n+        )\n+\n+    server_address, server_port = _extract_server_address_and_port(\n+        instance, rm\n     )\n \n     invocation = handler.retrieval(\n         data_source_id=str(data_source_id)\n         if data_source_id is not None\n         else None,\n+        server_address=server_address,\n+        server_port=server_port,\n     )\n \n-    bound = bind_arguments(wrapped, args, kwargs)\n+    target_callable: Callable[..., Any] = wrapped\n+    # Retrieve.__call__ delegates *args, **kwargs without named parameters; bind\n+    # against forward() when available to extract query and k.\n+    if getattr(wrapped, \"__name__\", None) == \"__call__\":\n+        forward_attr = getattr(instance, \"forward\", None)\n+        if callable(forward_attr):\n+            target_callable = forward_attr\n+\n+    bound = bind_arguments(target_callable, args, kwargs, apply_defaults=True)\n     invocation.query_text = _extract_retrieval_query(bound)\n     invocation.top_k = _extract_retrieval_k(instance, bound)\n     return invocation\n \n \n+def _extract_doc_score(val: object) -> float | None:\n+    if isinstance(val, (int, float, str)):",
+      "id": "PRRT_kwDOSbspP86lh_4H",
+      "opened": "2026-09-24T10:09:19Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-dspy/src/opentelemetry/instrumentation/genai/dspy/patch.py",
+      "replies": [],
+      "reviewed": "be8a6131949169c4a25901c5d00214b34aadc71f",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/780#discussion_r4092320998"
+    }
+  ]
+}

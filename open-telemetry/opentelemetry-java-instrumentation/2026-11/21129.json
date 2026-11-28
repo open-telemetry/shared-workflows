@@ -1,0 +1,250 @@
+{
+  "head": "5b32928ccdd8317bd768592966b012f5287913fd",
+  "merge": "0b8837f24e5f9110e620c1a0a0f4f16595fa0e22",
+  "merged": "2026-11-06T18:35:53Z",
+  "missing_roots": 0,
+  "number": 21129,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Removing the post-`@` check makes `hasMultipleTargets()` return false for `jdbc:mariadb:failover://alice:p;ss@h1,unexpected=value/db`, because it stops at `;` while `extractAuthority()` does not. The group parser rejects the second endpoint, but single-server fallback remains enabled and reports the username `alice` as the configured server. Count targets using the same authority boundaries as group parsing for URL-shaped schemes, retain semicolon-property boundaries for schemes that require them, and add a regression test for this rejected-group case.",
+      "created": "2026-11-02T03:17:42Z",
+      "hunk": "@@ -359,30 +262,7 @@ public static boolean hasMultipleTargets(String jdbcUrl) {\n     int authorityEnd = indexOfAny(jdbcUrl, authorityStart, '/', '?', '#', ';');\n     authorityEnd = authorityEnd < 0 ? jdbcUrl.length() : authorityEnd;\n     String authority = jdbcUrl.substring(authorityStart, authorityEnd);\n-    if (splitHostList(stripUserInfo(authority)).size() > 1) {\n-      return true;\n-    }\n-\n-    int lastAt = jdbcUrl.lastIndexOf('@');\n-    if (lastAt < authorityEnd) {\n-      return false;\n-    }\n-    if (isAtInQueryParameter(jdbcUrl, authorityEnd, lastAt)\n-        || isAtInSemicolonParameter(jdbcUrl, authorityEnd, lastAt)) {\n-      return false;\n-    }\n-    int targetEnd = indexOfAny(jdbcUrl, lastAt + 1, '/', '?', '#', '&', ';');\n-    targetEnd = targetEnd < 0 ? jdbcUrl.length() : targetEnd;\n-    return splitHostList(jdbcUrl.substring(lastAt + 1, targetEnd)).size() > 1;\n-  }\n-\n-  private static boolean isAtInSemicolonParameter(String url, int authorityEnd, int at) {\n-    int parameterStart = Math.max(url.lastIndexOf(';', at), url.lastIndexOf('&', at));\n-    if (parameterStart < authorityEnd) {\n-      return false;\n-    }\n-    int equals = url.indexOf('=', parameterStart + 1);\n-    return equals > parameterStart && equals < at;\n+    return splitHostList(stripUserInfo(authority)).size() > 1;",
+      "id": "PRRT_kwDODJKVX86yhcM0",
+      "opened": "2026-11-02T03:17:42Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/UrlParsingUtils.java",
+      "replies": [
+        {
+          "at": "2026-11-02T03:36:41Z",
+          "body": "Fixed in 9c95d117830f. Target counting now uses the same authority extraction, with semicolon boundaries applied only to semicolon-parameter dialects. Added a regression for semicolon-containing MariaDB userinfo followed by a rejected failover host.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21129#discussion_r4438705329"
+        }
+      ],
+      "reviewed": "4d985cb1c31fa97250662b4e4e5d60c8a7df1b00",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21129#discussion_r4438611970"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to fix the authority-boundary mismatch identified in Copilot review 5731736383, comment 4438611970. Keep the original goal: simple grammar-aligned parsing without malformed-password guessing.\r\n\r\nAt head 4d985cb1c31fa97250662b4e4e5d60c8a7df1b00, UrlParsingUtils.extractAuthority ends at '/', '?', or '#', but hasMultipleTargets also stops at ';' for every scheme. JdbcConnectionUrlParser uses the latter to disable single-server fallback, and MysqlUrlParser.applyHostGroup also uses it after group parsing rejects an entry.\r\n\r\nFor example, consider jdbc:mariadb:failover://alice:p;ss@h1,unexpected=value/db. The semicolon is within userinfo for this URL-shaped grammar, not a connection-property boundary. hasMultipleTargets sees only alice:p and returns false. Group extraction sees both hosts and rejects unexpected=value, but fallback remains enabled. parseMariaSubProtocol then treats alice as the host and reports it as the configured server instead of dropping the rejected group.\r\n\r\nAlign target counting with the authority grammar used by the parser. Preserve real semicolon-property boundaries for SQL Server, jTDS, Derby, and any other applicable drivers, without introducing new guesses about credentials after path/query/fragment boundaries. Ensure a rejected multi-host list cannot fall back to a partial or credential-derived singleton. Add a focused regression for this MariaDB semicolon-userinfo/rejected-group case and retain the existing semicolon-property and late-at-sign regression coverage. Make the smallest complete fix and run the narrow formatter and relevant JDBC parser tests. Do not modify unrelated PRs or create a new PR.\r\n",
+      "created": "2026-11-02T03:19:58Z",
+      "hunk": "@@ -359,30 +262,7 @@ public static boolean hasMultipleTargets(String jdbcUrl) {\n     int authorityEnd = indexOfAny(jdbcUrl, authorityStart, '/', '?', '#', ';');\n     authorityEnd = authorityEnd < 0 ? jdbcUrl.length() : authorityEnd;\n     String authority = jdbcUrl.substring(authorityStart, authorityEnd);\n-    if (splitHostList(stripUserInfo(authority)).size() > 1) {\n-      return true;\n-    }\n-\n-    int lastAt = jdbcUrl.lastIndexOf('@');\n-    if (lastAt < authorityEnd) {\n-      return false;\n-    }\n-    if (isAtInQueryParameter(jdbcUrl, authorityEnd, lastAt)\n-        || isAtInSemicolonParameter(jdbcUrl, authorityEnd, lastAt)) {\n-      return false;\n-    }\n-    int targetEnd = indexOfAny(jdbcUrl, lastAt + 1, '/', '?', '#', '&', ';');\n-    targetEnd = targetEnd < 0 ? jdbcUrl.length() : targetEnd;\n-    return splitHostList(jdbcUrl.substring(lastAt + 1, targetEnd)).size() > 1;\n-  }\n-\n-  private static boolean isAtInSemicolonParameter(String url, int authorityEnd, int at) {\n-    int parameterStart = Math.max(url.lastIndexOf(';', at), url.lastIndexOf('&', at));\n-    if (parameterStart < authorityEnd) {\n-      return false;\n-    }\n-    int equals = url.indexOf('=', parameterStart + 1);\n-    return equals > parameterStart && equals < at;\n+    return splitHostList(stripUserInfo(authority)).size() > 1;",
+      "id": "PRRT_kwDODJKVX86yhdcm",
+      "opened": "2026-11-02T03:19:57Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/UrlParsingUtils.java",
+      "replies": [],
+      "reviewed": "4d985cb1c31fa97250662b4e4e5d60c8a7df1b00",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21129#discussion_r4438620167"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] HSQLDB's network schemes are missing here, so `jdbc:hsqldb:http://hs.host;password=a,b` is incorrectly counted as multiple targets. This disables single-server fallback and drops the configured `hs.host` target, even though `HsqlUrlParser` handles these semicolon-delimited properties through `ParseContext.parseUrl()`. Include `hsqldb:` schemes and add a regression for a pathless URL with a comma-containing property.",
+      "created": "2026-11-02T03:39:53Z",
+      "hunk": "@@ -355,34 +258,29 @@ public static boolean hasMultipleTargets(String jdbcUrl) {\n       return false;\n     }\n \n-    int authorityStart = protocol + 3;\n-    int authorityEnd = indexOfAny(jdbcUrl, authorityStart, '/', '?', '#', ';');\n-    authorityEnd = authorityEnd < 0 ? jdbcUrl.length() : authorityEnd;\n-    String authority = jdbcUrl.substring(authorityStart, authorityEnd);\n-    if (splitHostList(stripUserInfo(authority)).size() > 1) {\n-      return true;\n-    }\n-\n-    int lastAt = jdbcUrl.lastIndexOf('@');\n-    if (lastAt < authorityEnd) {\n+    String authority = extractAuthority(jdbcUrl);\n+    if (authority == null) {\n       return false;\n     }\n-    if (isAtInQueryParameter(jdbcUrl, authorityEnd, lastAt)\n-        || isAtInSemicolonParameter(jdbcUrl, authorityEnd, lastAt)) {\n-      return false;\n+    if (usesSemicolonParameters(jdbcUrl.substring(0, protocol))) {\n+      int semicolon = authority.indexOf(';');\n+      if (semicolon >= 0) {\n+        authority = authority.substring(0, semicolon);\n+      }\n     }\n-    int targetEnd = indexOfAny(jdbcUrl, lastAt + 1, '/', '?', '#', '&', ';');\n-    targetEnd = targetEnd < 0 ? jdbcUrl.length() : targetEnd;\n-    return splitHostList(jdbcUrl.substring(lastAt + 1, targetEnd)).size() > 1;\n+    return splitHostList(stripUserInfo(authority)).size() > 1;\n   }\n \n-  private static boolean isAtInSemicolonParameter(String url, int authorityEnd, int at) {\n-    int parameterStart = Math.max(url.lastIndexOf(';', at), url.lastIndexOf('&', at));\n-    if (parameterStart < authorityEnd) {\n-      return false;\n+  private static boolean usesSemicolonParameters(String scheme) {\n+    if (scheme.startsWith(\"jdbc:\")) {\n+      scheme = scheme.substring(\"jdbc:\".length());\n     }\n-    int equals = url.indexOf('=', parameterStart + 1);\n-    return equals > parameterStart && equals < at;\n+    return scheme.equals(\"sqlserver\")\n+        || scheme.equals(\"microsoft:sqlserver\")\n+        || scheme.equals(\"jtds:sqlserver\")\n+        || scheme.equals(\"derby\")",
+      "id": "PRRT_kwDODJKVX86yhsOR",
+      "opened": "2026-11-02T03:39:53Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/UrlParsingUtils.java",
+      "replies": [
+        {
+          "at": "2026-11-02T03:58:47Z",
+          "body": "Fixed in 6615b5f8145e. All four HSQLDB network modes now retain their semicolon-property boundaries when counting targets. Added pathless-URL regressions with comma-containing properties and covered the other semicolon-aware parser paths.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21129#discussion_r4438794682"
+        }
+      ],
+      "reviewed": "9c95d117830fa6514c33a9afefd45bec9abeb84c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21129#discussion_r4438718426"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to fix the omitted HSQLDB semicolon dialect identified in Copilot review 5731859490, comment 4438718426. Preserve the original goal of consistent grammar-defined boundaries, without restoring malformed-credential guessing.\r\n\r\nAt head 9c95d117830fa6514c33a9afefd45bec9abeb84c, usesSemicolonParameters omits the HSQLDB network schemes. For jdbc:hsqldb:http://hs.host;password=left,right, hasMultipleTargets therefore counts property text as another endpoint and disables single-server fallback. HsqlUrlParser.parseNetworkMode delegates to ParseContext.parseUrl, which correctly strips semicolon properties and records hs.host, but the disabled fallback means the configured target is lost. Before this PR's dialect change, semicolon properties did not affect target counting.\r\n\r\nRecognize the semicolon-property grammar for HSQLDB network URLs and add focused pathless-URL regression coverage with a comma-containing property. HsqlUrlParser supports hsql, hsqls, http, and https network modes; preserve their default-port behavior.\r\n\r\nCheck the semicolon classification against the other registered parser implementations so this correction does not leave the same omission elsewhere. Relevant paths using ParseContext.parseUrl or semicolon property handling include H2UrlParser, HsqlUrlParser, Db2UrlParser, InformixSqliUrlParser, InformixDirectUrlParser, and OceanbaseUrlParser, in addition to the dialects already covered. Preserve existing supported grammar; do not fix unrelated pre-existing parsing bugs or redesign the parser hierarchy. Add only coverage needed for the actual boundary policy.\r\n\r\nKeep the verified MariaDB semicolon-userinfo/rejected-group regression passing, retain late-at-sign and ordinary credential-stripping behavior, and run the narrow formatter and relevant JDBC parser tests. Do not modify unrelated PRs or create another PR.\r\n",
+      "created": "2026-11-02T03:42:36Z",
+      "hunk": "@@ -355,34 +258,29 @@ public static boolean hasMultipleTargets(String jdbcUrl) {\n       return false;\n     }\n \n-    int authorityStart = protocol + 3;\n-    int authorityEnd = indexOfAny(jdbcUrl, authorityStart, '/', '?', '#', ';');\n-    authorityEnd = authorityEnd < 0 ? jdbcUrl.length() : authorityEnd;\n-    String authority = jdbcUrl.substring(authorityStart, authorityEnd);\n-    if (splitHostList(stripUserInfo(authority)).size() > 1) {\n-      return true;\n-    }\n-\n-    int lastAt = jdbcUrl.lastIndexOf('@');\n-    if (lastAt < authorityEnd) {\n+    String authority = extractAuthority(jdbcUrl);\n+    if (authority == null) {\n       return false;\n     }\n-    if (isAtInQueryParameter(jdbcUrl, authorityEnd, lastAt)\n-        || isAtInSemicolonParameter(jdbcUrl, authorityEnd, lastAt)) {\n-      return false;\n+    if (usesSemicolonParameters(jdbcUrl.substring(0, protocol))) {\n+      int semicolon = authority.indexOf(';');\n+      if (semicolon >= 0) {\n+        authority = authority.substring(0, semicolon);\n+      }\n     }\n-    int targetEnd = indexOfAny(jdbcUrl, lastAt + 1, '/', '?', '#', '&', ';');\n-    targetEnd = targetEnd < 0 ? jdbcUrl.length() : targetEnd;\n-    return splitHostList(jdbcUrl.substring(lastAt + 1, targetEnd)).size() > 1;\n+    return splitHostList(stripUserInfo(authority)).size() > 1;\n   }\n \n-  private static boolean isAtInSemicolonParameter(String url, int authorityEnd, int at) {\n-    int parameterStart = Math.max(url.lastIndexOf(';', at), url.lastIndexOf('&', at));\n-    if (parameterStart < authorityEnd) {\n-      return false;\n+  private static boolean usesSemicolonParameters(String scheme) {\n+    if (scheme.startsWith(\"jdbc:\")) {\n+      scheme = scheme.substring(\"jdbc:\".length());\n     }\n-    int equals = url.indexOf('=', parameterStart + 1);\n-    return equals > parameterStart && equals < at;\n+    return scheme.equals(\"sqlserver\")",
+      "id": "PRRT_kwDODJKVX86yht3J",
+      "opened": "2026-11-02T03:42:36Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/UrlParsingUtils.java",
+      "replies": [
+        {
+          "at": "2026-11-02T03:56:31Z",
+          "body": "Added semicolon-property boundary handling for all HSQLDB network modes and the other applicable registered JDBC dialects, with comma-property regressions. The focused parser tests and formatter pass. Commit: `6615b5f8`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21129#discussion_r4438786154"
+        }
+      ],
+      "reviewed": "9c95d117830fa6514c33a9afefd45bec9abeb84c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21129#discussion_r4438728887"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to address the remaining body-only finding in Copilot review 5731965097. Keep this correction limited to the omitted jTDS Sybase semicolon dialect and its regression coverage.\r\n\r\nAt head 6615b5f8145eb06a16f3c68fe78c4901d75d1bb6, usesSemicolonParameters recognizes jtds:sqlserver but not jtds:sybase. For jdbc:jtds:sybase://h1;appname=a,b, hasMultipleTargets therefore returns true and disables single-server fallback. JtdsUrlParser, registered for the whole jtds type without a subtype restriction, delegates to ParseContext.parseUrl, which correctly strips semicolon properties and records h1. The target is nevertheless lost because fallback was disabled.\r\n\r\nPreserve the existing semicolon grammar for the jTDS subtypes handled by that parser, including Sybase, and add the pathless comma-property regression. A prefix-based jtds classification may be simpler and consistent with how JdbcConnectionUrlParser registers JtdsUrlParser; choose the smallest complete fix. Do not change database-system classification or introduce unrelated Sybase behavior changes.\r\n\r\nRetain the MariaDB semicolon-userinfo/rejected-group regression, HSQLDB and other semicolon-dialect coverage, normal credential stripping, and the removal of malformed-password guessing. Run the narrow formatter and relevant JDBC parser tests. Do not create another PR or modify unrelated work.\r\n",
+      "created": "2026-11-02T04:04:36Z",
+      "hunk": "@@ -355,34 +258,40 @@ public static boolean hasMultipleTargets(String jdbcUrl) {\n       return false;\n     }\n \n-    int authorityStart = protocol + 3;\n-    int authorityEnd = indexOfAny(jdbcUrl, authorityStart, '/', '?', '#', ';');\n-    authorityEnd = authorityEnd < 0 ? jdbcUrl.length() : authorityEnd;\n-    String authority = jdbcUrl.substring(authorityStart, authorityEnd);\n-    if (splitHostList(stripUserInfo(authority)).size() > 1) {\n-      return true;\n-    }\n-\n-    int lastAt = jdbcUrl.lastIndexOf('@');\n-    if (lastAt < authorityEnd) {\n+    String authority = extractAuthority(jdbcUrl);\n+    if (authority == null) {\n       return false;\n     }\n-    if (isAtInQueryParameter(jdbcUrl, authorityEnd, lastAt)\n-        || isAtInSemicolonParameter(jdbcUrl, authorityEnd, lastAt)) {\n-      return false;\n+    if (usesSemicolonParameters(jdbcUrl.substring(0, protocol))) {\n+      int semicolon = authority.indexOf(';');\n+      if (semicolon >= 0) {\n+        authority = authority.substring(0, semicolon);\n+      }\n     }\n-    int targetEnd = indexOfAny(jdbcUrl, lastAt + 1, '/', '?', '#', '&', ';');\n-    targetEnd = targetEnd < 0 ? jdbcUrl.length() : targetEnd;\n-    return splitHostList(jdbcUrl.substring(lastAt + 1, targetEnd)).size() > 1;\n+    return splitHostList(stripUserInfo(authority)).size() > 1;\n   }\n \n-  private static boolean isAtInSemicolonParameter(String url, int authorityEnd, int at) {\n-    int parameterStart = Math.max(url.lastIndexOf(';', at), url.lastIndexOf('&', at));\n-    if (parameterStart < authorityEnd) {\n-      return false;\n+  private static boolean usesSemicolonParameters(String scheme) {\n+    if (scheme.startsWith(\"jdbc:\")) {\n+      scheme = scheme.substring(\"jdbc:\".length());\n     }\n-    int equals = url.indexOf('=', parameterStart + 1);\n-    return equals > parameterStart && equals < at;\n+    return scheme.equals(\"sqlserver\")\n+        || scheme.equals(\"microsoft:sqlserver\")\n+        || scheme.equals(\"jtds:sqlserver\")",
+      "id": "PRRT_kwDODJKVX86yh7og",
+      "opened": "2026-11-02T04:04:35Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/UrlParsingUtils.java",
+      "replies": [
+        {
+          "at": "2026-11-02T04:13:39Z",
+          "body": "Fixed in `0603a6a5`. Target counting now treats all `jtds:` subtypes as semicolon-parameter dialects; the pathless Sybase comma-property case is covered by the focused parser test.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21129#discussion_r4438851689"
+        }
+      ],
+      "reviewed": "6615b5f8145eb06a16f3c68fe78c4901d75d1bb6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21129#discussion_r4438816858"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the following two behavior-preserving simplifications.\n\nShare applyHostGroup between GenericUrlParser and MysqlUrlParser. Their implementations are now identical apart from the default port. Make GenericUrlParser.applyHostGroup package-private static, call it from MysqlUrlParser's subtype branch with DEFAULT_PORT, and remove the duplicated MySQL helper and any imports that become unused. Preserve the existing configured-target and rejected-group fallback behavior.\n\nIn JdbcConnectionUrlParserTest.authorityEndsAtPathDelimiterEvenInMalformedCredentialUrls, replace the expected-authority calculation using indexOf and substring with explicit URL/expected-authority pairs in a parameterized CsvSource test. Keep all existing cases, assert literal expected authorities, and do not duplicate the production boundary algorithm in the test.\n\nKeep the existing scheme-specific semicolon handling unchanged, including MariaDB semicolon-containing userinfo, rejected-group fallback protection, and the HSQLDB and jTDS dialect coverage. Do not redesign parser grammar or change behavior. Run the narrow formatter and relevant JDBC parser tests. Do not create another PR or modify unrelated work.",
+      "created": "2026-11-02T05:48:12Z",
+      "hunk": "@@ -99,19 +96,15 @@ void parse(String jdbcUrl, ParseContext ctx, @Nullable Integer defaultPort) {\n     ctx.applyCommonParams(jdbcUrl, \"?\", \"&\");\n   }\n \n-  private static boolean applyHostGroup(\n+  private static void applyHostGroup(",
+      "id": "PRRT_kwDODJKVX86yjDqv",
+      "opened": "2026-11-02T05:48:12Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/GenericUrlParser.java",
+      "replies": [
+        {
+          "at": "2026-11-02T05:58:30Z",
+          "body": "Implemented in a331655a. MySQL and generic URL parsing now share the host-group helper, and the authority-boundary test uses explicit CSV URL/authority pairs.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21129#discussion_r4439329884"
+        }
+      ],
+      "reviewed": "0603a6a55e47adbde78230b69851d9556a412a78",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21129#discussion_r4439283414"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly by adding the following comment immediately above `if (parser == null && jdbcUrl.indexOf(';') >= 0)` in `instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionUrlParser.java`.\n\n```java\n// For unknown drivers, semicolons may separate properties or occur inside credentials.\n// Without the driver's grammar, we may mistake part of a password for a host, port, or\n// database name and emit it in telemetry. Use only separately supplied DataSource properties.\n```\n\nUse this wording. Keep the change comment-only, with no parser logic or test changes.",
+      "created": "2026-11-03T04:24:45Z",
+      "hunk": "@@ -138,7 +138,15 @@ public static DbInfo parse(@Nullable String connectionUrl, @Nullable Properties\n     String type = jdbcUrl.substring(0, typeLoc);\n     JdbcUrlParser parser = typeParsers.get(type);\n     ParseContext ctx = ParseContext.of(type, props);\n-    if (hasMultipleTargets(jdbcUrl)) {\n+    if (parser == null && jdbcUrl.indexOf(';') >= 0) {",
+      "id": "PRRT_kwDODJKVX86y-pdl",
+      "opened": "2026-11-03T04:24:45Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionUrlParser.java",
+      "replies": [
+        {
+          "at": "2026-11-03T04:27:23Z",
+          "body": "Added the requested comment-only change in `3b335941`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21129#discussion_r4450917490"
+        }
+      ],
+      "reviewed": "a4e9512a39085d41f5fd2da8725360b67dd6a6fa",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21129#discussion_r4450905183"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with a test-only cleanup of the confusing malformed-credential boundary cases. Keep the existing parser implementation and behavior unchanged.\n\nIn instrumentation/jdbc/library/src/test/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionUrlParserTest.java, replace the misleading malformed-password examples and test names with clearly driver-valid authority-boundary regression cases using ordinary host names. Relevant methods include mariaDbMalformedCredentialsFollowUrlGrammar, postgresMalformedCredentialsFollowUrlGrammar, authorityEndsAtPathDelimiterEvenInMalformedCredentialUrls, and malformedCredentialsAreNotInferredBeyondAuthority. Consolidate with existing late-at-sign boundary coverage where redundant. Retain useful coverage for at signs and commas in database names or query values, singleton and multi-host target counting, and literal expected authorities, configured targets, and namespaces.\n\nDetermine validity from the driver's actual supported grammar rather than from these test names. For example, pgjdbc 42.7.8 parses jdbc:postgresql://user:123,a/ss@pg.host:5432 as hosts user:123 and a:5432 and database ss@pg.host:5432, not as credentials. It is not evidence of a recognized password leak. Prefer normal host names and unambiguous supported database/query examples that exercise the same valid boundary behavior. Drop cases in this boundary-test cleanup that only exercise rejected credential syntax, rather than promising to recover an intended malformed password. Do not copy production boundary calculations into expected values.\n\nPreserve the grammar-defined boundary implementation for known drivers and the conservative no-URL-derived-information fallback for unknown drivers with semicolons. Do not add password-guessing heuristics or the previously suggested generic host/namespace truncation heuristic. Keep the independent unknown-driver privacy, separately supplied DataSource properties, semicolon-dialect, and rejected-group fallback regressions intact. This is not a request to remove all negative parser tests or change production behavior.\n\nMake the smallest complete test cleanup, run the narrow formatter followed by the relevant JDBC parser tests, and update this existing PR rather than creating another PR. Do not fix unrelated issues.",
+      "created": "2026-11-05T18:32:53Z",
+      "hunk": "@@ -149,15 +221,37 @@ void incompleteMultiTargetIsMarkedWithoutAConfiguredTarget(String url) {\n   }\n \n   @ParameterizedTest\n-  @ValueSource(\n-      strings = {\n-        \"jdbc:postgresql://user:123,a/ss@pg.host:5432\",\n-        \"jdbc:postgresql://user:123,a#ignored?x=y@pg.host:5432,pg2:5432/db\"\n+  @CsvSource(\n+      delimiter = '|',\n+      value = {\n+        \"jdbc:mariadb:failover://user:p,a/ss@h1:3306,h2:3306/db||ss@h1:3306,h2:3306/db\",\n+        \"jdbc:mariadb:failover://user:p,a?ss@h1:3306,h2:3306/db||\",\n+        \"jdbc:mariadb:failover://user:p,a#ss@h1:3306,h2:3306/db||\",\n+        \"jdbc:mariadb:failover://user:123,a?x=y@h1:3306,h2:3306/db|user:123,a:3306|\",\n+        \"jdbc:mariadb:failover://user:123,a?x=y@address=(host=h1),address=(host=h2)/db\"\n+            + \"|user:123,a:3306|\",\n+        \"jdbc:mariadb:failover://user:123,a?x=y@address=(host=h1)/db|user:123,a:3306|\",\n+        \"jdbc:mariadb:failover://user:123,a#ignored?x=y@/db|user:123,a:3306|\"\n       })\n-  void ambiguousPostgresCredentialsDoNotBecomeAConfiguredTarget(String url) {\n+  void mariaDbMalformedCredentialsFollowUrlGrammar(String url, String target, String namespace) {\n     DbInfo dbInfo = parse(url, null);\n-    assertThat(dbInfo.getConfiguredServerTarget()).isNull();\n-    assertThat(dbInfo.getDbNamespace()).isNull();\n+    assertThat(dbInfo.getConfiguredServerTarget())\n+        .isEqualTo(target == null ? null : DbServerTarget.create(target, null));\n+    assertThat(dbInfo.getDbNamespace()).isEqualTo(namespace);\n+  }\n+\n+  @ParameterizedTest\n+  @CsvSource(\n+      delimiter = '|',\n+      value = {\n+        \"jdbc:postgresql://user:123,a/ss@pg.host:5432|ss@pg.host:5432\",\n+        \"jdbc:postgresql://user:123,a#ignored?x=y@pg.host:5432,pg2:5432/db|\"\n+      })\n+  void postgresMalformedCredentialsFollowUrlGrammar(String url, String namespace) {",
+      "id": "PRRT_kwDODJKVX860NfpP",
+      "opened": "2026-11-05T18:32:53Z",
+      "path": "instrumentation/jdbc/library/src/test/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionUrlParserTest.java",
+      "replies": [
+        {
+          "at": "2026-11-05T18:42:58Z",
+          "body": "Replaced the malformed-credential cases with valid JDBC URLs and consolidated redundant boundary coverage in `eccccae1`. The focused parser tests pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21129#discussion_r4484531193"
+        }
+      ],
+      "reviewed": "226e8852c91bbd2a42f7fb66a1a4b498dc6826c6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21129#discussion_r4484420768"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the visibility nit only: make GenericUrlParser.applyHostGroup private static again in instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/GenericUrlParser.java. Its only caller is inside GenericUrlParser, so package-private visibility is unnecessary under the repository's narrowest-access rule.\n\nKeep the method signature otherwise unchanged, preserve its implementation and all JDBC parsing behavior, and avoid unrelated changes. Run the narrow relevant formatter and checks. Update this existing PR rather than creating another PR.",
+      "created": "2026-11-05T19:40:53Z",
+      "hunk": "@@ -99,19 +95,14 @@ void parse(String jdbcUrl, ParseContext ctx, @Nullable Integer defaultPort) {\n     ctx.applyCommonParams(jdbcUrl, \"?\", \"&\");\n   }\n \n-  private static boolean applyHostGroup(\n-      String jdbcUrl, ParseContext ctx, @Nullable Integer defaultPort) {\n-    String authority = extractAuthority(jdbcUrl);\n+  static void applyHostGroup(",
+      "id": "PRRT_kwDODJKVX860PQNr",
+      "opened": "2026-11-05T19:40:53Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/GenericUrlParser.java",
+      "replies": [
+        {
+          "at": "2026-11-05T19:48:06Z",
+          "body": "Changed `applyHostGroup` to `private static` in commit `6f9076e7`. The focused JDBC URL parser tests and formatter passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21129#discussion_r4485249038"
+        }
+      ],
+      "reviewed": "eccccae1fe0cd4b407614e6044988a0de2cfa68a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21129#discussion_r4485173045"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with two behavior-preserving expression cleanups.\n\nIn instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionUrlParser.java, replace the conditional receiver `(parser == null ? GenericUrlParser.INSTANCE : parser).extractAuthority(jdbcUrl)` with a conditional on the extracted value:\n\n```java\nString authority =\n    parser == null\n        ? UrlParsingUtils.extractAuthority(jdbcUrl)\n        : parser.extractAuthority(jdbcUrl);\n```\n\nAdd the necessary UrlParsingUtils import.\n\nIn instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/OceanbaseUrlParser.java, replace `JdbcUrlParser.super.extractAuthority(jdbcUrl)` with `UrlParsingUtils.extractAuthority(jdbcUrl)`. Keep the existing extractSubtype conditional and extractSemicolonAuthority branch unchanged. The interface default already delegates to that same utility.\n\nKeep this limited to those expression cleanups and required imports. Preserve all authority boundaries, the unknown-driver semicolon safety fallback, configured-target behavior, existing tests, and the private visibility of applyHostGroup. Do not redesign parser selection or introduce new helpers. Run the narrow formatter followed by the relevant JDBC parser tests. Update this existing PR rather than creating another PR, and do not modify unrelated work.",
+      "created": "2026-11-05T20:07:17Z",
+      "hunk": "@@ -136,7 +136,18 @@ public static DbInfo parse(@Nullable String connectionUrl, @Nullable Properties\n     String type = jdbcUrl.substring(0, typeLoc);\n     JdbcUrlParser parser = typeParsers.get(type);\n     ParseContext ctx = ParseContext.of(type, props);\n-    if (parser != MysqlUrlParser.INSTANCE && hasMultipleTargets(jdbcUrl)) {\n+    // For unknown drivers, semicolons may separate properties or occur inside credentials.\n+    // Without the driver's grammar, we may mistake part of a password for a host, port, or\n+    // database name and emit it in telemetry. Use only separately supplied DataSource properties.\n+    if (parser == null && jdbcUrl.indexOf(';') >= 0) {\n+      ctx.system(\"other_sql\");\n+      ctx.applyDataSourceProperties();\n+      return ctx.toDbInfo();\n+    }\n+\n+    String authority =\n+        (parser == null ? GenericUrlParser.INSTANCE : parser).extractAuthority(jdbcUrl);",
+      "id": "PRRT_kwDODJKVX860P4oy",
+      "opened": "2026-11-05T20:07:17Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionUrlParser.java",
+      "replies": [
+        {
+          "at": "2026-11-05T20:16:54Z",
+          "body": "Implemented in `bf1ccdfe`. Both authority extractions now call `UrlParsingUtils` directly; focused Spotless formatting and JDBC library tests pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21129#discussion_r4485546196"
+        }
+      ],
+      "reviewed": "6f9076e79e284a1438fdef8331a5379c2ce2e5fd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21129#discussion_r4485444152"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to require an explicit authority-grammar decision from every JDBC URL parser, without changing supported runtime parsing behavior.\n\nIn instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/JdbcUrlParser.java, remove the default implementation of extractAuthority and declare it as an abstract nullable method. Update every implementing parser to make its authority extraction choice explicitly. Reuse UrlParsingUtils.extractAuthority for URL-shaped grammar and extractSemicolonAuthority for semicolon-property grammar as appropriate. Preserve parser-specific decisions, including OceanBase's subtype-dependent handling. Return null only where authority extraction is genuinely inapplicable to the supported URL forms. Do not introduce a new parser hierarchy or abstraction just to avoid small explicit overrides.\n\nThe purpose is to prevent a future parser from silently inheriting the wrong grammar. Neither delimiter policy is universally safe when extracted text is converted into telemetry: semicolon-property text may contain credentials, while a semicolon in URL userinfo must not truncate credentials before their terminating at sign. This is a defensive API cleanup, not a request to change accepted grammars or claim that the current default itself leaks credentials. The interface method currently participates in multi-target/fallback detection, and MySQL/MariaDB parse their actual host lists independently.\n\nPreserve the unknown-driver semicolon bailout in JdbcConnectionUrlParser, separately supplied DataSource properties, ordinary userinfo stripping, semicolon-property dialects, MariaDB semicolon-containing userinfo, rejected multi-host fallback protection, and late-at-sign path/query behavior. Keep the existing utility-level fallback for an unknown parser. Do not restore malformed-password guessing or fix unrelated parsing issues.\n\nEnsure every implementation compiles with the now-required method, retain the focused authority-boundary/privacy regressions, and add narrowly targeted coverage only where needed for the explicit choices. Run the narrow relevant spotlessApply task directly before the relevant JDBC parser tests. Update this existing PR rather than creating another PR. Do not modify unrelated work.",
+      "created": "2026-11-05T20:41:45Z",
+      "hunk": "@@ -17,6 +19,12 @@\n  */\n public interface JdbcUrlParser {\n \n+  /** Extract the authority using this parser's connection-property boundaries. */\n+  @Nullable\n+  default String extractAuthority(String jdbcUrl) {",
+      "id": "PRRT_kwDODJKVX860QwVi",
+      "opened": "2026-11-05T20:41:45Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/parser/JdbcUrlParser.java",
+      "replies": [],
+      "reviewed": "bf1ccdfe4f5647dd3b1e12fe78eeae993dcb84ec",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21129#discussion_r4485813047"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to make authority handling and configured-target fallback safety part of parsing, not a separate operation on the parser interface. This supersedes the earlier explicit-extractAuthority-interface cleanup.\n\nAt head f8a5cfe47d1ac22052404f24b233201020edd8d6, JdbcConnectionUrlParser first calls parser.extractAuthority, detects multiple targets, and disables single-server fallback before calling parser.parse. The dispatcher even needs a MySQL exception. This splits grammar ownership: the preliminary authority pass and actual parsing must agree about boundaries.\n\nLeave only void parse(String jdbcUrl, ParseContext ctx) on JdbcUrlParser. Remove extractAuthority from that interface and remove the per-parser overrides that exist solely for the dispatcher. Remove the dispatcher's authority extraction, multi-target prepass, and associated unused imports. Each parser or its existing shared parsing helper must instead detect multiple targets and resolve or suppress singleton fallback as part of its normal parsing path, using the same grammar boundaries as the parsing itself. Authority-extraction utility helpers can remain internally where useful; do not replace the interface method with another externally coordinated parsing phase.\n\nPossible reuse points, not a required patch recipe: ParseContext.parseUrl already splits semicolon-delimited properties before parsing the host, so that path can detect multiple targets from its existing URL portion. GenericUrlParser.applyHostGroup already resolves a configured group or disables fallback for a rejected group. MySQL/MariaDB already parse and resolve their actual host lists independently. Inspect every registered parser, including custom paths that do not use those helpers, before removing the dispatcher safeguard. Keep necessary safety logic before any partial host result can escape through best-effort exception handling. Reuse shared grammar-aware logic where appropriate without introducing a new parser hierarchy, duplicated prepasses, or an unnecessary abstraction.\n\nPreserve supported parsing behavior and existing credential/privacy safeguards: a rejected multi-host list must not fall back to a partial or credential-derived singleton; semicolon-property commas must not affect host counting; semicolons inside URL userinfo must not truncate it. Preserve OceanBase subtype-specific grammar, all existing semicolon dialects, MySQL/MariaDB host parsing, default-port behavior, DataSource property precedence, and late-at-sign path/query behavior. Keep the unknown-driver semicolon bailout and separately supplied DataSource properties in JdbcConnectionUrlParser. Do not restore malformed-password guessing or fix unrelated parsing issues.\n\nUpdate tests that currently call the removed parser-interface method to cover the behavior through parsing and observable DbInfo/configured-target results where appropriate. Retain the existing focused privacy, boundary, rejected-group, and unknown-driver regressions, and add narrowly targeted coverage for any safety logic relocated out of the dispatcher. Do not merely delete coverage to make the refactor compile. Run the narrow relevant spotlessApply task directly before the relevant JDBC parser tests. Update this existing PR rather than creating another PR, and do not modify unrelated work.",
+      "created": "2026-11-06T03:07:09Z",
+      "hunk": "@@ -136,7 +137,20 @@ public static DbInfo parse(@Nullable String connectionUrl, @Nullable Properties\n     String type = jdbcUrl.substring(0, typeLoc);\n     JdbcUrlParser parser = typeParsers.get(type);\n     ParseContext ctx = ParseContext.of(type, props);\n-    if (parser != MysqlUrlParser.INSTANCE && hasMultipleTargets(jdbcUrl)) {\n+    // For unknown drivers, semicolons may separate properties or occur inside credentials.\n+    // Without the driver's grammar, we may mistake part of a password for a host, port, or\n+    // database name and emit it in telemetry. Use only separately supplied DataSource properties.\n+    if (parser == null && jdbcUrl.indexOf(';') >= 0) {\n+      ctx.system(\"other_sql\");\n+      ctx.applyDataSourceProperties();\n+      return ctx.toDbInfo();\n+    }\n+\n+    String authority =",
+      "id": "PRRT_kwDODJKVX860XOCH",
+      "opened": "2026-11-06T03:07:09Z",
+      "path": "instrumentation/jdbc/library/src/main/java/io/opentelemetry/instrumentation/jdbc/internal/JdbcConnectionUrlParser.java",
+      "replies": [
+        {
+          "at": "2026-11-06T03:27:52Z",
+          "body": "Implemented in `5b32928c`. Authority extraction and multi-target fallback checks now run within parser paths, with regressions for shared and custom parser flows. The JDBC library tests pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21129#discussion_r4488721150"
+        }
+      ],
+      "reviewed": "f8a5cfe47d1ac22052404f24b233201020edd8d6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21129#discussion_r4488601615"
+    }
+  ]
+}

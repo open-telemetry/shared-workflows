@@ -1,0 +1,40 @@
+{
+  "head": "4d46352b53b9679b6bfa50d6d20f190c04248da4",
+  "merge": "139be254e7aaae6a471ee36e4327d6384a15185d",
+  "merged": "2026-11-20T02:28:51Z",
+  "missing_roots": 0,
+  "number": 21330,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n   * @deprecated Use {@link #getNetworkLocalSocketAddress(Object, Object)} instead.\n```",
+      "created": "2026-11-18T16:00:27Z",
+      "hunk": "@@ -78,7 +78,11 @@ default String getNetworkProtocolVersion(REQUEST request, @Nullable RESPONSE res\n    *\n    * <p>Implementing this method is equivalent to implementing both {@link\n    * #getNetworkLocalAddress(Object, Object)} and {@link #getNetworkLocalPort(Object, Object)}.\n+   *\n+   * @deprecated Use {@link #getNetworkLocalSocketAddress(Object, Object)} instead. This method will\n+   *     be removed in the next major version.",
+      "id": "PRRT_kwDODJKVX865D-1t",
+      "opened": "2026-11-18T16:00:27Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/network/NetworkAttributesGetter.java",
+      "replies": [],
+      "reviewed": "60a1a89599a3967a14b9124533509441436b8d3f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21330#discussion_r4616948988"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n   * @deprecated Use {@link #getNetworkPeerSocketAddress(Object, Object)} instead.\n```",
+      "created": "2026-11-18T17:23:55Z",
+      "hunk": "@@ -138,7 +141,11 @@ default Integer getNetworkLocalPort(REQUEST request, @Nullable RESPONSE response\n    *\n    * <p>Implementing this method is equivalent to implementing both {@link\n    * #getNetworkPeerAddress(Object, Object)} and {@link #getNetworkPeerPort(Object, Object)}.\n+   *\n+   * @deprecated Use {@link #getNetworkPeerSocketAddress(Object, Object)} instead. This method will\n+   *     be removed in the next major version.",
+      "id": "PRRT_kwDODJKVX865GnLx",
+      "opened": "2026-11-18T17:23:54Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/network/NetworkAttributesGetter.java",
+      "replies": [],
+      "reviewed": "60a1a89599a3967a14b9124533509441436b8d3f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21330#discussion_r4618114366"
+    }
+  ]
+}

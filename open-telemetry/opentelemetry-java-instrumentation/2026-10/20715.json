@@ -1,0 +1,61 @@
+{
+  "head": "963312bc3bdd52591cf454f20f02c6840c921c82",
+  "merge": "27a84d89dacc69f047884a29374bc83dd8f5178e",
+  "merged": "2026-10-20T06:23:14Z",
+  "missing_roots": 0,
+  "number": 20715,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Optional: use `hasAttributesSatisfyingExactly(...)` with the complete expected attributes for both client and server spans in `streamingErrorReturned`. The current assertions check only `error.type`, so unexpected attributes pass unnoticed. Follow the mode-dependent attribute assertions in the neighboring streaming test, adapting the status and message counts for this error case.",
+      "created": "2026-10-19T03:39:41Z",
+      "hunk": "@@ -380,6 +381,82 @@ RPC_SERVICE, emitOldRpcSemconv() ? \"example.Greeter\" : null),\n     }\n   }\n \n+  @Test\n+  void streamingErrorReturned() throws Exception {\n+    CountDownLatch latch = new CountDownLatch(1);\n+    AtomicReference<Throwable> error = new AtomicReference<>();\n+    BindableService greeter =\n+        new GreeterGrpc.GreeterImplBase() {\n+          @Override\n+          public StreamObserver<Helloworld.Response> conversation(\n+              StreamObserver<Helloworld.Response> observer) {\n+            return new StreamObserver<Helloworld.Response>() {\n+              @Override\n+              public void onNext(Helloworld.Response value) {}\n+\n+              @Override\n+              public void onError(Throwable t) {\n+                observer.onError(t);\n+              }\n+\n+              @Override\n+              public void onCompleted() {\n+                observer.onError(Status.INTERNAL.withDescription(\"failure\").asException());\n+              }\n+            };\n+          }\n+        };\n+\n+    Server server = configureServer(ServerBuilder.forPort(0).addService(greeter)).build().start();\n+    ManagedChannel channel = createChannel(server);\n+    closer.add(() -> channel.shutdownNow().awaitTermination(10, SECONDS));\n+    closer.add(() -> server.shutdownNow().awaitTermination());\n+\n+    StreamObserver<Helloworld.Response> requestObserver =\n+        GreeterGrpc.newStub(channel)\n+            .conversation(\n+                new StreamObserver<Helloworld.Response>() {\n+                  @Override\n+                  public void onNext(Helloworld.Response value) {}\n+\n+                  @Override\n+                  public void onError(Throwable t) {\n+                    error.set(t);\n+                    latch.countDown();\n+                  }\n+\n+                  @Override\n+                  public void onCompleted() {\n+                    latch.countDown();\n+                  }\n+                });\n+    requestObserver.onCompleted();\n+\n+    assertThat(latch.await(10, SECONDS)).isTrue();\n+    assertThat(error.get()).isNotNull();\n+\n+    testing()\n+        .waitAndAssertTraces(\n+            trace ->\n+                trace.hasSpansSatisfyingExactly(\n+                    span ->\n+                        span.hasName(\"example.Greeter/Conversation\")\n+                            .hasKind(SpanKind.CLIENT)\n+                            .hasAttributesSatisfying(",
+      "id": "PRRT_kwDODJKVX86txyjO",
+      "opened": "2026-10-19T03:39:41Z",
+      "path": "instrumentation/grpc-1.6/testing/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/AbstractGrpcStreamingTest.java",
+      "replies": [
+        {
+          "at": "2026-10-19T19:17:07Z",
+          "body": "Updated the test to assert the complete mode-dependent attributes for both spans, including status codes and zero message counts. Commit: `2b0e6eb947`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20715#discussion_r4317830330"
+        }
+      ],
+      "reviewed": "2cc343d7faab91c42536a22993c9d6bb7a1d0052",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20715#discussion_r4310124043"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Simplify duration-metric attribute assertions affected by this PR in AbstractGrpcTest.assertMetrics and AbstractSofaRpcTest. The corresponding client/server spans already check system, method, endpoint, response status, and error-type values. Use exact metric point keys instead of repeating those values and remove the helper's duplicated clientErrorType/serverErrorType value calculation. Keep only the minimal condition needed to choose whether ERROR_TYPE is in each expected client/server key set, including cancellation-only server calls and Throwable fallback. Preserve metric names, histogram types, units, semconv variants, and metric-specific behavior. Do not simplify away numeric or value assertions in RpcClientMetricsTest or RpcServerMetricsTest: those are metric-only shared tests. Do not change the child Thrift or Dubbo PRs as part of this task.\n\nApply the metric-testing guidance proposed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20738: when corresponding spans already verify attribute values, keep metric identity, type, unit, and exact point attribute-key checks instead of repeating those values. Assert different success/failure point key sets separately, including whether ERROR_TYPE is present. Reuse existing domain helpers or containsOnlyKeys. Keep numeric/value assertions that verify aggregation, duplicate recording, terminal timing, or other metric-specific behavior; this is not a blanket numeric-assertion removal.\n\nUpdate this existing PR directly on its current head branch. Limit this assignment to the test cleanup described above; do not change production behavior, weaken span assertions, update unrelated PR branches, merge or rebase the stack, or create a duplicate/follow-up PR as a workaround. Preserve the PR's existing base and draft/ready state. Follow repository instructions, apply the narrowest spotlessApply before relevant targeted validation, and keep only meaningful test changes. Acceptance: the identified redundant value assertions are removed, exact metric key-set and metric identity/type/unit coverage remains, and all metric-specific behavior coverage is preserved. Do not post replies to human comments or resolve review threads.",
+      "created": "2026-10-19T20:37:48Z",
+      "hunk": "@@ -1927,7 +1953,8 @@ private void assertMetrics(Server server, Status.Code statusCode) {\n                                           equalTo(SERVER_ADDRESS, \"localhost\"),\n                                           equalTo(SERVER_PORT, server.getPort()),\n                                           equalTo(RPC_METHOD, \"example.Greeter/SayHello\"),\n-                                          equalTo(RPC_RESPONSE_STATUS_CODE, statusCode.name())))));\n+                                          equalTo(RPC_RESPONSE_STATUS_CODE, statusCode.name()),\n+                                          equalTo(ERROR_TYPE, serverErrorType)))));",
+      "id": "PRRT_kwDODJKVX86uGF1y",
+      "opened": "2026-10-19T20:37:48Z",
+      "path": "instrumentation/grpc-1.6/testing/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/AbstractGrpcTest.java",
+      "replies": [],
+      "reviewed": "7a6b3a3c0a0a635f5196521cbfd07f368b8ebfc1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20715#discussion_r4318610339"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Simplify this PR's diff by applying the revised metric-testing guidance only to new tests, not retroactively to existing tests. This intentionally supersedes the earlier request on this PR to convert existing duration-metric assertions to key-only assertions. When extending an existing test, retain its existing assertion style and extend the assertions only as needed for this PR's behavior; migrating existing tests is a separate future cleanup.\n\nIn `instrumentation/grpc-1.6/testing/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/AbstractGrpcTest.java`, restore the existing value-based `hasAttributesSatisfyingExactly(...)` metric point assertions instead of the new `containsOnlyKeys(...)` / filtered `Stream` constructions, and add only the necessary `ERROR_TYPE` expectations. Preserve the intended client versus server status classification, cancellation-only server behavior, and Throwable fallback. Remove imports or calculations made unnecessary by undoing the style conversion, but retain changes needed for correct expectations. In `instrumentation/sofa-rpc-5.4/testing/src/main/java/io/opentelemetry/instrumentation/sofarpc/v5_4/AbstractSofaRpcTest.java`, likewise restore existing value-based metric assertions, retaining the necessary new error-type assertions for failing calls. Avoid rewriting unchanged assertions simply because the corresponding spans already check the values.\n\nPreserve the PR's production behavior, all intended gRPC/shared-RPC metric error classification changes, span assertions, newly added streaming coverage, metric identity/type/unit and metric-specific checks, supported semconv variants, and the metric-only `RpcClientMetricsTest` / `RpcServerMetricsTest` coverage. New tests may use the new metric guidance. Do not update unrelated instructions or tests, the Thrift/Dubbo child PRs, or other branches. Do not merge or rebase the stack. Update this existing PR directly on its current head branch, not a separate follow-up PR, and preserve its base and draft/ready state. Follow repository instructions and validate the affected tests. Acceptance: the existing-test style-only churn is removed from the PR diff, necessary behavior assertions remain, and existing tests are extended in their original style. Do not reply to human comments or resolve review threads.",
+      "created": "2026-10-19T23:22:21Z",
+      "hunk": "@@ -1922,12 +1942,22 @@ private void assertMetrics(Server server, Status.Code statusCode) {\n                           histogram ->\n                               histogram.hasPointsSatisfying(\n                                   point ->\n-                                      point.hasAttributesSatisfyingExactly(\n-                                          equalTo(RPC_SYSTEM_NAME, \"grpc\"),\n-                                          equalTo(SERVER_ADDRESS, \"localhost\"),\n-                                          equalTo(SERVER_PORT, server.getPort()),\n-                                          equalTo(RPC_METHOD, \"example.Greeter/SayHello\"),\n-                                          equalTo(RPC_RESPONSE_STATUS_CODE, statusCode.name())))));\n+                                      point.hasAttributesSatisfying(",
+      "id": "PRRT_kwDODJKVX86uJCxb",
+      "opened": "2026-10-19T23:22:21Z",
+      "path": "instrumentation/grpc-1.6/testing/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/AbstractGrpcTest.java",
+      "replies": [],
+      "reviewed": "d6b43f43bf541ba04378704575fd37c706e71e23",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20715#discussion_r4319876822"
+    }
+  ]
+}

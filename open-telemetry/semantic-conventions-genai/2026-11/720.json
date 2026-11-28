@@ -1,0 +1,57 @@
+{
+  "head": "3f12bee82a712473437b239b1bdf5f711efe755b",
+  "merge": "5dc04610b510bddb9968db8bf6b900402e254913",
+  "merged": "2026-11-25T20:06:22Z",
+  "missing_roots": 0,
+  "number": 720,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "**Set the bucket boundaries the spec requires for this histogram.**\n\nThe new histogram doesn't pass `explicit_bucket_boundaries_advisory`, and `setup_otel()` doesn't add a view for this metric. As a result, the Python SDK uses its default buckets. Those put every interval from 0 to 5 s into one bucket, so typical sub-second chunk intervals can't be told apart.\n\n`docs/gen-ai/client-inference.md` says this metric SHOULD use `[0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 1.28, 2.56, 5.12, 10.24, 20.48, 40.96, 81.92]`. Please pass that list as `explicit_bucket_boundaries_advisory`, the same way `_embeddings_duration` does just below.",
+      "created": "2026-11-23T21:09:06Z",
+      "hunk": "@@ -26,6 +26,11 @@\n     unit=\"s\",\n     description=\"Time to receive the first output chunk of a streaming inference operation.\",\n )\n+_time_per_output_chunk = _reference_meter.create_histogram(\n+    \"gen_ai.client.inference.time_per_output_chunk\",\n+    unit=\"s\",\n+    description=\"Time between successive output chunks of a streaming inference operation.\",\n+)",
+      "id": "PRRT_kwDOSUeMrM67EX1l",
+      "opened": "2026-11-23T21:09:06Z",
+      "path": "reference/scenarios/openai/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-23T22:46:18Z",
+          "body": "blocked on https://github.com/open-telemetry/semantic-conventions-genai/pull/655",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/720#discussion_r4673044715"
+        },
+        {
+          "at": "2026-11-24T22:38:52Z",
+          "body": "Addressed by merging #655 via main. The histogram now passes `explicit_bucket_boundaries_advisory=_CLIENT_DURATION_BUCKETS`, matching the updated spec's decimal bucket boundaries.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/720#discussion_r4687502441"
+        }
+      ],
+      "reviewed": "7b4920774a659394d09964e9f1ddd42c2f46976b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/720#discussion_r4672052030"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "singankit"
+      },
+      "body": "Are non text output included ? For multimodal model it can have non text output.",
+      "created": "2026-11-24T18:06:35Z",
+      "hunk": "@@ -16,7 +16,9 @@ Assistants API is covered by the `openai-assistants` scenario).\n \n Streaming TTFC is recorded on the span and metric at the first non-empty text, refusal, audio data/transcript, or function-call name/argument delta. Role, ID, usage, and empty deltas do not stop the timer.\n \n-The scenario also checks metadata filtering, non-text output, authentication, retry backoff, and streams with no output using the real SDK, mock HTTP responses, and a controlled clock. These assertions run through the existing `run-scenario openai --strict` entry point.\n+The output-chunk interval metric records the time between successive qualifying SDK events. Metadata-only events do not reset the interval, and streams with fewer than two qualifying events produce no interval measurements.\n+\n+The scenario also checks metadata filtering, non-text output, authentication, retry backoff, output-chunk intervals, and streams with zero or one output event using the real SDK, mock HTTP responses, and a controlled clock. These assertions run through the existing `run-scenario openai --strict` entry point.",
+      "id": "PRRT_kwDOSUeMrM67hBfG",
+      "opened": "2026-11-24T18:06:35Z",
+      "path": "reference/scenarios/openai/README.md",
+      "replies": [
+        {
+          "at": "2026-11-24T22:51:10Z",
+          "body": "Yes. I clarified this README in https://github.com/open-telemetry/semantic-conventions-genai/pull/720/changes/ddf5560ddd9f6c634911ff95b960ccb974d36bb1.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/720#discussion_r4687615566"
+        }
+      ],
+      "reviewed": "7b4920774a659394d09964e9f1ddd42c2f46976b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/720#discussion_r4684409235"
+    }
+  ]
+}

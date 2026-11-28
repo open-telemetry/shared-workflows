@@ -1,0 +1,63 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "53cbf8a2534a98194c53099216ddb8c0017e7b23b517e081e798b96679da6e26",
+  "input_digest": "44c46b83a5dd1818eebc642e2f3fe2eb7858972c690531ed3f3f14325826a381",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/54dec6579c99607de0682cb88aea5c9288046f6e/tools/runner/src/opentelemetry/conformance/versions.env",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/54dec6579c99607de0682cb88aea5c9288046f6e/tools/runner/src/opentelemetry/conformance/_session.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/54dec6579c99607de0682cb88aea5c9288046f6e/tools/runner/pyproject.toml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/e4bdf576466c3cf4d485c274254559fbc4e9ece1/tools/runner/src/opentelemetry/conformance/versions.env",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/e4bdf576466c3cf4d485c274254559fbc4e9ece1/tools/runner/src/opentelemetry/conformance/_session.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/e4bdf576466c3cf4d485c274254559fbc4e9ece1/tools/runner/src/opentelemetry/conformance/_weaver.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/e4bdf576466c3cf4d485c274254559fbc4e9ece1/tools/runner/pyproject.toml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/953dde8001ec15c4522bc3e068e2098f13004d19"
+      ],
+      "id": "PRRT_kwDOTuzK5c6o0HCH",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/27f3b072afcfaecbc192a35cac9889906341bb13/tools/runner/src/opentelemetry/conformance/_weaver.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/e4bdf576466c3cf4d485c274254559fbc4e9ece1/tools/runner/src/opentelemetry/conformance/_weaver.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/10d1ada24c16ede321b5b1bbe685b090d98a6eb0"
+      ],
+      "id": "PRRT_kwDOTuzK5c6sgWDX",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/27f3b072afcfaecbc192a35cac9889906341bb13/tools/runner/tests/test_weaver.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/e4bdf576466c3cf4d485c274254559fbc4e9ece1/tools/runner/tests/test_weaver.py"
+      ],
+      "id": "PRRT_kwDOTuzK5c6sgWER",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/27f3b072afcfaecbc192a35cac9889906341bb13/tools/runner/tests/test_weaver.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/27f3b072afcfaecbc192a35cac9889906341bb13/.github/workflows/runner.yml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/e4bdf576466c3cf4d485c274254559fbc4e9ece1/tools/runner/tests/test_weaver.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/e4bdf576466c3cf4d485c274254559fbc4e9ece1/.github/workflows/runner.yml",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/10d1ada24c16ede321b5b1bbe685b090d98a6eb0"
+      ],
+      "id": "PRRT_kwDOTuzK5c6sgWFD",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

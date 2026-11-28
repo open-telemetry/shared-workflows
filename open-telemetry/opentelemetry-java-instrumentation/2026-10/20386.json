@@ -1,0 +1,25 @@
+{
+  "head": "96dd84fdbbe52051a0a651a8077bc7016ec6046f",
+  "merge": "81a8713a48121cc8e9b65d0a53a87eabfa86df2f",
+  "merged": "2026-10-07T08:41:28Z",
+  "missing_roots": 0,
+  "number": 20386,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n  enabled. The public `SqlQuery` factory signatures are unchanged.\n```",
+      "created": "2026-10-06T19:39:48Z",
+      "hunk": "@@ -56,6 +56,21 @@\n - Remove the deprecated `OpenTelemetryMeterRegistryBuilder#setMicrometerHistogramGaugesEnabled(boolean)`.\n   Use `Experimental#setMicrometerHistogramGaugesEnabled(OpenTelemetryMeterRegistryBuilder, boolean)`\n   instead.\n+- Remove legacy database APIs from `io.opentelemetry.instrumentation:opentelemetry-instrumentation-api-incubator`.\n+  Replace `DbClientAttributesGetter.getDbSystem`, `getDbName`, and `getDbOperation` with\n+  `getDbSystemName`, `getDbNamespace`, and `getDbOperationName`. Return canonical system names\n+  such as `oracle.db` and `h2database` from `getDbSystemName`; extractors no longer translate\n+  legacy system names. Remove overrides of `getUser` and `getConnectionString`, which have no\n+  stable database attribute replacements. SQL getters use\n+  `getRawQueryTexts` instead of `getRawQueryTextsForOldSemconv`; use\n+  `DbClientSpanNameExtractor.create` instead of `createWithGenericOldSpanName`.\n+  Remove `SqlClientAttributesExtractorBuilder.setTableAttribute`; enable\n+  `setSingleOperationAndCollection(true)` to derive `db.collection.name` for systems that support\n+  only one collection and operation per non-batch query.\n+- Remove `SqlQueryAnalyzer.analyzeWithSummary` from\n+  `io.opentelemetry.instrumentation:opentelemetry-instrumentation-api-incubator` for 3.0.\n+  Use `SqlQueryAnalyzer.analyze`, which now always produces query summaries when sanitization is\n+  enabled, independently of v3-preview. The public `SqlQuery` factory signatures are unchanged.",
+      "id": "PRRT_kwDODJKVX86poXRA",
+      "opened": "2026-10-06T19:39:48Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "97d3e0db6a47e87846d87b028d74622ef0e862a8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20386#discussion_r4199699717"
+    }
+  ]
+}

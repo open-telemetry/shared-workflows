@@ -1,0 +1,31 @@
+{
+  "head": "19e77a9e7aefe8ec3a6e98e7c2dac3a0ada8e7e7",
+  "merge": "336308f5ae080dd83f6fed99d34bad599fed976f",
+  "merged": "2026-10-06T19:35:17Z",
+  "missing_roots": 0,
+  "number": 20385,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "would have guessed that this is for the stable semconv",
+      "created": "2026-10-06T14:20:33Z",
+      "hunk": "@@ -72,107 +63,40 @@ public static void onExit(\n   public static class AttachEndpointAdvice {\n \n     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n-    @Advice.AssignReturned.ToArguments(@ToArgument(3))\n-    public static Object onEnter(\n+    public static void onEnter(\n         @Advice.This RedisClusterClient client,\n         @Advice.Argument(0) Object connection,\n         @Advice.Argument(1) DefaultEndpoint endpoint,\n-        @Advice.Argument(2) RedisURI redisUri,\n-        @Advice.Argument(3) Object socketAddressSource) {\n-      return AttachEndpointHelper.attach(\n-          client, connection, endpoint, redisUri, socketAddressSource);\n+        @Advice.Argument(2) RedisURI redisUri) {\n+      AttachEndpointHelper.attach(client, connection, endpoint, redisUri);\n     }\n   }\n \n   @SuppressWarnings(\"unused\")\n   public static class AttachEndpointWithCodecAdvice {\n \n     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n-    @Advice.AssignReturned.ToArguments(@ToArgument(4))\n-    public static Object onEnter(\n+    public static void onEnter(\n         @Advice.This RedisClusterClient client,\n         @Advice.Argument(0) Object connection,\n         @Advice.Argument(2) DefaultEndpoint endpoint,\n-        @Advice.Argument(3) RedisURI redisUri,\n-        @Advice.Argument(4) Object socketAddressSource) {\n-      return AttachEndpointHelper.attach(\n-          client, connection, endpoint, redisUri, socketAddressSource);\n+        @Advice.Argument(3) RedisURI redisUri) {\n+      AttachEndpointHelper.attach(client, connection, endpoint, redisUri);\n     }\n   }\n \n   public static class AttachEndpointHelper {\n \n-    private static final Logger logger = Logger.getLogger(AttachEndpointHelper.class.getName());\n-\n-    public static Object attach(\n-        RedisClusterClient client,\n-        Object connection,\n-        DefaultEndpoint endpoint,\n-        RedisURI redisUri,\n-        Object socketAddressSource) {\n+    public static void attach(\n+        RedisClusterClient client, Object connection, DefaultEndpoint endpoint, RedisURI redisUri) {\n       RedisServerTarget target = LettuceServerTargets.get(client);\n-      LettuceConnectionState.captureEndpoint(endpoint, null, redisUri.getDatabase(), target);\n+      LettuceConnectionState.captureEndpoint(endpoint, redisUri.getDatabase(), target);\n       if (connection instanceof RedisChannelHandler) {\n         RedisChannelHandler<?, ?> connectionHandler = (RedisChannelHandler<?, ?>) connection;\n         LettuceServerTargets.copy(client, connectionHandler);\n       }\n-      if (!emitStableDatabaseSemconv()) {\n-        return socketAddressSource;\n-      }\n-      if (socketAddressSource instanceof Supplier) {",
+      "id": "PRRT_kwDODJKVX86pgdWt",
+      "opened": "2026-10-06T14:20:33Z",
+      "path": "instrumentation/lettuce/lettuce-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v5_0/LettuceClusterClientInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-10-06T18:05:36Z",
+          "body": "yeah, this was unused code that snuck in previously",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20385#discussion_r4198815768"
+        }
+      ],
+      "reviewed": "a197906a7a90754306f7c7894f1f31c8cf62f34c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20385#discussion_r4196435842"
+    }
+  ]
+}

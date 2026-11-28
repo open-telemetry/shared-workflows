@@ -1,0 +1,24 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "b588b992f31a61fe76236ae9e36f35e38df55d891cb724a84a39ecb44c754d20",
+  "input_digest": "d7f9c389880cdebbd52921a561d0cc55580e21b61770249ba73d2d7c542b02c0",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/497f0cee932564d1556be64675c203aa420ccc03/instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/__init__.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/497f0cee932564d1556be64675c203aa420ccc03/instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/_execution_context.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/497f0cee932564d1556be64675c203aa420ccc03/instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/_run_context.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/4a14f8748b478aa2d2999b35643e7d6bec5b0c3b/instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/__init__.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/4a14f8748b478aa2d2999b35643e7d6bec5b0c3b/instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/_execution_context.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/4a14f8748b478aa2d2999b35643e7d6bec5b0c3b/instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/_run_context.py"
+      ],
+      "id": "PRRT_kwDOSbspP86uH_0R",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

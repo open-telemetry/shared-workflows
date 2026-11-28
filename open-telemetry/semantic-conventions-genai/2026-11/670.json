@@ -1,0 +1,73 @@
+{
+  "head": "246fbd16193c8f0cf3859202e6c16f3140f09401",
+  "merge": "4faed36e3d9fe78ac646cf35e3a208d0ba72d324",
+  "merged": "2026-11-05T02:39:47Z",
+  "missing_roots": 0,
+  "number": 670,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The committed `reference/scenarios/openai-agents/data.json` still omits `gen_ai.invoke_agent.exception` and the internal invocation's `error.type`. CI reruns the scenario and rejects stale results in `.github/workflows/ci.yml:179-189`. Run `uv run run-scenario openai-agents` from `reference/`, then `uv run update-reports`, and commit the generated changes as required by `reference/CONTRIBUTING.md:96-97`.",
+      "created": "2026-11-02T01:43:06Z",
+      "hunk": "@@ -177,6 +177,36 @@ def get_weather(location: str) -> str:\n             raise AssertionError(\"Expected the SDK to reject the tool arguments\")\n \n \n+async def run_agent_error_reference():\n+    \"\"\"Exercise the SDK's agent turn-limit exception.\"\"\"\n+    client = openai.AsyncOpenAI(base_url=MOCK_BASE_URL, api_key=\"mock-key\")\n+    model = OpenAIChatCompletionsModel(model=\"gpt-4o-mini\", openai_client=client)\n+    agent = Agent(name=\"turn-limit-agent\", model=model)\n+\n+    print(\"  [agent_error] SDK agent turn limit (reference implementation)\")\n+    with _reference_tracer.start_as_current_span(\n+        f\"invoke_agent {agent.name}\",\n+        attributes={\n+            \"gen_ai.operation.name\": \"invoke_agent\",\n+            \"gen_ai.agent.name\": agent.name,\n+            \"gen_ai.request.model\": model.model,\n+        },\n+        record_exception=False,\n+    ) as span:\n+        try:\n+            await Runner.run(agent, \"Hello\", max_turns=0)\n+        except MaxTurnsExceeded as error:\n+            span.set_status(StatusCode.ERROR, str(error))\n+            span.set_attribute(\"error.type\", f\"{type(error).__module__}.{type(error).__qualname__}\")\n+            reference_event_logger().emit(\n+                event_name=\"gen_ai.invoke_agent.exception\",\n+                severity_number=SeverityNumber.WARN,\n+                exception=error,\n+            )",
+      "id": "PRRT_kwDOSUeMrM6yglfh",
+      "opened": "2026-11-02T01:43:06Z",
+      "path": "reference/scenarios/openai-agents/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-02T03:28:47Z",
+          "body": "The committed reference/scenarios/openai-agents/data.json already includes gen_ai.invoke_agent.exception and error.type coverage for the internal invoke-agent span. The hosted scenario, committed-data freshness, and generated-report checks pass on the current head, 3c594364. No additional generated-data or report change is needed.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/670#discussion_r4438675796"
+        }
+      ],
+      "reviewed": "0a75b820f9db83cb4e2f27a2038a38f6be64208f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/670#discussion_r4438254332"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "When a specialist exception propagates through the root agent during a handoff, this wrapper logs the same exception once for each agent. The linked recording-errors guidance recommends recording a propagated exception only once. Deduplicate logging across nested invocations while preserving error status and `error.type` on both spans, and exercise a failing handoff to verify this behavior.",
+      "created": "2026-11-02T04:07:56Z",
+      "hunk": "@@ -681,6 +713,16 @@ async def traced_agent_run(agent, parent_context):\n                                     json.dumps([{\"role\": \"assistant\", \"parts\": [{\"type\": \"text\", \"content\": text}]}]),\n                                 )\n                     yield event\n+        except Exception as error:\n+            span.set_status(StatusCode.ERROR, str(error))\n+            span.set_attribute(\"error.type\", f\"{type(error).__module__}.{type(error).__qualname__}\")\n+            with _trace.use_span(span, end_on_exit=False, record_exception=False):\n+                reference_event_logger().emit(\n+                    event_name=\"gen_ai.invoke_agent.exception\",\n+                    severity_number=SeverityNumber.WARN,\n+                    exception=error,\n+                )",
+      "id": "PRRT_kwDOSUeMrM6yh9im",
+      "opened": "2026-11-02T04:07:56Z",
+      "path": "reference/scenarios/google-adk/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-02T05:34:18Z",
+          "body": "Each failed agent invocation records one exception event, correlated with its own span. If a specialist exception also fails the root invocation during a handoff, each invocation records its own event. This is intentional; we're not deduplicating across operations.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/670#discussion_r4439220523"
+        }
+      ],
+      "reviewed": "ccaa603d75cd3c0fce5777194235c25b8a7fa14a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/670#discussion_r4438829310"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "If a specialist exception propagates through the tool and root invocation, these handlers log it repeatedly: the specialist at lines 524–528, the tool at lines 474–478, and this root handler. The recording-errors guidance linked by the new event recommends recording a propagated exception only once. Track whether the exception has already been logged and suppress duplicate emissions while retaining error status and `error.type` on each failed span.",
+      "created": "2026-11-02T04:35:19Z",
+      "hunk": "@@ -545,24 +567,34 @@ async def _run():\n                 finish_reason = None\n                 input_tokens = None\n                 output_tokens = None\n-                async for event in runner.run_async(\n-                    user_id=\"test_user\",\n-                    session_id=session.id,\n-                    new_message=types.Content(role=\"user\", parts=[types.Part(text=input_text)]),\n-                ):\n-                    if event.author == root_agent.name:\n-                        usage = event.usage_metadata\n-                        if usage is not None:\n-                            if usage.prompt_token_count is not None:\n-                                input_tokens = (input_tokens or 0) + usage.prompt_token_count\n-                            if usage.candidates_token_count is not None:\n-                                output_tokens = (output_tokens or 0) + usage.candidates_token_count\n-                        if event.finish_reason is not None:\n-                            finish_reason = getattr(event.finish_reason, \"value\", event.finish_reason)\n-                        if event.content and event.content.parts:\n-                            for part in event.content.parts:\n-                                if part.text:\n-                                    last_text = part.text\n+                try:\n+                    async for event in runner.run_async(\n+                        user_id=\"test_user\",\n+                        session_id=session.id,\n+                        new_message=types.Content(role=\"user\", parts=[types.Part(text=input_text)]),\n+                    ):\n+                        if event.author == root_agent.name:\n+                            usage = event.usage_metadata\n+                            if usage is not None:\n+                                if usage.prompt_token_count is not None:\n+                                    input_tokens = (input_tokens or 0) + usage.prompt_token_count\n+                                if usage.candidates_token_count is not None:\n+                                    output_tokens = (output_tokens or 0) + usage.candidates_token_count\n+                            if event.finish_reason is not None:\n+                                finish_reason = getattr(event.finish_reason, \"value\", event.finish_reason)\n+                            if event.content and event.content.parts:\n+                                for part in event.content.parts:\n+                                    if part.text:\n+                                        last_text = part.text\n+                except Exception as error:\n+                    agent_span.set_status(StatusCode.ERROR, str(error))\n+                    agent_span.set_attribute(\"error.type\", f\"{type(error).__module__}.{type(error).__qualname__}\")\n+                    reference_event_logger().emit(\n+                        event_name=\"gen_ai.invoke_agent.exception\",\n+                        severity_number=SeverityNumber.WARN,\n+                        exception=error,\n+                    )",
+      "id": "PRRT_kwDOSUeMrM6yiOQ1",
+      "opened": "2026-11-02T04:35:19Z",
+      "path": "reference/scenarios/google-adk/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-02T05:34:18Z",
+          "body": "Each failed operation records one exception event, correlated with its own span. A propagated exception can fail the specialist invocation, tool execution, and root invocation, so each records its own event. This is intentional; we're not deduplicating across operations.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/670#discussion_r4439220491"
+        }
+      ],
+      "reviewed": "384e0b193a183812750f10d44da92489bceaa3f2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/670#discussion_r4438938111"
+    }
+  ]
+}

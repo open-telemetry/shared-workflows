@@ -1,0 +1,25 @@
+{
+  "head": "c504fccd65c76c3c6422e49014613f599fe6aeaa",
+  "merge": "73daaa952ab57394dc33ce948d832d7e43d2e82e",
+  "merged": "2026-10-07T00:04:17Z",
+  "missing_roots": 0,
+  "number": 20402,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This adds `27` to every matrix that uses `latestJava`, but `configureImage` only maps JDKs through 26 for Windows HotSpot, Linux HotSpot, and OpenJ9 (lines 302-334). Configuration therefore reaches the `Unexpected jdk version` branches while creating the servlet image tasks. Add pinned Java 27 images to all applicable mappings before selecting 27 here, or keep this matrix on 26.",
+      "created": "2026-10-06T03:19:02Z",
+      "hunk": "@@ -27,7 +27,7 @@ gradle.sharedServices.registerIfAbsent(\"dockerBuildService\", DockerBuildService:\n val extraTag = findProperty(\"extraTag\")\n   ?: java.time.format.DateTimeFormatter.ofPattern(\"yyyyMMdd.HHmmSS\").format(java.time.LocalDateTime.now())\n \n-val latestJava = \"26\" // renovate(java-version)\n+val latestJava = \"27\" // renovate(java-version)",
+      "id": "PRRT_kwDODJKVX86pTn-s",
+      "opened": "2026-10-06T03:19:02Z",
+      "path": "smoke-tests/images/servlet/build.gradle.kts",
+      "replies": [],
+      "reviewed": "d85cf135d4bbf4e94429abcc9b32b19b213039cd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20402#discussion_r4191206844"
+    }
+  ]
+}

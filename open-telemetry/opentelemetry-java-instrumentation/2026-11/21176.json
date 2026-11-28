@@ -1,0 +1,31 @@
+{
+  "head": "4b5737c4032b5b33b3cf8513addff7321e0ba7c3",
+  "merge": "f829d5e13282d56c3d060eeb40f808d047fd7665",
+  "merged": "2026-11-03T16:20:52Z",
+  "missing_roots": 0,
+  "number": 21176,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with a final behavior-preserving Gradle refinement. The user explicitly requested iterating this migration until the best practices from PRs #21141, #21143, and #21148 are incorporated. The initial implementation at e931363ad4fed2d390f262cd77d73ab953009d38 is delivered, and Copilot review 5747534497 is clean. This follow-up addresses remaining suite-ownership boilerplate identified by the coordinating session, not a review defect. Keep this PR a standalone draft targeting main and commit/push only to its existing head branch.\n\nIn instrumentation/runtime-telemetry/library/build.gradle.kts, finish making the Java 17 and Java 21 suites own their setup. Their output dependencies are still in a detached dependencies block using hardcoded configuration names, four test-configuration inheritance declarations remain detached, and both executions explicitly depend on compile tasks that the suite outputs may already bring in. Move the testJava17/testJava21 output dependencies into their owning suite dependencies blocks. Simplify the remaining inheritance using the existing suite conventions and explicit dependencies actually needed by these tests, or retain necessary inheritance through the suite's source-set configuration names when that is clearer. Do not duplicate JUnit, AssertJ, Mockito, or testing-common dependencies already supplied by conventions, introduce a helper solely to hide these two suites, or replace clear declarations with heterogeneous name arrays.\n\nKeep the required dependency semantics intact: Java 17 tests use the base test fixtures, Java 17 production output, and main output; Java 21 tests additionally use Java 17 test output and its fixture dependencies. Preserve SDK testing and logunit availability. Prefer keeping the existing output-based dependency model unless a simpler equivalent is verified. Bring test-compilation configuration close to its owning suite where practical and use suite.sources task/configuration names instead of reconstructing testJava17/testJava21 names. Remove explicit execution-to-compile and compile-to-compile dependsOn edges only when the source/output dependencies already infer those edges, verified by real task graphs and compilation. Keep Java 17/21 release levels and any required ordering; do not just delete necessary multi-release or fixture dependencies.\n\nIn instrumentation/jmx-metrics/library/build.gradle.kts, move the common Test inputs, normalizers, registry-directory input, and lazy JVM argument providers from the detached tasks.withType<Test>().configureEach configuration into configureEach inside the existing executions(\"test\") block. These settings belong to that suite's default and generated container executions. Keep configureDefault for the default-only container exclusions and each register suffix's exact class filter. Retain deterministic discovery, the nonempty-discovery requirement, unchanged generated task names, lazy artifact resolution and input tracking, the Testcontainers plugin's scheduling, and sufficient check-to-suite realization wiring. Do not add a second executions block.\n\nPreserve the completed Logback migration unchanged, including its correctly isolated baseline-only flags, owning suites, selector filters, dependency pins, and global experimental flags. Preserve runtime telemetry's existing metadata labels, suffix-derived GC task names and metadata-collection references, default-only GC exclusions, GC flags, configured test JVM gates for every default and variant, base tests, and multi-release production and sources-JAR packaging. Do not add telemetry modes, rename unrelated suites or source folders, change dependency versions, update shared convention APIs or agent instructions, or recreate other PRs. Do not rename a branch while the platform is running this coding task.\n\nRun the narrow relevant spotlessApply tasks directly before focused validation, without preliminary spotlessCheck, clean/cleanTest, --rerun-tasks, cache bypasses, or broad unrelated suites. Verify JMX's default and generated variants retain their shared inputs and class filters, runtime Java 17/21 compilation dependencies remain in the task graph, intended executions stay in check, the below-17/below-21 JVM gates still apply, metadata names resolve, and representative real tests and multi-release packaging still work. Report the actual validation results and limitations. Do not wait for hosted CI, request a review, reply to review comments, resolve threads, or perform PR title/description maintenance; the coordinator handles those.",
+      "created": "2026-11-03T05:19:09Z",
+      "hunk": "@@ -57,7 +47,64 @@ for (version in mrJarVersions) {\n   }\n }\n \n-// Configure testJava17 dependencies after java17 sourceset is created\n+testing.suites {\n+  register<JvmTestSuite>(\"testJava17\") {",
+      "id": "PRRT_kwDODJKVX86y_RRE",
+      "opened": "2026-11-03T05:19:08Z",
+      "path": "instrumentation/runtime-telemetry/library/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-03T05:34:07Z",
+          "body": "Updated in 4b5737c4. Runtime tests and multi-release packaging passed; the JMX default tests and generated JVM container variant also passed. The lower-Java gate and `check` wiring were verified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21176#discussion_r4451244664"
+        }
+      ],
+      "reviewed": "e931363ad4fed2d390f262cd77d73ab953009d38",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21176#discussion_r4451169229"
+    }
+  ]
+}

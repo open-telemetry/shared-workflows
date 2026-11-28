@@ -1,0 +1,67 @@
+{
+  "head": "4c08298bca672fe3f48c18265abccc44dfcd0d33",
+  "merge": "3d596a65113a5c6fdb14ae0ba00f7b0117c83081",
+  "merged": "2026-11-26T21:32:08Z",
+  "missing_roots": 0,
+  "number": 21518,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "This is an unusual check. If there was a context leak that triggers this check I'd assume our context leak detector that runs after each test would catch it anyway.",
+      "created": "2026-11-26T09:58:42Z",
+      "hunk": "@@ -158,18 +157,15 @@ public void onException(Message message, Exception exception) {\n         };\n \n     Context originalContext = Context.current();\n-    SpanContext parentSpanContext =\n-        testing.runWithSpan(\n-            \"parent\",\n-            () -> {\n-              SpanContext spanContext = Span.current().getSpanContext();\n-              producer.send(sentMessage, listener);\n-              assertThat(Span.current().getSpanContext()).isEqualTo(spanContext);\n-              return spanContext;\n-            });\n+    testing.runWithSpan(\n+        \"parent\",\n+        () -> {\n+          SpanContext spanContext = Span.current().getSpanContext();\n+          producer.send(sentMessage, listener);\n+          assertThat(Span.current().getSpanContext()).isEqualTo(spanContext);",
+      "id": "PRRT_kwDODJKVX868UOA5",
+      "opened": "2026-11-26T09:58:42Z",
+      "path": "instrumentation/jms/jms-1.1/javaagent/src/jms2Test/java/io/opentelemetry/javaagent/instrumentation/jms/v1_1/Jms2InstrumentationTest.java",
+      "replies": [],
+      "reviewed": "764edf9dd3fea265008486adb5a8758bfa6c890e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21518#discussion_r4706604899"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly on its existing head, `open-telemetry/opentelemetry-java-instrumentation:copilot/refsheads1`. Do not open another PR or rename or replace a branch. Keep any follow-up branch GitHub assigns.\n\nIn `Jms2InstrumentationTest` under `jms-1.1/javaagent/src/jms2Test` and `Jms3InstrumentationTest` under `jms-3.0/javaagent/src/test`, rename `asyncSendSuccessRestoresCallerContext` to `asyncSendCompletionUsesCallerContext`. Remove the pre/post-send `SpanContext` comparison and the `originalContext` snapshot/check outside `runWithSpan` in both success tests. The sender call should just be `testing.runWithSpan(\"parent\", () -> producer.send(sentMessage, listener));`. Remove imports only if they become unused.\n\nKeep the span started inside `onCompletion` and the trace assertion that it and the send span are siblings under `parent`, along with the latch, message ID, and existing telemetry assertions. The delayed-failure tests already assert caller restoration after normal return from this same `send` overload, before invoking `onException`. Leave those tests, production code, and the repository instruction files unchanged. Follow the repository's existing conventions and run the focused JMS 2 `jms2Test` and JMS 3 `test` cases if feasible.",
+      "created": "2026-11-26T15:14:34Z",
+      "hunk": "@@ -158,18 +157,15 @@ public void onException(Message message, Exception exception) {\n         };\n \n     Context originalContext = Context.current();\n-    SpanContext parentSpanContext =\n-        testing.runWithSpan(\n-            \"parent\",\n-            () -> {\n-              SpanContext spanContext = Span.current().getSpanContext();\n-              producer.send(sentMessage, listener);\n-              assertThat(Span.current().getSpanContext()).isEqualTo(spanContext);\n-              return spanContext;\n-            });\n+    testing.runWithSpan(\n+        \"parent\",\n+        () -> {\n+          SpanContext spanContext = Span.current().getSpanContext();\n+          producer.send(sentMessage, listener);\n+          assertThat(Span.current().getSpanContext()).isEqualTo(spanContext);",
+      "id": "PRRT_kwDODJKVX868cy81",
+      "opened": "2026-11-26T15:14:34Z",
+      "path": "instrumentation/jms/jms-1.1/javaagent/src/jms2Test/java/io/opentelemetry/javaagent/instrumentation/jms/v1_1/Jms2InstrumentationTest.java",
+      "replies": [
+        {
+          "at": "2026-11-26T15:22:24Z",
+          "body": "Updated in 4c08298b. The JMS 2 and JMS 3 async-send tests passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21518#discussion_r4710378341"
+        }
+      ],
+      "reviewed": "764edf9dd3fea265008486adb5a8758bfa6c890e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21518#discussion_r4710286673"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Removing the immediate post-`send` assertion loses sender-thread scope-restoration coverage: the callback can still have the correct parent even if `send` leaves its scope current. Keep that assertion inside `runWithSpan`, alongside the new callback-span checks. Same issue in `instrumentation/jms/jms-1.1/javaagent/src/jms2Test/java/io/opentelemetry/javaagent/instrumentation/jms/v1_1/Jms2InstrumentationTest.java:158`.",
+      "created": "2026-11-26T15:29:29Z",
+      "hunk": "@@ -83,19 +81,8 @@ public void onException(Message message, Exception exception) {\n           }\n         };\n \n-    Context originalContext = Context.current();\n-    SpanContext parentSpanContext =\n-        testing.runWithSpan(\n-            \"parent\",\n-            () -> {\n-              SpanContext spanContext = Span.current().getSpanContext();\n-              producer.send(sentMessage, listener);\n-              assertThat(Span.current().getSpanContext()).isEqualTo(spanContext);\n-              return spanContext;\n-            });\n-    assertThat(Context.current()).isSameAs(originalContext);\n+    testing.runWithSpan(\"parent\", () -> producer.send(sentMessage, listener));",
+      "id": "PRRT_kwDODJKVX868dMWX",
+      "opened": "2026-11-26T15:29:29Z",
+      "path": "instrumentation/jms/jms-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/jms/v3_0/Jms3InstrumentationTest.java",
+      "replies": [
+        {
+          "at": "2026-11-26T15:31:50Z",
+          "body": "The callback span doesn't check the sender thread. Both `asyncSendDelayedFailureIsRecorded` tests still check the caller span immediately after the same instrumented `send(Message, CompletionListener)` overload returns normally, before invoking `onException`. That covers the scope-close path without repeating the assertion in the success tests.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21518#discussion_r4710484524"
+        }
+      ],
+      "reviewed": "4c08298bca672fe3f48c18265abccc44dfcd0d33",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21518#discussion_r4710459049"
+    }
+  ]
+}

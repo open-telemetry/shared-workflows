@@ -1,0 +1,136 @@
+{
+  "head": "b2365359af7f0d1b64e2a1d1799e560ee1a992fa",
+  "merge": "244465e94b9d7167fa5ed5c31a4b2b49ab6ddee5",
+  "merged": "2026-10-31T23:44:12Z",
+  "missing_roots": 0,
+  "number": 617,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Neither `gen_ai.response.time_to_first_chunk` nor `gen_ai.client.inference.time_to_first_chunk` has a reference scenario demonstrating these rules. The attribute's coverage is `(none)` in `reference/reports/inference-span.md:43`; the OpenAI streaming scenario reads `choice.delta.content` but records neither signal. `.github/instructions/evaluate-reference.instructions.md:7-9,22-23` requires reference coverage for changed conventions too. Extend a real SDK streaming scenario to measure both signals from before the SDK call to the first qualifying output. Demonstrate skipping metadata-only events, including a retry and its backoff without resetting the timer, and omitting both signals when no qualifying output arrives. Refresh the captured telemetry and reports with the scenario change.",
+      "created": "2026-10-23T04:02:07Z",
+      "hunk": "@@ -238,6 +238,10 @@ spans:\n       - ref: gen_ai.response.time_to_first_chunk\n         requirement_level:\n           recommended: If the request was a streaming request.\n+        note: |\n+          A chunk is a decoded provider stream event carrying new, non-empty text, refusals, reasoning (including opaque payloads), audio, images, or tool-call names or arguments. Ignore empty start events and events carrying only usage, roles, IDs, signatures, keep-alives, progress/status updates, or end markers. Chunk boundaries follow provider events, not TCP reads, HTTP frames, or extra SDK callbacks.\n+\n+          Measure from the start of the logical inference operation, before the first attempt, until the first chunk is fully received by the client, before application processing. Include authentication, failed attempts, and retry backoff. If no chunk is received, do not set this attribute.",
+      "id": "PRRT_kwDOSUeMrM6vd5S8",
+      "opened": "2026-10-23T04:02:08Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-10-27T11:49:42Z",
+          "body": "Added in 3f1dd901. The OpenAI streaming scenario now records both signals from before the SDK call to the first qualifying delta. It also checks metadata-only events, non-text output, authentication, retry backoff without resetting the timer, and streams with no output through the real SDK with mocked HTTP responses and a controlled clock. The assertions run in the existing scenario entry point. Captured telemetry and the coverage report are refreshed.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/617#discussion_r4388313249"
+        }
+      ],
+      "reviewed": "12a427fa74e999b120c5abbaff73f652c8335b0d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/617#discussion_r4355957263"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "adityareddy-dev"
+      },
+      "body": "The new note starts the clock before the first attempt and includes authentication and the retry backoff, but the brief on this metric still starts when the client issues the generation request. The [time to first chunk attribute](https://github.com/open-telemetry/semantic-conventions-genai/blob/12a427fa74e999b120c5abbaff73f652c8335b0d/model/gen-ai/registry.yaml#L272-L275) brief still says request issuance, and [inference duration](https://github.com/open-telemetry/semantic-conventions-genai/blob/12a427fa74e999b120c5abbaff73f652c8335b0d/model/gen-ai/metrics.yaml#L44-L50) uses that request start and is supposed to match the span. The note and those briefs are describing different starts.\n",
+      "created": "2026-10-23T23:00:34Z",
+      "hunk": "@@ -60,8 +60,12 @@ metrics:\n     instrument: histogram\n     unit: \"s\"\n     brief: 'Time to receive the first chunk, measured from when the client issues the generation request to when the first chunk is received in the response stream.'\n-    note: >\n+    note: |\n       This metric SHOULD be reported for streaming calls and SHOULD NOT be reported otherwise.\n+\n+      A chunk is a decoded provider stream event carrying new, non-empty text, refusals, reasoning (including opaque payloads), audio, images, or tool-call names or arguments. Ignore empty start events and events carrying only usage, roles, IDs, signatures, keep-alives, progress/status updates, or end markers. Chunk boundaries follow provider events, not TCP reads, HTTP frames, or extra SDK callbacks.\n+\n+      Measure from the start of the logical inference operation, before the first attempt, until the first chunk is fully received by the client, before application processing. Include authentication, failed attempts, and retry backoff. If no chunk is received, do not report this metric.",
+      "id": "PRRT_kwDOSUeMrM6vzF_d",
+      "opened": "2026-10-23T23:00:34Z",
+      "path": "model/gen-ai/metrics.yaml",
+      "replies": [
+        {
+          "at": "2026-10-27T11:50:02Z",
+          "body": "Updated both TTFC notes in 3f1dd901 to define request issuance as the start of the logical inference operation, before authentication and the first attempt. This is the operation-level start intended by the existing briefs and the [SIG conclusion](https://github.com/open-telemetry/semantic-conventions-genai/issues/306#issuecomment-6293832701), and is consistent with the logical client span wording merged in #562. The reference scenario verifies that authentication and retry backoff are included. Leaving this thread open for your confirmation of the wording.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/617#discussion_r4388316080"
+        }
+      ],
+      "reviewed": "12a427fa74e999b120c5abbaff73f652c8335b0d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/617#discussion_r4364915771"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "The same text is duplicated here and on the metric, so they can drift. What about putting it once in the `gen_ai.response.time_to_first_chunk` note in `registry.yaml` (and fixing its brief there) and linking to it from the metric note?\n\n```suggestion\n```",
+      "created": "2026-10-27T00:28:05Z",
+      "hunk": "@@ -238,6 +238,10 @@ spans:\n       - ref: gen_ai.response.time_to_first_chunk\n         requirement_level:\n           recommended: If the request was a streaming request.\n+        note: |\n+          A chunk is a decoded provider stream event carrying new, non-empty text, refusals, reasoning (including opaque payloads), audio, images, or tool-call names or arguments. Ignore empty start events and events carrying only usage, roles, IDs, signatures, keep-alives, progress/status updates, or end markers. Chunk boundaries follow provider events, not TCP reads, HTTP frames, or extra SDK callbacks.\n+\n+          Measure from the start of the logical inference operation, before the first attempt, until the first chunk is fully received by the client, before application processing. Include authentication, failed attempts, and retry backoff. If no chunk is received, do not set this attribute.",
+      "id": "PRRT_kwDOSUeMrM6wgal_",
+      "opened": "2026-10-27T16:01:25Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-10-28T01:57:16Z",
+          "body": "Moved the shared definition and measurement rules to the `gen_ai.response.time_to_first_chunk` note in `registry.yaml` in 189c33b1. The span now inherits that note, and the metric links to it. Both TTFC briefs now use the logical inference operation as the start point.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/617#discussion_r4396157968"
+        }
+      ],
+      "reviewed": "12a427fa74e999b120c5abbaff73f652c8335b0d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/617#discussion_r4383939375"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "should we also update `gen_ai.client.inference.time_per_output_chunk` in a similar way?\n\nit might be possible to define it as a yaml var (just the text) and reference from different places to avoid repetition.",
+      "created": "2026-10-27T00:28:05Z",
+      "hunk": "@@ -60,8 +60,12 @@ metrics:\n     instrument: histogram\n     unit: \"s\"\n     brief: 'Time to receive the first chunk, measured from when the client issues the generation request to when the first chunk is received in the response stream.'\n-    note: >\n+    note: |\n       This metric SHOULD be reported for streaming calls and SHOULD NOT be reported otherwise.\n+\n+      A chunk is a decoded provider stream event carrying new, non-empty text, refusals, reasoning (including opaque payloads), audio, images, or tool-call names or arguments. Ignore empty start events and events carrying only usage, roles, IDs, signatures, keep-alives, progress/status updates, or end markers. Chunk boundaries follow provider events, not TCP reads, HTTP frames, or extra SDK callbacks.",
+      "id": "PRRT_kwDOSUeMrM6wgamG",
+      "opened": "2026-10-27T16:01:25Z",
+      "path": "model/gen-ai/metrics.yaml",
+      "replies": [
+        {
+          "at": "2026-10-28T01:57:21Z",
+          "body": "Agreed that the chunk definition should be consistent. I'd like to keep this PR limited to TTFC and address `gen_ai.client.inference.time_per_output_chunk` in a follow-up PR. For TTFC, 189c33b1 puts the common definition in the attribute registry and links to it from the metric, so it is maintained in one place.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/617#discussion_r4396158413"
+        }
+      ],
+      "reviewed": "12a427fa74e999b120c5abbaff73f652c8335b0d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/617#discussion_r4383939389"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Maybe shorter and more normative:\n\n```suggestion\n      A chunk is a decoded provider stream event that carries new generated output - text, reasoning, tool call names or arguments, audio, or images. \n      \n      Instrumentations SHOULD report this metric when (and only if) they detect first chunk and MUST NOT report it\n      for events that carry only metadata (usage, roles, IDs, keep-alives, status updates, end markers) or TCP / HTTP protocol-level events. \n```\n?\n\n(please check my English)\n",
+      "created": "2026-10-27T00:28:05Z",
+      "hunk": "@@ -60,8 +60,12 @@ metrics:\n     instrument: histogram\n     unit: \"s\"\n     brief: 'Time to receive the first chunk, measured from when the client issues the generation request to when the first chunk is received in the response stream.'\n-    note: >\n+    note: |\n       This metric SHOULD be reported for streaming calls and SHOULD NOT be reported otherwise.\n+\n+      A chunk is a decoded provider stream event carrying new, non-empty text, refusals, reasoning (including opaque payloads), audio, images, or tool-call names or arguments. Ignore empty start events and events carrying only usage, roles, IDs, signatures, keep-alives, progress/status updates, or end markers. Chunk boundaries follow provider events, not TCP reads, HTTP frames, or extra SDK callbacks.",
+      "id": "PRRT_kwDOSUeMrM6wgamL",
+      "opened": "2026-10-27T16:01:25Z",
+      "path": "model/gen-ai/metrics.yaml",
+      "replies": [
+        {
+          "at": "2026-10-28T01:57:26Z",
+          "body": "Updated in 189c33b1. The notes now use explicit SHOULD and MUST NOT requirements: record TTFC when the first qualifying chunk arrives, exclude empty or metadata-only events, and omit the signal when no chunk arrives. I kept the non-empty output requirement, refusals, and opaque reasoning payloads to preserve the proposed boundaries. The metric links to the shared definition.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/617#discussion_r4396158772"
+        }
+      ],
+      "reviewed": "12a427fa74e999b120c5abbaff73f652c8335b0d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/617#discussion_r4383939395"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit, rephrasing to be normative and a bit shorter, feel free to massage and correct my English\n\n```suggestion\n      Instrumentations SHOULD measure the time from the start of the logical inference operation, before \n      any network calls have been issued, and until the first chunk is fully received by the client.\n         \n       If instrumented library made multiple requests (including authentication or failed attempt) the\n       time to first chunk SHOULD cover it.\n```\n\n> If no chunk is received, do not report this metric.\n\nI tried to address in another comment with \"Instrumentations SHOULD report this metric when (and only if)\"",
+      "created": "2026-10-27T15:59:00Z",
+      "hunk": "@@ -86,8 +86,12 @@ metrics:\n     instrument: histogram\n     unit: \"s\"\n     brief: 'Time to receive the first chunk, measured from when the client issues the generation request to when the first chunk is received in the response stream.'\n-    note: >\n+    note: |\n       This metric SHOULD be reported for streaming calls and SHOULD NOT be reported otherwise.\n+\n+      A chunk is a decoded provider stream event carrying new, non-empty text, refusals, reasoning (including opaque payloads), audio, images, or tool-call names or arguments. Ignore empty start events and events carrying only usage, roles, IDs, signatures, keep-alives, progress/status updates, or end markers. Chunk boundaries follow provider events, not TCP reads, HTTP frames, or extra SDK callbacks.\n+\n+      Request issuance is the start of the logical inference operation, before authentication and the first attempt. Measure until the first chunk is fully received by the client, before application processing. Include failed attempts and retry backoff. If no chunk is received, do not report this metric.",
+      "id": "PRRT_kwDOSUeMrM6wxLlP",
+      "opened": "2026-10-27T16:01:25Z",
+      "path": "model/gen-ai/metrics.yaml",
+      "replies": [
+        {
+          "at": "2026-10-28T01:57:30Z",
+          "body": "Reworded in 189c33b1 using `from ... to ...`. The shared note starts the clock before authentication and the first attempt, ends when the first chunk is fully received before application processing, and explicitly includes authentication, failed attempts, and retry backoff. Both signals now have an explicit MUST NOT requirement when no chunk is received.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/617#discussion_r4396159143"
+        }
+      ],
+      "reviewed": "1c96414f8b61dc32ae0fa386fd53401a423629e7",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/617#discussion_r4390993389"
+    }
+  ]
+}

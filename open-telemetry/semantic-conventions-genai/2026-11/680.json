@@ -1,0 +1,228 @@
+{
+  "head": "cd115d8817bf7741b1a7fbdc18d8782694877cc2",
+  "merge": "43c136bbee1b0d2d738823bbb8eaef8dbd8fc800",
+  "merged": "2026-11-24T23:35:41Z",
+  "missing_roots": 0,
+  "number": 680,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These same SDK counts can also populate `gen_ai.client.inference.usage.input_tokens` and `gen_ai.client.inference.usage.output_tokens`. Those counters are the primary instruments for total consumption and cost approximation; the per-operation histograms are intended for distributions, so Groq still has no supported total-usage metrics in the reports. Please record positive counts in the counters with `gen_ai.token.modality=unknown` when the SDK provides no breakdown, and regenerate the coverage reports.",
+      "created": "2026-11-03T00:07:51Z",
+      "hunk": "@@ -64,6 +56,21 @@\n _SERVER_ADDRESS, _SERVER_PORT = mock_server_host_port(MOCK_BASE_URL)\n \n \n+def record_token_usage(usage, request_model, response_model):\n+    \"\"\"Record one input and output histogram sample per inference operation.\"\"\"\n+    attributes = {\n+        \"gen_ai.operation.name\": \"chat\",\n+        \"gen_ai.provider.name\": \"groq\",\n+        \"gen_ai.request.model\": request_model,\n+        \"server.address\": _SERVER_ADDRESS,\n+        \"server.port\": _SERVER_PORT,\n+    }\n+    if response_model:\n+        attributes[\"gen_ai.response.model\"] = response_model\n+    _input_tokens.record(usage.prompt_tokens or 0, attributes)\n+    _output_tokens.record(usage.completion_tokens or 0, attributes)",
+      "id": "PRRT_kwDOSUeMrM6y62n0",
+      "opened": "2026-11-03T00:07:52Z",
+      "path": "reference/scenarios/groq/scenario.py",
+      "replies": [],
+      "reviewed": "095c668cb05e0fb5f32a184056350e84ffe5ce98",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/680#discussion_r4449289893"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Please set the metric attributes and record the samples inline at each SDK call. `.github/skills/reference/SKILL.md` requires reference scenarios to keep attribute emission next to the call so readers can trace each value to the library API; this helper separates the emitted attributes from their sources.",
+      "created": "2026-11-03T00:07:52Z",
+      "hunk": "@@ -64,6 +56,21 @@\n _SERVER_ADDRESS, _SERVER_PORT = mock_server_host_port(MOCK_BASE_URL)\n \n \n+def record_token_usage(usage, request_model, response_model):\n+    \"\"\"Record one input and output histogram sample per inference operation.\"\"\"\n+    attributes = {\n+        \"gen_ai.operation.name\": \"chat\",\n+        \"gen_ai.provider.name\": \"groq\",\n+        \"gen_ai.request.model\": request_model,\n+        \"server.address\": _SERVER_ADDRESS,",
+      "id": "PRRT_kwDOSUeMrM6y62o6",
+      "opened": "2026-11-03T00:07:52Z",
+      "path": "reference/scenarios/groq/scenario.py",
+      "replies": [],
+      "reviewed": "095c668cb05e0fb5f32a184056350e84ffe5ce98",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/680#discussion_r4449290007"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "All three call sites skip both histograms when usage is absent or the SDK call or stream fails, so those operations disappear from the sample counts. `model/gen-ai/token-metrics.yaml:127-130` recommends a sample for every operation, using `0` when usage is unavailable. Record both histograms on these paths, set `error.type` for failures, and re-raise the exception; the same issue occurs at lines 194 and 262.",
+      "created": "2026-11-03T00:07:52Z",
+      "hunk": "@@ -101,30 +108,7 @@ def run_chat_reference(client):\n         if resp.usage:\n             span.set_attribute(\"gen_ai.usage.input_tokens\", resp.usage.prompt_tokens)\n             span.set_attribute(\"gen_ai.usage.output_tokens\", resp.usage.completion_tokens)\n-            _token_usage.record(\n-                resp.usage.prompt_tokens,\n-                {\n-                    \"gen_ai.operation.name\": \"chat\",\n-                    \"gen_ai.provider.name\": \"groq\",\n-                    \"gen_ai.request.model\": request_model,\n-                    \"gen_ai.response.model\": resp.model,\n-                    \"gen_ai.token.type\": \"input\",\n-                    \"server.address\": _SERVER_ADDRESS,\n-                    \"server.port\": _SERVER_PORT,\n-                },\n-            )\n-            _token_usage.record(\n-                resp.usage.completion_tokens,\n-                {\n-                    \"gen_ai.operation.name\": \"chat\",\n-                    \"gen_ai.provider.name\": \"groq\",\n-                    \"gen_ai.request.model\": request_model,\n-                    \"gen_ai.response.model\": resp.model,\n-                    \"gen_ai.token.type\": \"output\",\n-                    \"server.address\": _SERVER_ADDRESS,\n-                    \"server.port\": _SERVER_PORT,\n-                },\n-            )\n+            record_token_usage(resp.usage, request_model, resp.model)",
+      "id": "PRRT_kwDOSUeMrM6y62oj",
+      "opened": "2026-11-03T00:07:52Z",
+      "path": "reference/scenarios/groq/scenario.py",
+      "replies": [],
+      "reviewed": "095c668cb05e0fb5f32a184056350e84ffe5ce98",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/680#discussion_r4449289967"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Can we cover the Groq streaming path in the runnable reference scenario instead of `test_scenario.py`? The [pinned mock](https://github.com/open-telemetry/semantic-conventions-conformance/blob/a4321907b3768c468966538a459130ac6b095bdc/tools/gen-ai/mock-server/src/genai_mock_server/openai.py#L593-L608) sends top-level `usage`, and these expectations check names across all three calls. A streaming-only run with a Groq-shaped `x_groq.usage` chunk would let CI catch a regression in that path.",
+      "created": "2026-11-18T03:26:22Z",
+      "hunk": "@@ -24,3 +24,9 @@ scenarios:\n           attributes:\n             gen_ai.operation.name: text_completion\n           type: gen_ai.client.inference\n+    metrics:",
+      "id": "PRRT_kwDOSUeMrM64w8MY",
+      "opened": "2026-11-18T03:28:41Z",
+      "path": "reference/scenarios/groq/conformance.yaml",
+      "replies": [],
+      "reviewed": "4b121a569460d89ac7660c409b54530c264762c2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/680#discussion_r4608828430"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Groq can report an early stop in [`chunk.x_groq.error`](https://github.com/groq/groq-python/blob/v1.7.0/src/groq/types/chat/chat_completion_chunk.py). If the iterator yields that chunk and then ends normally, this code reports the operation as successful. Can we treat that SDK-reported early stop as a failure too?",
+      "created": "2026-11-18T03:26:22Z",
+      "hunk": "@@ -174,45 +166,63 @@ def run_chat_streaming_reference(client):\n             \"gen_ai.input.messages\",\n             [{\"role\": m[\"role\"], \"parts\": [{\"type\": \"text\", \"content\": m[\"content\"]}]} for m in request_messages],\n         )\n+        metric_attributes = {\n+            \"gen_ai.operation.name\": \"chat\",\n+            \"gen_ai.provider.name\": \"groq\",\n+            \"gen_ai.request.model\": request_model,\n+            \"server.address\": _SERVER_ADDRESS,\n+            \"server.port\": _SERVER_PORT,\n+        }\n+        input_tokens = output_tokens = 0\n         start_time = time.perf_counter()\n-        stream = client.chat.completions.create(\n-            model=request_model,\n-            messages=request_messages,\n-            stream=True,\n-        )\n-        text = \"\"\n-        model = None\n-        response_id = None\n-        finish_reasons = []\n-        usage = None\n-        for chunk in stream:\n-            model = model or getattr(chunk, \"model\", None)\n-            response_id = response_id or getattr(chunk, \"id\", None)\n-            usage = chunk.usage or (chunk.x_groq and chunk.x_groq.usage) or usage\n-            if chunk.choices and chunk.choices[0].delta.content:\n-                text += chunk.choices[0].delta.content\n-            if chunk.choices and chunk.choices[0].finish_reason:\n-                finish_reasons.append(chunk.choices[0].finish_reason)\n-        if model:\n-            span.set_attribute(\"gen_ai.response.model\", model)\n-        if response_id:\n-            span.set_attribute(\"gen_ai.response.id\", response_id)\n-        if finish_reasons:\n-            span.set_attribute(\"gen_ai.response.finish_reasons\", finish_reasons)\n-        if usage:\n-            span.set_attribute(\"gen_ai.usage.input_tokens\", usage.prompt_tokens)\n-            span.set_attribute(\"gen_ai.usage.output_tokens\", usage.completion_tokens)\n-        _inference_duration.record(\n-            time.perf_counter() - start_time,\n-            {\n-                \"gen_ai.operation.name\": \"chat\",\n-                \"gen_ai.provider.name\": \"groq\",\n-                \"gen_ai.request.model\": request_model,\n-                \"gen_ai.response.model\": model,\n-                \"server.address\": _SERVER_ADDRESS,\n-                \"server.port\": _SERVER_PORT,\n-            },\n-        )\n+        try:\n+            stream = client.chat.completions.create(\n+                model=request_model,\n+                messages=request_messages,\n+                stream=True,\n+            )\n+            text = \"\"\n+            model = None\n+            response_id = None\n+            finish_reasons = []\n+            usage = None\n+            with stream:\n+                for chunk in stream:\n+                    model = model or getattr(chunk, \"model\", None)\n+                    response_id = response_id or getattr(chunk, \"id\", None)\n+                    usage = chunk.usage or (chunk.x_groq and chunk.x_groq.usage) or usage",
+      "id": "PRRT_kwDOSUeMrM64w8Mf",
+      "opened": "2026-11-18T03:28:41Z",
+      "path": "reference/scenarios/groq/scenario.py",
+      "replies": [],
+      "reviewed": "4b121a569460d89ac7660c409b54530c264762c2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/680#discussion_r4608828439"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "The Groq usage object also exposes `prompt_tokens_details.cached_tokens` and `completion_tokens_details.reasoning_tokens`. Those can feed the cache-read and reasoning counters when present.",
+      "created": "2026-11-18T03:26:22Z",
+      "hunk": "@@ -77,53 +79,43 @@ def run_chat_reference(client):\n         \"chat llama-3.1-8b-instant\", kind=SpanKind.CLIENT, attributes=span_attributes\n     ) as span:\n         messages = [{\"role\": \"user\", \"content\": \"Say hello.\"}]\n+        metric_attributes = {\n+            \"gen_ai.operation.name\": \"chat\",\n+            \"gen_ai.provider.name\": \"groq\",\n+            \"gen_ai.request.model\": request_model,\n+            \"server.address\": _SERVER_ADDRESS,\n+            \"server.port\": _SERVER_PORT,\n+        }\n+        input_tokens = output_tokens = 0\n         start_time = time.perf_counter()\n-        resp = client.chat.completions.create(\n-            model=request_model,\n-            messages=messages,\n-        )\n-        duration = time.perf_counter() - start_time\n-        _inference_duration.record(\n-            duration,\n-            {\n-                \"gen_ai.operation.name\": \"chat\",\n-                \"gen_ai.provider.name\": \"groq\",\n-                \"gen_ai.request.model\": request_model,\n-                \"gen_ai.response.model\": resp.model,\n-                \"server.address\": _SERVER_ADDRESS,\n-                \"server.port\": _SERVER_PORT,\n-            },\n-        )\n-        span.set_attribute(\"gen_ai.response.model\", resp.model)\n-        span.set_attribute(\"gen_ai.response.id\", resp.id)\n-        span.set_attribute(\"gen_ai.response.finish_reasons\", [c.finish_reason for c in resp.choices])\n-        if resp.usage:\n-            span.set_attribute(\"gen_ai.usage.input_tokens\", resp.usage.prompt_tokens)\n-            span.set_attribute(\"gen_ai.usage.output_tokens\", resp.usage.completion_tokens)\n-            _token_usage.record(\n-                resp.usage.prompt_tokens,\n-                {\n-                    \"gen_ai.operation.name\": \"chat\",\n-                    \"gen_ai.provider.name\": \"groq\",\n-                    \"gen_ai.request.model\": request_model,\n-                    \"gen_ai.response.model\": resp.model,\n-                    \"gen_ai.token.type\": \"input\",\n-                    \"server.address\": _SERVER_ADDRESS,\n-                    \"server.port\": _SERVER_PORT,\n-                },\n-            )\n-            _token_usage.record(\n-                resp.usage.completion_tokens,\n-                {\n-                    \"gen_ai.operation.name\": \"chat\",\n-                    \"gen_ai.provider.name\": \"groq\",\n-                    \"gen_ai.request.model\": request_model,\n-                    \"gen_ai.response.model\": resp.model,\n-                    \"gen_ai.token.type\": \"output\",\n-                    \"server.address\": _SERVER_ADDRESS,\n-                    \"server.port\": _SERVER_PORT,\n-                },\n+        try:\n+            resp = client.chat.completions.create(\n+                model=request_model,\n+                messages=messages,\n             )\n+            metric_attributes[\"gen_ai.response.model\"] = resp.model\n+            span.set_attribute(\"gen_ai.response.model\", resp.model)\n+            span.set_attribute(\"gen_ai.response.id\", resp.id)\n+            span.set_attribute(\"gen_ai.response.finish_reasons\", [c.finish_reason for c in resp.choices])\n+            if resp.usage:\n+                span.set_attribute(\"gen_ai.usage.input_tokens\", resp.usage.prompt_tokens)\n+                span.set_attribute(\"gen_ai.usage.output_tokens\", resp.usage.completion_tokens)\n+                input_tokens = resp.usage.prompt_tokens or 0",
+      "id": "PRRT_kwDOSUeMrM64w8Mh",
+      "opened": "2026-11-18T03:28:41Z",
+      "path": "reference/scenarios/groq/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-19T17:50:10Z",
+          "body": "@adityareddy-dev does this one make sense to address? thanks!",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/680#discussion_r4632812787"
+        },
+        {
+          "at": "2026-11-20T09:16:05Z",
+          "body": "Yes, makes sense, added both.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/680#discussion_r4640604371"
+        }
+      ],
+      "reviewed": "4b121a569460d89ac7660c409b54530c264762c2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/680#discussion_r4608828441"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Can we move the Weaver retry change and its tests to a separate PR?",
+      "created": "2026-11-18T03:26:23Z",
+      "hunk": "@@ -84,8 +86,23 @@ def _download_file(url: str, destination: Path) -> None:\n     parsed = urllib.parse.urlparse(url)\n     if parsed.scheme != \"https\" or parsed.hostname != \"github.com\":\n         raise RuntimeError(f\"Refusing to download non-github.com URL: {url}\")\n-    with urllib.request.urlopen(url) as response, destination.open(\"wb\") as out:\n-        shutil.copyfileobj(response, out)\n+    for attempt in range(3):",
+      "id": "PRRT_kwDOSUeMrM64w8Mk",
+      "opened": "2026-11-18T03:28:41Z",
+      "path": "reference/src/semconv_genai/weaver.py",
+      "replies": [],
+      "reviewed": "4b121a569460d89ac7660c409b54530c264762c2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/680#discussion_r4608828445"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "When stream iteration raises after receiving chunks, the span loses the response model, ID, usage, and finish reason even though metrics retain any received counts. Initialize the accumulated response state before creating the stream and finalize span attributes in `finally`, while preserving the original exception. For an unfinished generation, record the `error` finish reason recommended by `docs/gen-ai/client-inference.md:208-221`.",
+      "created": "2026-11-20T17:54:48Z",
+      "hunk": "@@ -174,45 +206,76 @@ def run_chat_streaming_reference(client):\n             \"gen_ai.input.messages\",\n             [{\"role\": m[\"role\"], \"parts\": [{\"type\": \"text\", \"content\": m[\"content\"]}]} for m in request_messages],\n         )\n+        metric_attributes = {\n+            \"gen_ai.operation.name\": \"chat\",\n+            \"gen_ai.provider.name\": \"groq\",\n+            \"gen_ai.request.model\": request_model,\n+            \"server.address\": _SERVER_ADDRESS,\n+            \"server.port\": _SERVER_PORT,\n+        }\n+        input_tokens = output_tokens = cache_read_tokens = reasoning_tokens = 0\n         start_time = time.perf_counter()\n-        stream = client.chat.completions.create(\n-            model=request_model,\n-            messages=request_messages,\n-            stream=True,\n-        )\n-        text = \"\"\n-        model = None\n-        response_id = None\n-        finish_reasons = []\n-        usage = None\n-        for chunk in stream:\n-            model = model or getattr(chunk, \"model\", None)\n-            response_id = response_id or getattr(chunk, \"id\", None)\n-            usage = chunk.usage or (chunk.x_groq and chunk.x_groq.usage) or usage\n-            if chunk.choices and chunk.choices[0].delta.content:\n-                text += chunk.choices[0].delta.content\n-            if chunk.choices and chunk.choices[0].finish_reason:\n-                finish_reasons.append(chunk.choices[0].finish_reason)\n-        if model:\n-            span.set_attribute(\"gen_ai.response.model\", model)\n-        if response_id:\n-            span.set_attribute(\"gen_ai.response.id\", response_id)\n-        if finish_reasons:\n-            span.set_attribute(\"gen_ai.response.finish_reasons\", finish_reasons)\n-        if usage:\n-            span.set_attribute(\"gen_ai.usage.input_tokens\", usage.prompt_tokens)\n-            span.set_attribute(\"gen_ai.usage.output_tokens\", usage.completion_tokens)\n-        _inference_duration.record(\n-            time.perf_counter() - start_time,\n-            {\n-                \"gen_ai.operation.name\": \"chat\",\n-                \"gen_ai.provider.name\": \"groq\",\n-                \"gen_ai.request.model\": request_model,\n-                \"gen_ai.response.model\": model,\n-                \"server.address\": _SERVER_ADDRESS,\n-                \"server.port\": _SERVER_PORT,\n-            },\n-        )\n+        try:\n+            stream = client.chat.completions.create(\n+                model=request_model,\n+                messages=request_messages,\n+                stream=True,\n+            )\n+            text = \"\"\n+            model = None\n+            response_id = None\n+            finish_reasons = []\n+            usage = None\n+            with stream:\n+                for chunk in stream:\n+                    model = model or getattr(chunk, \"model\", None)\n+                    response_id = response_id or getattr(chunk, \"id\", None)\n+                    usage = chunk.usage or (chunk.x_groq and chunk.x_groq.usage) or usage\n+                    if model:\n+                        metric_attributes[\"gen_ai.response.model\"] = model\n+                    if usage:\n+                        input_tokens = usage.prompt_tokens or 0\n+                        output_tokens = usage.completion_tokens or 0\n+                        cache_read_tokens, reasoning_tokens = _usage_details(usage)\n+                    if chunk.choices and chunk.choices[0].delta.content:\n+                        text += chunk.choices[0].delta.content\n+                    if chunk.choices and chunk.choices[0].finish_reason:\n+                        finish_reasons.append(chunk.choices[0].finish_reason)\n+                    if chunk.x_groq and chunk.x_groq.error is not None:\n+                        # The SDK yields the provider error as data and may finish normally.\n+                        error_type = \"groq.stream_error\"\n+                        metric_attributes[\"error.type\"] = error_type\n+                        span.set_attribute(\"error.type\", error_type)\n+                        span.set_status(StatusCode.ERROR)\n+                        if not finish_reasons:\n+                            finish_reasons.append(\"error\")\n+                        break\n+            if model:\n+                span.set_attribute(\"gen_ai.response.model\", model)\n+            if response_id:\n+                span.set_attribute(\"gen_ai.response.id\", response_id)\n+            if finish_reasons:\n+                span.set_attribute(\"gen_ai.response.finish_reasons\", finish_reasons)\n+            if usage:\n+                span.set_attribute(\"gen_ai.usage.input_tokens\", usage.prompt_tokens)\n+                span.set_attribute(\"gen_ai.usage.output_tokens\", usage.completion_tokens)\n+                _set_usage_details(span, cache_read_tokens, reasoning_tokens)\n+        except Exception as exc:\n+            metric_attributes[\"error.type\"] = type(exc).__name__\n+            span.set_attribute(\"error.type\", type(exc).__name__)\n+            span.set_status(StatusCode.ERROR)\n+            raise",
+      "id": "PRRT_kwDOSUeMrM66G3CE",
+      "opened": "2026-11-20T17:54:48Z",
+      "path": "reference/scenarios/groq/scenario.py",
+      "replies": [],
+      "reviewed": "bff3ab96e62af9190e0f52bbc93f250c51320e74",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/680#discussion_r4645865792"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Ok to drop `test_scenario.py`? The reference scenario is the test, and CI already runs it (and CI doesn't run this test).",
+      "created": "2026-11-21T22:10:03Z",
+      "hunk": "",
+      "id": "PRRT_kwDOSUeMrM66c8Av",
+      "opened": "2026-11-21T22:17:55Z",
+      "path": "reference/scenarios/groq/test_scenario.py",
+      "replies": [],
+      "reviewed": "bff3ab96e62af9190e0f52bbc93f250c51320e74",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/680#discussion_r4655241635"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "A details object can be present while `cached_tokens` or `reasoning_tokens` is `null` or missing. In that case `_usage_details` returns `None`, and the `> 0` checks in `_set_usage_details` and `_add_usage_details` raise `TypeError`. In the chat and tool-call paths this turns a successful response into an error. In the streaming path it aborts the `finally` block before the duration and token metrics are recorded. The token counts above already default to 0 with `or 0`, so do the same here. The new fixtures only cover positive counts.\n\n```suggestion\n        getattr(prompt_details, \"cached_tokens\", None) or 0,\n        getattr(completion_details, \"reasoning_tokens\", None) or 0,\n```",
+      "created": "2026-11-23T05:16:22Z",
+      "hunk": "@@ -63,6 +77,31 @@\n _SERVER_ADDRESS, _SERVER_PORT = mock_server_host_port(MOCK_BASE_URL)\n \n \n+def _usage_details(usage):\n+    \"\"\"Return the cached input and reasoning output counts Groq reported, or 0.\"\"\"\n+    prompt_details = usage.prompt_tokens_details if usage else None\n+    completion_details = usage.completion_tokens_details if usage else None\n+    return (\n+        prompt_details.cached_tokens if prompt_details else 0,\n+        completion_details.reasoning_tokens if completion_details else 0,",
+      "id": "PRRT_kwDOSUeMrM66s_MY",
+      "opened": "2026-11-23T05:16:22Z",
+      "path": "reference/scenarios/groq/scenario.py",
+      "replies": [],
+      "reviewed": "9a1fb0a0716123a8e0cfca832300ef343477452f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/680#discussion_r4662064207"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "[Simplification] The loop already keeps the latest `usage`, and the token counts are only read during finalization. Recomputing them on every chunk means two pieces of state have to stay in sync. Remove the initialization on line 216 and the per-chunk updates here. Then derive the counts once inside the existing `if usage:` block in `finally`: set `input_tokens = output_tokens = cache_read_tokens = reasoning_tokens = 0`, and if `usage` is present, assign `usage.prompt_tokens or 0`, `usage.completion_tokens or 0`, and `_usage_details(usage)`. Similarly, set `metric_attributes[\"gen_ai.response.model\"] = model` next to the span's existing `if model:` block in `finally`. Usage reported before an early stop or a stream exception is still recorded.",
+      "created": "2026-11-23T05:16:22Z",
+      "hunk": "@@ -174,45 +206,81 @@ def run_chat_streaming_reference(client):\n             \"gen_ai.input.messages\",\n             [{\"role\": m[\"role\"], \"parts\": [{\"type\": \"text\", \"content\": m[\"content\"]}]} for m in request_messages],\n         )\n-        start_time = time.perf_counter()\n-        stream = client.chat.completions.create(\n-            model=request_model,\n-            messages=request_messages,\n-            stream=True,\n-        )\n+        metric_attributes = {\n+            \"gen_ai.operation.name\": \"chat\",\n+            \"gen_ai.provider.name\": \"groq\",\n+            \"gen_ai.request.model\": request_model,\n+            \"server.address\": _SERVER_ADDRESS,\n+            \"server.port\": _SERVER_PORT,\n+        }\n+        input_tokens = output_tokens = cache_read_tokens = reasoning_tokens = 0\n         text = \"\"\n         model = None\n         response_id = None\n         finish_reasons = []\n         usage = None\n-        for chunk in stream:\n-            model = model or getattr(chunk, \"model\", None)\n-            response_id = response_id or getattr(chunk, \"id\", None)\n-            usage = chunk.usage or (chunk.x_groq and chunk.x_groq.usage) or usage\n-            if chunk.choices and chunk.choices[0].delta.content:\n-                text += chunk.choices[0].delta.content\n-            if chunk.choices and chunk.choices[0].finish_reason:\n-                finish_reasons.append(chunk.choices[0].finish_reason)\n-        if model:\n-            span.set_attribute(\"gen_ai.response.model\", model)\n-        if response_id:\n-            span.set_attribute(\"gen_ai.response.id\", response_id)\n-        if finish_reasons:\n-            span.set_attribute(\"gen_ai.response.finish_reasons\", finish_reasons)\n-        if usage:\n-            span.set_attribute(\"gen_ai.usage.input_tokens\", usage.prompt_tokens)\n-            span.set_attribute(\"gen_ai.usage.output_tokens\", usage.completion_tokens)\n-        _inference_duration.record(\n-            time.perf_counter() - start_time,\n-            {\n-                \"gen_ai.operation.name\": \"chat\",\n-                \"gen_ai.provider.name\": \"groq\",\n-                \"gen_ai.request.model\": request_model,\n-                \"gen_ai.response.model\": model,\n-                \"server.address\": _SERVER_ADDRESS,\n-                \"server.port\": _SERVER_PORT,\n-            },\n-        )\n+        streaming = False\n+        start_time = time.perf_counter()\n+        try:\n+            stream = client.chat.completions.create(\n+                model=request_model,\n+                messages=request_messages,\n+                stream=True,\n+            )\n+            streaming = True\n+            with stream:\n+                for chunk in stream:\n+                    model = model or getattr(chunk, \"model\", None)\n+                    response_id = response_id or getattr(chunk, \"id\", None)\n+                    usage = chunk.usage or (chunk.x_groq and chunk.x_groq.usage) or usage\n+                    if model:\n+                        metric_attributes[\"gen_ai.response.model\"] = model\n+                    if usage:\n+                        input_tokens = usage.prompt_tokens or 0\n+                        output_tokens = usage.completion_tokens or 0\n+                        cache_read_tokens, reasoning_tokens = _usage_details(usage)",
+      "id": "PRRT_kwDOSUeMrM66s_Me",
+      "opened": "2026-11-23T05:16:22Z",
+      "path": "reference/scenarios/groq/scenario.py",
+      "replies": [],
+      "reviewed": "9a1fb0a0716123a8e0cfca832300ef343477452f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/680#discussion_r4662064216"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Please set these span attributes inline in each scenario, next to the SDK usage reads. `.github/skills/reference/SKILL.md:80–86` explicitly disallows hiding attribute emission in helpers so readers can trace each emitted value to the library response without jumping between functions. `_set_usage_details` introduces that prohibited pattern in all three operations.",
+      "created": "2026-11-24T18:45:46Z",
+      "hunk": "@@ -63,6 +77,31 @@\n _SERVER_ADDRESS, _SERVER_PORT = mock_server_host_port(MOCK_BASE_URL)\n \n \n+def _usage_details(usage):\n+    \"\"\"Return the cached input and reasoning output counts Groq reported, or 0.\"\"\"\n+    prompt_details = usage.prompt_tokens_details if usage else None\n+    completion_details = usage.completion_tokens_details if usage else None\n+    return (\n+        getattr(prompt_details, \"cached_tokens\", None) or 0,\n+        getattr(completion_details, \"reasoning_tokens\", None) or 0,\n+    )\n+\n+\n+def _set_usage_details(span, cache_read_tokens, reasoning_tokens):\n+    if cache_read_tokens > 0:\n+        span.set_attribute(\"gen_ai.usage.cache_read.input_tokens\", cache_read_tokens)\n+    if reasoning_tokens > 0:\n+        span.set_attribute(\"gen_ai.usage.reasoning.output_tokens\", reasoning_tokens)",
+      "id": "PRRT_kwDOSUeMrM67iFhD",
+      "opened": "2026-11-24T18:45:46Z",
+      "path": "reference/scenarios/groq/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-24T23:10:50Z",
+          "body": "Inlined the cached input and reasoning output span attributes next to the SDK usage reads in all three chat paths. Streaming still records usage already received if the stream fails.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/680#discussion_r4687805201"
+        }
+      ],
+      "reviewed": "704f163217bfa7138d4d555089e0ad7568bb0ae0",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/680#discussion_r4684872055"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "When chat returns `resp.service_tier`, this adds it only to `duration_attributes`, so the new token histograms and counters aggregate across tiers despite having the value available. `model/gen-ai/metrics.yaml:11–15` recommends that dimension for these instruments. Add it to the shared `metric_attributes` before recording metrics, then regenerate the scenario data and reports.",
+      "created": "2026-11-24T23:15:52Z",
+      "hunk": "@@ -77,55 +99,58 @@ def run_chat_reference(client):\n         \"chat llama-3.1-8b-instant\", kind=SpanKind.CLIENT, attributes=span_attributes\n     ) as span:\n         messages = [{\"role\": \"user\", \"content\": \"Say hello.\"}]\n-        start_time = time.perf_counter()\n-        resp = client.chat.completions.create(\n-            model=request_model,\n-            messages=messages,\n-            service_tier=request_service_tier,\n-        )\n-        duration = time.perf_counter() - start_time\n-        duration_attributes = {\n+        metric_attributes = {\n             \"gen_ai.operation.name\": \"chat\",\n             \"gen_ai.provider.name\": \"groq\",\n             \"gen_ai.request.model\": request_model,\n-            \"gen_ai.response.model\": resp.model,\n             \"server.address\": _SERVER_ADDRESS,\n             \"server.port\": _SERVER_PORT,\n         }\n-        if resp.service_tier is not None:\n-            span.set_attribute(\"gen_ai.response.service_tier\", resp.service_tier)\n-            duration_attributes[\"gen_ai.response.service_tier\"] = resp.service_tier\n-        _inference_duration.record(duration, duration_attributes)\n-        span.set_attribute(\"gen_ai.response.model\", resp.model)\n-        span.set_attribute(\"gen_ai.response.id\", resp.id)\n-        span.set_attribute(\"gen_ai.response.finish_reasons\", [c.finish_reason for c in resp.choices])\n-        if resp.usage:\n-            span.set_attribute(\"gen_ai.usage.input_tokens\", resp.usage.prompt_tokens)\n-            span.set_attribute(\"gen_ai.usage.output_tokens\", resp.usage.completion_tokens)\n-            _token_usage.record(\n-                resp.usage.prompt_tokens,\n-                {\n-                    \"gen_ai.operation.name\": \"chat\",\n-                    \"gen_ai.provider.name\": \"groq\",\n-                    \"gen_ai.request.model\": request_model,\n-                    \"gen_ai.response.model\": resp.model,\n-                    \"gen_ai.token.type\": \"input\",\n-                    \"server.address\": _SERVER_ADDRESS,\n-                    \"server.port\": _SERVER_PORT,\n-                },\n-            )\n-            _token_usage.record(\n-                resp.usage.completion_tokens,\n-                {\n-                    \"gen_ai.operation.name\": \"chat\",\n-                    \"gen_ai.provider.name\": \"groq\",\n-                    \"gen_ai.request.model\": request_model,\n-                    \"gen_ai.response.model\": resp.model,\n-                    \"gen_ai.token.type\": \"output\",\n-                    \"server.address\": _SERVER_ADDRESS,\n-                    \"server.port\": _SERVER_PORT,\n-                },\n+        input_tokens = output_tokens = cache_read_tokens = reasoning_tokens = 0\n+        response_service_tier = None\n+        start_time = time.perf_counter()\n+        try:\n+            resp = client.chat.completions.create(\n+                model=request_model,\n+                messages=messages,\n+                service_tier=request_service_tier,\n             )\n+            metric_attributes[\"gen_ai.response.model\"] = resp.model\n+            span.set_attribute(\"gen_ai.response.model\", resp.model)\n+            span.set_attribute(\"gen_ai.response.id\", resp.id)\n+            span.set_attribute(\"gen_ai.response.finish_reasons\", [c.finish_reason for c in resp.choices])\n+            response_service_tier = resp.service_tier\n+            if response_service_tier is not None:\n+                span.set_attribute(\"gen_ai.response.service_tier\", response_service_tier)\n+            if resp.usage:\n+                span.set_attribute(\"gen_ai.usage.input_tokens\", resp.usage.prompt_tokens)\n+                span.set_attribute(\"gen_ai.usage.output_tokens\", resp.usage.completion_tokens)\n+                input_tokens = resp.usage.prompt_tokens or 0\n+                output_tokens = resp.usage.completion_tokens or 0\n+                cache_read_tokens = getattr(resp.usage.prompt_tokens_details, \"cached_tokens\", None) or 0\n+                reasoning_tokens = getattr(resp.usage.completion_tokens_details, \"reasoning_tokens\", None) or 0\n+                if cache_read_tokens > 0:\n+                    span.set_attribute(\"gen_ai.usage.cache_read.input_tokens\", cache_read_tokens)\n+                if reasoning_tokens > 0:\n+                    span.set_attribute(\"gen_ai.usage.reasoning.output_tokens\", reasoning_tokens)\n+        except Exception as exc:\n+            metric_attributes[\"error.type\"] = type(exc).__name__\n+            span.set_attribute(\"error.type\", type(exc).__name__)\n+            span.set_status(StatusCode.ERROR)\n+            raise\n+        finally:\n+            duration_attributes = metric_attributes.copy()\n+            if response_service_tier is not None:\n+                duration_attributes[\"gen_ai.response.service_tier\"] = response_service_tier\n+            _inference_duration.record(time.perf_counter() - start_time, duration_attributes)",
+      "id": "PRRT_kwDOSUeMrM67o5Lj",
+      "opened": "2026-11-24T23:15:53Z",
+      "path": "reference/scenarios/groq/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-24T23:19:42Z",
+          "body": "Added the returned service tier to the shared chat metric attributes so both duration and token metrics record it when Groq provides it. Updated the Groq coverage snapshot and the four affected token metric reports.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/680#discussion_r4687883109"
+        }
+      ],
+      "reviewed": "bb7a585f64cfe57d80203b35d0be45777665fe86",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/680#discussion_r4687848860"
+    }
+  ]
+}

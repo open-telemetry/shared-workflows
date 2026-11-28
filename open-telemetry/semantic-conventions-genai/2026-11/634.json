@@ -1,0 +1,287 @@
+{
+  "head": "275a922a8f49cb4a42fa95c5d46714af977472cf",
+  "merge": "3722a970c543c2ec98744b096407b509aba08a93",
+  "merged": "2026-11-05T17:39:49Z",
+  "missing_roots": 0,
+  "number": 634,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This requirement also covers retrieval documents, memory records, and tool-call arguments/results, which the OpenAI migration does not exercise. Their references still emit JSON strings in `reference/scenarios/haystack/scenario.py:43-55`, `reference/scenarios/aws-bedrock-agentcore/scenario.py:118-129`, and `reference/scenarios/google-genai/scenario.py:118-125`, so they no longer satisfy the required representation. Migrate the affected scenarios to structured API-derived values and refresh their results alongside this requirement, following `.github/instructions/evaluate-reference.instructions.md`.",
+      "created": "2026-10-28T19:44:55Z",
+      "hunk": "@@ -46,9 +46,7 @@\n {%- set schema_path = annotations['type']['json_schema'] | trim | trim('/') -%}\n {%- endif -%}\n {%- if schema_path -%}\n-Instrumentations MUST follow [JSON schema](/{{ schema_path }}).\n-\n-When the attribute is recorded on events, it MUST be recorded in structured form. When recorded on spans, it MAY be recorded as a JSON string if structured format is not supported and SHOULD be recorded in structured form otherwise.\n+This attribute MUST be recorded as an [AnyValue](https://opentelemetry.io/docs/specs/otel/common/#anyvalue) conforming to its [JSON schema](/{{ schema_path }}).",
+      "id": "PRRT_kwDOSUeMrM6xSwTK",
+      "opened": "2026-10-28T19:44:55Z",
+      "path": "templates/registry/markdown/attribute_macros.j2",
+      "replies": [
+        {
+          "at": "2026-10-28T20:47:11Z",
+          "body": "All affected reference scenarios now emit structured SDK-derived values, including retrieval documents, memory records, and tool-call arguments/results. SDK-supplied JSON arguments are decoded; plain-text tool results use `{\"output\": result}`, and absent results are omitted. All scenario runs pass, and the regenerated result files are unchanged.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/634#discussion_r4405909353"
+        }
+      ],
+      "reviewed": "c285ce4b76ab6bda533ee5fbcb0fbc97fbc8827f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/634#discussion_r4405312493"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`tool_defs` is a scenario-authored list that AutoGen never receives; `AssistantAgent` receives `tools=[get_weather]`, whose callable has no \"City name\" parameter description. This does not establish library-backed coverage for the structured attribute under `.github/instructions/evaluate-reference.instructions.md:18-30`. Remove the emission and unused list, or populate the attribute from AutoGen's actual tool schema.",
+      "created": "2026-10-28T20:54:46Z",
+      "hunk": "@@ -136,14 +135,12 @@ async def _run():\n                 agent_span.set_attribute(\"gen_ai.request.stop_sequences\", request_stop_sequences)\n                 agent_span.set_attribute(\"gen_ai.request.frequency_penalty\", request_frequency_penalty)\n                 agent_span.set_attribute(\"gen_ai.request.presence_penalty\", request_presence_penalty)\n-                agent_span.set_attribute(\n-                    \"gen_ai.system_instructions\", json.dumps([{\"type\": \"text\", \"content\": system_message}])\n-                )\n+                agent_span.set_attribute(\"gen_ai.system_instructions\", [{\"type\": \"text\", \"content\": system_message}])\n                 agent_span.set_attribute(\n                     \"gen_ai.input.messages\",\n-                    json.dumps([{\"role\": \"user\", \"parts\": [{\"type\": \"text\", \"content\": input_text}]}]),\n+                    [{\"role\": \"user\", \"parts\": [{\"type\": \"text\", \"content\": input_text}]}],\n                 )\n-                agent_span.set_attribute(\"gen_ai.tool.definitions\", json.dumps(tool_defs))\n+                agent_span.set_attribute(\"gen_ai.tool.definitions\", tool_defs)",
+      "id": "PRRT_kwDOSUeMrM6xUT_l",
+      "opened": "2026-10-28T20:54:48Z",
+      "path": "reference/scenarios/autogen/scenario.py",
+      "replies": [
+        {
+          "at": "2026-10-28T21:18:14Z",
+          "body": "This definition predates the PR; this change only removes its JSON serialization. SDK-derived definitions are separate cleanup.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/634#discussion_r4406187378"
+        }
+      ],
+      "reviewed": "77f2a8ed9ad04162de1396173ad3fcb0469411a6",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/634#discussion_r4405981806"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`tool_defs` is a scenario-authored list that ADK never receives; the agent receives `tools=[get_weather]`, whose callable has no \"City name\" parameter description. This does not establish library-backed coverage for the structured attribute under `.github/instructions/evaluate-reference.instructions.md:18-30`. Remove the emission and unused list, or derive the attribute from ADK's generated function declaration.",
+      "created": "2026-10-28T20:54:47Z",
+      "hunk": "@@ -235,13 +234,13 @@ async def _run():\n                     agent_span.set_attribute(\"gen_ai.conversation.id\", session.id)\n                     agent_span.set_attribute(\n                         \"gen_ai.system_instructions\",\n-                        json.dumps([{\"type\": \"text\", \"content\": agent.instruction}]),\n+                        [{\"type\": \"text\", \"content\": agent.instruction}],\n                     )\n                     agent_span.set_attribute(\n                         \"gen_ai.input.messages\",\n-                        json.dumps([{\"role\": \"user\", \"parts\": [{\"type\": \"text\", \"content\": input_text}]}]),\n+                        [{\"role\": \"user\", \"parts\": [{\"type\": \"text\", \"content\": input_text}]}],\n                     )\n-                    agent_span.set_attribute(\"gen_ai.tool.definitions\", json.dumps(tool_defs))\n+                    agent_span.set_attribute(\"gen_ai.tool.definitions\", tool_defs)",
+      "id": "PRRT_kwDOSUeMrM6xUUAL",
+      "opened": "2026-10-28T20:54:48Z",
+      "path": "reference/scenarios/google-adk/scenario.py",
+      "replies": [
+        {
+          "at": "2026-10-28T21:18:14Z",
+          "body": "This definition predates the PR; this change only removes its JSON serialization. SDK-derived definitions are separate cleanup.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/634#discussion_r4406187352"
+        }
+      ],
+      "reviewed": "77f2a8ed9ad04162de1396173ad3fcb0469411a6",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/634#discussion_r4405981868"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This structured definition is an independently written literal, while Google GenAI receives the `get_weather` callable rather than this declaration. It does not demonstrate the SDK-generated schema required by `.github/instructions/evaluate-reference.instructions.md:18-30`. Drop this emission until it reads the SDK's generated declaration or records an explicit declaration also passed to the SDK.",
+      "created": "2026-10-28T20:54:47Z",
+      "hunk": "@@ -435,20 +431,18 @@ def get_weather(location: str) -> str:\n     ):\n         span.set_attribute(\n             \"gen_ai.tool.definitions\",\n-            json.dumps(\n-                [\n-                    {\n-                        \"type\": \"function\",\n-                        \"name\": \"get_weather\",\n-                        \"description\": \"Get the current weather\",\n-                        \"parameters\": {\n-                            \"type\": \"object\",\n-                            \"properties\": {\"location\": {\"type\": \"string\", \"description\": \"City name\"}},\n-                            \"required\": [\"location\"],\n-                        },\n-                    }\n-                ]\n-            ),\n+            [\n+                {\n+                    \"type\": \"function\",\n+                    \"name\": \"get_weather\",\n+                    \"description\": \"Get the current weather\",\n+                    \"parameters\": {\n+                        \"type\": \"object\",\n+                        \"properties\": {\"location\": {\"type\": \"string\", \"description\": \"City name\"}},\n+                        \"required\": [\"location\"],",
+      "id": "PRRT_kwDOSUeMrM6xUUAl",
+      "opened": "2026-10-28T20:54:48Z",
+      "path": "reference/scenarios/google-genai/scenario.py",
+      "replies": [
+        {
+          "at": "2026-10-28T21:18:14Z",
+          "body": "This definition predates the PR; this change only removes its JSON serialization. SDK-derived definitions are separate cleanup.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/634#discussion_r4406187388"
+        }
+      ],
+      "reviewed": "77f2a8ed9ad04162de1396173ad3fcb0469411a6",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/634#discussion_r4405981907"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Malformed model-generated arguments now raise `JSONDecodeError` before `original_on_invoke_tool` runs, bypassing the SDK callback's argument-error handling. Catch decoding failures, leave the structured arguments attribute unset, and still invoke the original callback so telemetry does not change tool execution.",
+      "created": "2026-10-28T20:54:47Z",
+      "hunk": "@@ -179,9 +173,9 @@ async def _traced_on_invoke_tool(tool_context, input_json):\n             f\"execute_tool {weather_tool.name}\", attributes=tool_span_attributes\n         ) as tool_span:\n             tool_span.set_attribute(\"gen_ai.tool.call.id\", tool_context.tool_call_id)\n-            tool_span.set_attribute(\"gen_ai.tool.call.arguments\", input_json)\n+            tool_span.set_attribute(\"gen_ai.tool.call.arguments\", json.loads(input_json or \"{}\"))",
+      "id": "PRRT_kwDOSUeMrM6xUUBE",
+      "opened": "2026-10-28T20:54:48Z",
+      "path": "reference/scenarios/openai-agents/scenario.py",
+      "replies": [
+        {
+          "at": "2026-10-28T21:18:14Z",
+          "body": "This scenario uses known-valid mock arguments. Leaving malformed-input recovery out of scope, consistent with the other reference scenarios.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/634#discussion_r4406187361"
+        }
+      ],
+      "reviewed": "77f2a8ed9ad04162de1396173ad3fcb0469411a6",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/634#discussion_r4405981966"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This attribute copies the tool definition with literals instead of reading the `CallableFunctionDeclaration.from_func(get_weather)` declaration supplied to `send_message`. The copy does not establish library-backed coverage for the structured attribute under `.github/instructions/evaluate-reference.instructions.md:18-30`. Drop this emission until it reads the declaration held by `tool`.",
+      "created": "2026-10-28T20:54:48Z",
+      "hunk": "@@ -291,20 +290,18 @@ def get_weather(location: str) -> str:\n     ):\n         span.set_attribute(\n             \"gen_ai.tool.definitions\",\n-            json.dumps(\n-                [\n-                    {\n-                        \"type\": \"function\",\n-                        \"name\": \"get_weather\",\n-                        \"description\": \"Get the current weather\",\n-                        \"parameters\": {\n-                            \"type\": \"object\",\n-                            \"properties\": {\"location\": {\"type\": \"string\", \"description\": \"City name\"}},\n-                            \"required\": [\"location\"],\n-                        },\n-                    }\n-                ]\n-            ),\n+            [\n+                {\n+                    \"type\": \"function\",\n+                    \"name\": \"get_weather\",\n+                    \"description\": \"Get the current weather\",\n+                    \"parameters\": {\n+                        \"type\": \"object\",\n+                        \"properties\": {\"location\": {\"type\": \"string\", \"description\": \"City name\"}},\n+                        \"required\": [\"location\"],",
+      "id": "PRRT_kwDOSUeMrM6xUUBi",
+      "opened": "2026-10-28T20:54:48Z",
+      "path": "reference/scenarios/vertexai/scenario.py",
+      "replies": [
+        {
+          "at": "2026-10-28T21:18:14Z",
+          "body": "This definition predates the PR; this change only removes its JSON serialization. SDK-derived definitions are separate cleanup.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/634#discussion_r4406187356"
+        }
+      ],
+      "reviewed": "77f2a8ed9ad04162de1396173ad3fcb0469411a6",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/634#discussion_r4405982016"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Since the schemas can only describe the JSON form, it'd help to say how producers map them to language types, binary content in particular:\n\n```suggestion\nThese attributes MUST be recorded as\n[AnyValue](https://opentelemetry.io/docs/specs/otel/common/#anyvalue) values\nconforming to their JSON schemas.\n\nThe JSON schemas describe these attributes when serialized to JSON. Producers\nSHOULD use them as a reference for modeling values with language-specific\ntypes. For example, a property with `\"format\": \"binary\"` SHOULD be recorded as\na byte array, not a string; it may be encoded during export per the\n[AnyValue](https://opentelemetry.io/docs/specs/otel/common/#anyvalue) mapping.\n```\n\nThe schema still says to base64-encode blob content when serialized, worth dropping in `models.py` and regenerating:\n\nhttps://github.com/open-telemetry/semantic-conventions-genai/blob/3fe84604a581b3d50dd5b4bd29383b462d2a5018/model/gen-ai/gen-ai-input-messages.json#L37-L42\n\nOptionally, schema tests can accept bytes for `format: binary` too - here's the change with a [test case](https://github.com/lmolkova/semantic-conventions-genai/commit/d4c659a1c2e5eebc317fec0b07c34136964b3327). Happy to send it as a follow-up instead.\n",
+      "created": "2026-10-28T22:50:42Z",
+      "hunk": "@@ -798,15 +784,9 @@ formally defined in [inputs JSON schema](/model/gen-ai/gen-ai-input-messages.jso\n [outputs JSON schema](/model/gen-ai/gen-ai-output-messages.json). See also their representation\n in [Python code](./non-normative/models.py).\n \n-> [!NOTE]\n->\n-> Recording structured attributes is supported on events (or logs) and may not\n-> yet be supported on spans. See [OTEP: Extending attributes to support complex values](https://github.com/open-telemetry/opentelemetry-specification/blob/main/oteps/4485-extending-attributes-to-support-complex-values.md)\n-> for the details.\n-\n-If structured attributes are not yet supported on spans in a given language, the\n-corresponding attribute value SHOULD be serialized to JSON string on spans and\n-recorded in its structured form on events.\n+These attributes MUST be recorded as\n+[AnyValue](https://opentelemetry.io/docs/specs/otel/common/#anyvalue) values\n+conforming to their JSON schemas.",
+      "id": "PRRT_kwDOSUeMrM6xWewk",
+      "opened": "2026-10-28T22:58:54Z",
+      "path": "docs/gen-ai/gen-ai-spans.md",
+      "replies": [
+        {
+          "at": "2026-10-30T18:17:15Z",
+          "body": "> Since the schemas can only describe the JSON form, it'd help to say how producers map them to language types\r\n\r\nhttps://github.com/open-telemetry/semantic-conventions-genai/pull/634/commits/5a0b0a2b7d2b70ea538832d6fad0a417b0978081\r\n\r\n> Optionally, schema tests can accept bytes for format: binary too - here's the change with a [test case](https://github.com/lmolkova/semantic-conventions-genai/commit/d4c659a1c2e5eebc317fec0b07c34136964b3327).\r\n\r\nhttps://github.com/open-telemetry/semantic-conventions-genai/pull/634/commits/d11b321f99a232aaea88cb901dd98bcf4d93d5f2",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/634#discussion_r4427030892"
+        }
+      ],
+      "reviewed": "a09408c62058e3524aa5c4bc37e4b9b40aa031f4",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/634#discussion_r4406919304"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "With structured values, blob content can be the raw bytes (`pdf_b64` and the `base64` import become unused):\n\n```suggestion\n            \"content\": pdf_bytes,\n```\n",
+      "created": "2026-10-28T22:50:43Z",
+      "hunk": "@@ -290,7 +281,7 @@ def run_converse_with_document_input_reference(client):\n             \"content\": pdf_b64,",
+      "id": "PRRT_kwDOSUeMrM6xWewv",
+      "opened": "2026-10-28T22:58:54Z",
+      "path": "reference/scenarios/aws-bedrock/scenario.py",
+      "replies": [
+        {
+          "at": "2026-10-30T18:22:07Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-genai/pull/634/commits/5f6a7df71b0e59d47345fc7b6e7b30bbec61c8ee",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/634#discussion_r4427086482"
+        }
+      ],
+      "reviewed": "a09408c62058e3524aa5c4bc37e4b9b40aa031f4",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/634#discussion_r4406919322"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "Now that content attributes use AnyValue / complex attributes, should gen_ai.prompt.variable.<key> be relaxed from template[string] to template[any], or should prompt variables be represented as a single gen_ai.prompt.variables complex map attribute so non-string parameters (lists, numbers, dicts) don't have to be manually JSON-encoded into strings?\n\n",
+      "created": "2026-10-29T18:55:49Z",
+      "hunk": "@@ -0,0 +1 @@\n+Require structured values for JSON-schema-defined attributes on spans and events, removing the JSON-string fallback for spans.",
+      "id": "PRRT_kwDOSUeMrM6xtRKJ",
+      "opened": "2026-10-29T18:55:49Z",
+      "path": "changelog.d/+structured-attributes.breaking.md",
+      "replies": [
+        {
+          "at": "2026-10-30T20:21:41Z",
+          "body": "worth opening an issue?",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/634#discussion_r4428124471"
+        },
+        {
+          "at": "2026-11-02T21:26:57Z",
+          "body": "yeah. opened https://github.com/open-telemetry/semantic-conventions-genai/issues/677",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/634#discussion_r4447941194"
+        }
+      ],
+      "reviewed": "a09408c62058e3524aa5c4bc37e4b9b40aa031f4",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/634#discussion_r4416612386"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "For `gen_ai.tool.call.arguments` and `gen_ai.tool.call.result`, the note right above this still says instrumentations `SHOULD` do a best effort to deserialize a string to an object while their schemas require `\"type\": \"object\"`. Should we relax those schemas or clarify what to record under this `MUST` when tool results are plain strings or malformed tool arguments fail to parse?",
+      "created": "2026-10-29T02:29:35Z",
+      "hunk": "@@ -46,9 +46,7 @@\n {%- set schema_path = annotations['type']['json_schema'] | trim | trim('/') -%}\n {%- endif -%}\n {%- if schema_path -%}\n-Instrumentations MUST follow [JSON schema](/{{ schema_path }}).\n-\n-When the attribute is recorded on events, it MUST be recorded in structured form. When recorded on spans, it MAY be recorded as a JSON string if structured format is not supported and SHOULD be recorded in structured form otherwise.\n+This attribute MUST be recorded as an [AnyValue](https://opentelemetry.io/docs/specs/otel/common/#anyvalue) conforming to its [JSON schema](/{{ schema_path }}).",
+      "id": "PRRT_kwDOSUeMrM6xZP5p",
+      "opened": "2026-11-02T19:55:44Z",
+      "path": "templates/registry/markdown/attribute_macros.j2",
+      "replies": [
+        {
+          "at": "2026-11-03T05:00:14Z",
+          "body": "Can you open an issue for this if my understanding is correct that this is a pre-existing issue? (plain strings are valid AnyValues, though may not conform to a given json schema)",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/634#discussion_r4451077168"
+        },
+        {
+          "at": "2026-11-04T20:07:43Z",
+          "body": "My assumption was that wording was added assuming its a JSON string in many cases. So maybe we can just remove the SHOULD statement there altogether.\r\n\r\nI'll have AI figure out why it was added",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/634#discussion_r4472714337"
+        },
+        {
+          "at": "2026-11-04T20:13:34Z",
+          "body": "Resolving, this was intended for instrumentation NOT for consumers. Can file a separate issue on the confusing wording",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/634#discussion_r4472777417"
+        },
+        {
+          "at": "2026-11-04T21:19:49Z",
+          "body": "Looked into git history (open-telemetry/semantic-conventions#2702 and #330) and that `SHOULD` was added because SDKs like OpenAI expose `function.arguments` (and sometimes tool outputs) to instrumentation as a serialized JSON string rather than a parsed dict. Agreed this predates this PR (and #676 covers non-object `gen_ai.tool.call.result`), so I can open a follow-up issue to clean up that note and clarify malformed JSON handling.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/634#discussion_r4473469289"
+        }
+      ],
+      "reviewed": "a09408c62058e3524aa5c4bc37e4b9b40aa031f4",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/634#discussion_r4408116955"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "Similar to `aws-bedrock`, should `run_chat_multimodal` and `run_generate_media` here (and `run_chat_multimodal` in `vertexai/scenario.py`) pass raw `bytes` in `BlobPart` `content` instead of base64 strings now that these messages are structured?",
+      "created": "2026-10-29T02:29:36Z",
+      "hunk": "@@ -248,8 +247,8 @@ def _emit_inference_event(request_model, input_messages, output_messages, respon\n         \"gen_ai.operation.name\": \"chat\",\n         \"gen_ai.provider.name\": \"gcp.gemini\",\n         \"gen_ai.request.model\": request_model,\n-        \"gen_ai.input.messages\": json.dumps(input_messages),\n-        \"gen_ai.output.messages\": json.dumps(output_messages),\n+        \"gen_ai.input.messages\": input_messages,",
+      "id": "PRRT_kwDOSUeMrM6xZP6i",
+      "opened": "2026-11-02T19:55:44Z",
+      "path": "reference/scenarios/google-genai/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-03T04:44:10Z",
+          "body": "52c66df63eb49454b6f334785a9123d91f469f46",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/634#discussion_r4450999784"
+        }
+      ],
+      "reviewed": "a09408c62058e3524aa5c4bc37e4b9b40aa031f4",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/634#discussion_r4408117030"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "The original intent of this was also to cover how to encode the JSON when the attribute's value is written into object storage and replaced with the `_ref` attributes specified in https://github.com/open-telemetry/semantic-conventions/pull/4102\n\nSee [this test](https://github.com/open-telemetry/opentelemetry-python-genai/blob/3747f16c86668e6dba990ceea30fced9298b8851/util/opentelemetry-util-genai/tests/test_upload.py#L478-L503) for an example.\n\nAlternative, maybe we can just refer to  https://opentelemetry.io/docs/specs/otlp/#json-protobuf-encoding (which references standard protobuf JSON rules)",
+      "created": "2026-11-02T19:55:11Z",
+      "hunk": "@@ -204,9 +204,7 @@ class BlobPart(BaseModel):\n     modality: Union[Modality, str] = Field(\n         description=\"The general modality of the data if it is known. Instrumentations SHOULD also set the mimeType field if the specific type is known.\"\n     )\n-    content: bytes = Field(\n-        description=\"Raw bytes of the attached data. This field SHOULD be encoded as a base64 string when serialized to JSON.\"",
+      "id": "PRRT_kwDOSUeMrM6y1o0-",
+      "opened": "2026-11-02T19:55:44Z",
+      "path": "docs/gen-ai/non-normative/models.py",
+      "replies": [
+        {
+          "at": "2026-11-03T04:53:26Z",
+          "body": "I'd kind of prefer not to say anything about json encoding since that's an SDK exporter concern as opposed to an instrumentation concern\r\n\r\nClarified here that the json schema is not for json serialization purpose 0a86cb6adc1b1a02366395030d0021b1d78ca760",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/634#discussion_r4451045134"
+        },
+        {
+          "at": "2026-11-03T16:45:11Z",
+          "body": "I dug up https://github.com/open-telemetry/semantic-conventions-genai/pull/540, let's take the conversation there",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/634#discussion_r4457724231"
+        }
+      ],
+      "reviewed": "5f6a7df71b0e59d47345fc7b6e7b30bbec61c8ee",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/634#discussion_r4447048757"
+    }
+  ]
+}

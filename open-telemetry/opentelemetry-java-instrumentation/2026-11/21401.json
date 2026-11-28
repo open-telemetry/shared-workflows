@@ -1,0 +1,46 @@
+{
+  "head": "906747578fdd40682d82ea25125fc2d46652c1f3",
+  "merge": "99158672bef4be3d737e30e2806e644917508e61",
+  "merged": "2026-11-22T19:08:44Z",
+  "missing_roots": 0,
+  "number": 21401,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "With `-PdenyUnsafe=true`, the existing block at lines 79–82 disables the new `unitTests` task, silently skipping the three migrated helper test classes in the Java 25 deny-unsafe CI job. These tests run without the agent and do not receive its Unsafe-denial JVM arguments. Replace `withType<Test>().configureEach` in that block with `named<Test>(\"test\")` so only the installed-agent test task is disabled.",
+      "created": "2026-11-21T18:24:56Z",
+      "hunk": "@@ -1,9 +1,19 @@\n+import io.opentelemetry.instrumentation.gradle.unitTests\n+\n plugins {\n   id(\"otel.javaagent-instrumentation\")\n   id(\"otel.scala-conventions\")\n   id(\"otel.testcontainers-testing\")\n }\n \n+testing.suites {\n+  unitTests {",
+      "id": "PRRT_kwDODJKVX866arlg",
+      "opened": "2026-11-21T18:24:57Z",
+      "path": "instrumentation/rediscala-1.8/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-21T18:38:48Z",
+          "body": "Fixed in 7122a90d6228. The `denyUnsafe` skip now applies only to the default installed-agent `test` execution. The migrated `unitTests` suite stays enabled and remains part of `check`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21401#discussion_r4654332327"
+        }
+      ],
+      "reviewed": "bb7c7e2286fd0179876541bd0c2ce285f1e0b149",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21401#discussion_r4654284844"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update PR #21401 directly on its verified branch `copilot/batch-2-migrate-standalone-tests` in `open-telemetry/opentelemetry-java-instrumentation`. Keep the branch GitHub Copilot cloud agent assigned. Do not rename it, replace it, or create a separate PR. If GitHub itself assigns a follow-up branch, keep it.\n\nFix the coverage regression raised in Copilot review 6007260519. In `instrumentation/rediscala-1.8/javaagent/build.gradle.kts`, the existing `if (otelProps.denyUnsafe)` block disables every `Test` task. The migrated `unitTests` task inherits that block, so `RediscalaAttributesGetterTest`, `RediscalaServerTargetsTest`, and `ServerEndpointTest` no longer run under `-PdenyUnsafe=true`; the old standalone project did not have that skip. Scope the skip to the installed-agent `test` execution, using the repository's suite execution conventions. Keep the current installed-agent skip, continue scheduling `unitTests` under `check`, and preserve the existing Rediscala dependency pin and latest-dependency behavior. Limit the change to the relevant Gradle wiring; no production changes or new suites.\n\nApply the narrow Spotless task first, then verify where feasible that the Rediscala `unitTests` task executes with `-PdenyUnsafe=true` while the installed-agent `test` task remains skipped. Report any limitations. Do not reply to or resolve review threads; the coordinator will verify the fix and handle the thread.",
+      "created": "2026-11-21T18:27:04Z",
+      "hunk": "@@ -1,9 +1,19 @@\n+import io.opentelemetry.instrumentation.gradle.unitTests\n+\n plugins {\n   id(\"otel.javaagent-instrumentation\")\n   id(\"otel.scala-conventions\")\n   id(\"otel.testcontainers-testing\")\n }\n \n+testing.suites {\n+  unitTests {",
+      "id": "PRRT_kwDODJKVX866aszJ",
+      "opened": "2026-11-21T18:27:04Z",
+      "path": "instrumentation/rediscala-1.8/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "bb7c7e2286fd0179876541bd0c2ce285f1e0b149",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21401#discussion_r4654292668"
+    }
+  ]
+}

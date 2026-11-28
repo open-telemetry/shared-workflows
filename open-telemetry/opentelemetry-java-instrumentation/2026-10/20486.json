@@ -1,0 +1,25 @@
+{
+  "head": "02a27c9946870a4bd9e92ad75d99bd7d287f6db6",
+  "merge": "ef64eee429b2625e2eee53d35e4ebf23fe0b0a97",
+  "merged": "2026-10-15T17:51:36Z",
+  "missing_roots": 0,
+  "number": 20486,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The updated assertions in both shared Redisson test classes expose the index but still hide the `null` expectation. `.github/instructions/java-tests.instructions.md:162–173` calls for short conditional expectations directly in assertions. Use `hasDatabaseIndex() ? \"0\" : null` (or `\"1\"` for the configured database) at the call sites and remove both `dbNamespace(String)` helpers. This is a readability convention; the current changes preserve test behavior.",
+      "created": "2026-10-15T17:05:13Z",
+      "hunk": "@@ -181,7 +181,7 @@ void stringCommandLazyConnection() {\n                             equalTo(SERVER_ADDRESS, host),\n                             equalTo(SERVER_PORT, port),\n                             equalTo(DB_SYSTEM_NAME, REDIS),\n-                            equalTo(DB_NAMESPACE, dbNamespace()),\n+                            equalTo(DB_NAMESPACE, dbNamespace(\"0\")),",
+      "id": "PRRT_kwDODJKVX86s4Zwj",
+      "opened": "2026-10-15T17:05:13Z",
+      "path": "instrumentation/redisson/redisson-common-3.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/AbstractRedissonClientTest.java",
+      "replies": [],
+      "reviewed": "02a27c9946870a4bd9e92ad75d99bd7d287f6db6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20486#discussion_r4285965553"
+    }
+  ]
+}

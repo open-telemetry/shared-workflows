@@ -1,0 +1,241 @@
+{
+  "head": "031f80a5e989fe9d438c0191ccc00b873b2b2872",
+  "merge": "aaed88a8f1462ff599af0b0d535d37e4e302e5e6",
+  "merged": "2026-11-18T23:03:20Z",
+  "missing_roots": 0,
+  "number": 721,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The clarified realtime scope has no reference demonstration: `reference/reports/realtime-inference-span.md:52` lists no supporting library for this attribute. The `openai-realtime` and `gemini-live` scenarios exercise tool calls but neither records the tool definitions available to each generation. Please extend at least one scenario to configure tools through the SDK and emit the generation's tool definitions from that configuration, then refresh its telemetry and report. `.github/instructions/evaluate-reference.instructions.md:7-20` requires checking reference support for changed model fields, including unchanged scenarios.",
+      "created": "2026-11-17T19:57:01Z",
+      "hunk": "@@ -429,6 +433,7 @@ spans:\n           in [#633](https://github.com/open-telemetry/semantic-conventions-genai/issues/633).\n       - ref: gen_ai.tool.definitions\n         requirement_level: opt_in\n+        brief: The set of tools available to this model generation.",
+      "id": "PRRT_kwDOSUeMrM64oChU",
+      "opened": "2026-11-17T19:57:02Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-11-17T23:33:35Z",
+          "body": "Addressed in b6d42302. The OpenAI Realtime scenario now configures tools through `conn.response.create` and records those definitions on each generation, including an empty tool set on the follow-up generation. Updated the mock to use the configured tool and regenerated the telemetry and reference report.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/721#discussion_r4607234131"
+        }
+      ],
+      "reviewed": "1c0c7aef8eb4d9054d254d3f36e00d3f124e918c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/721#discussion_r4604991741"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The fetched-response scope is not backed by a reference scenario: `reference/reports/fetch-response-span.md:36` lists no supporting library for `gen_ai.tool.definitions`. The OpenAI `_emit_fetch_response_span` reads instructions and output from `client.responses.retrieve(...)` but never records tool definitions. Please add a stored response with tools and derive this attribute from the retrieved response's `tools` field, then refresh the telemetry and report. This demonstrates that the clarified value is available at the fetch boundary, as required by `.github/instructions/evaluate-reference.instructions.md:7-20`, rather than depending on access to the original creation request.",
+      "created": "2026-11-17T19:57:01Z",
+      "hunk": "@@ -670,6 +675,7 @@ spans:\n         requirement_level: opt_in\n       - ref: gen_ai.tool.definitions\n         requirement_level: opt_in\n+        brief: The set of tools provided to the model request that generated the fetched response.",
+      "id": "PRRT_kwDOSUeMrM64oCiM",
+      "opened": "2026-11-17T19:57:02Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-11-17T23:33:35Z",
+          "body": "Addressed in ae28d808. The fetch span now records tool definitions from the retrieved SDK object's `tools` field, without access to the creation request. Added a stored-response example with a stateful HTTP mock and regenerated the telemetry and reference report.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/721#discussion_r4607234127"
+        }
+      ],
+      "reviewed": "1c0c7aef8eb4d9054d254d3f36e00d3f124e918c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/721#discussion_r4604991831"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "This emits `\"[]\"` for generations without tools. The fetch scenario guards with `if fetched.tools:` — same here? Also, this only demonstrates per-response tools; session-level tools are the more common path.",
+      "created": "2026-11-18T15:05:45Z",
+      "hunk": "@@ -249,6 +267,7 @@ def _on_response_created(self, event):\n             f\"realtime_inference {self.request_model}\", kind=SpanKind.CLIENT, attributes=attributes\n         )\n         span.set_attribute(\"gen_ai.input.messages\", self._gen[\"input_messages\"])\n+        span.set_attribute(\"gen_ai.tool.definitions\", json.dumps(self._gen[\"tools\"]))",
+      "id": "PRRT_kwDOSUeMrM65CCF4",
+      "opened": "2026-11-18T15:05:52Z",
+      "path": "reference/scenarios/openai-realtime/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-18T19:46:14Z",
+          "body": "16b6bb61bd979a00634eb26993132cca8bfdb04e",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/721#discussion_r4619823066"
+        }
+      ],
+      "reviewed": "1b07adbccbe0a80efada53b78f7f17a1705cb6af",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/721#discussion_r4616107039"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "nit: \"set\" here vs. \"list\" in the registry brief (and the value is a JSON array). Pick one?",
+      "created": "2026-11-18T15:05:45Z",
+      "hunk": "@@ -289,6 +291,8 @@ spans:\n           recommended: When available and non-zero.\n       - ref_group: attributes.gen_ai.content\n       - ref_group: attributes.gen_ai.error\n+      - ref: gen_ai.tool.definitions\n+        brief: The set of tools provided to this model request.",
+      "id": "PRRT_kwDOSUeMrM65CCF7",
+      "opened": "2026-11-18T15:05:52Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-11-18T19:46:16Z",
+          "body": "16b6bb61bd979a00634eb26993132cca8bfdb04e",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/721#discussion_r4619823536"
+        }
+      ],
+      "reviewed": "1b07adbccbe0a80efada53b78f7f17a1705cb6af",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/721#discussion_r4616107046"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "This group is also used by `gen_ai.invoke_agent.internal`, which covers `invoke_workflow` (LangGraph, CrewAI `Crew`) and `invoke_{framework_entrypoint}` (e.g. `invoke_runner`), where there may be no single agent — and with OpenAI Agents `Runner.run` handoffs, the active agent changes mid-run. Maybe something like \"The tools available to the invoked agent, workflow, or entrypoint for this invocation\", plus guidance on multi-agent cases (union vs. omit)?\n\nAlso, \"associated with\" is ambiguous for tools that change at runtime (MCP discovery, `is_enabled` callbacks, per-step filtering) — configured vs. effective set?",
+      "created": "2026-11-18T15:05:45Z",
+      "hunk": "@@ -124,6 +124,8 @@ attribute_groups:\n       - ref_group: attributes.gen_ai.content\n       - ref_group: attributes.gen_ai.error\n       - ref_group: attributes.gen_ai.invoked_agent.internal.common\n+      - ref: gen_ai.tool.definitions\n+        brief: The set of tools associated with the agent.",
+      "id": "PRRT_kwDOSUeMrM65CCFt",
+      "opened": "2026-11-18T15:05:52Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-11-18T19:46:09Z",
+          "body": "82862bf94a9cad3a11b5bbca3c88db795ce11a22",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/721#discussion_r4619822036"
+        }
+      ],
+      "reviewed": "1b07adbccbe0a80efada53b78f7f17a1705cb6af",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/721#discussion_r4616107018"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "\"available to this model generation\" vs. \"provided to this model request\" on inference — same meaning? If so, align the wording.\n\nRealtime tools are usually set at session level (`session.update`) rather than per `response.create`. Worth a note that this records the effective tools for the generation (session config unless overridden per response).",
+      "created": "2026-11-18T15:05:45Z",
+      "hunk": "@@ -429,6 +433,7 @@ spans:\n           in [#633](https://github.com/open-telemetry/semantic-conventions-genai/issues/633).\n       - ref: gen_ai.tool.definitions\n         requirement_level: opt_in\n+        brief: The set of tools available to this model generation.",
+      "id": "PRRT_kwDOSUeMrM65CCFy",
+      "opened": "2026-11-18T15:05:52Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-11-18T19:46:12Z",
+          "body": "16b6bb61bd979a00634eb26993132cca8bfdb04e",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/721#discussion_r4619822670"
+        }
+      ],
+      "reviewed": "1b07adbccbe0a80efada53b78f7f17a1705cb6af",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/721#discussion_r4616107028"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "nit: should this be `721` (or `468`) since #481 was superseded?",
+      "created": "2026-11-18T15:05:45Z",
+      "hunk": "@@ -0,0 +1 @@\n+Clarify the scope of `gen_ai.tool.definitions` on inference, realtime inference, agent-invocation, and fetch-response spans.",
+      "id": "PRRT_kwDOSUeMrM65CCGD",
+      "opened": "2026-11-18T15:05:52Z",
+      "path": "changelog.d/721.clarification.md",
+      "replies": [
+        {
+          "at": "2026-11-18T19:46:19Z",
+          "body": "21b36064eb452533cd6408bbbc9e16d05283ccec",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/721#discussion_r4619824031"
+        }
+      ],
+      "reviewed": "1b07adbccbe0a80efada53b78f7f17a1705cb6af",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/721#discussion_r4616107058"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The explicit `tools=[]` overrides passed by `_on_committed` and `_finish_tool_call_generation` never reach telemetry because this truthiness check drops them. Those generations omit `gen_ai.tool.definitions` instead of recording `[]`, so consumers cannot distinguish a known empty tool set from unavailable or uncaptured definitions. Record the resolved list even when it is empty so the reference demonstrates both session inheritance and the empty override.",
+      "created": "2026-11-18T19:50:54Z",
+      "hunk": "@@ -249,6 +274,8 @@ def _on_response_created(self, event):\n             f\"realtime_inference {self.request_model}\", kind=SpanKind.CLIENT, attributes=attributes\n         )\n         span.set_attribute(\"gen_ai.input.messages\", self._gen[\"input_messages\"])\n+        if self._gen[\"tools\"]:\n+            span.set_attribute(\"gen_ai.tool.definitions\", json.dumps(self._gen[\"tools\"]))",
+      "id": "PRRT_kwDOSUeMrM65KpGS",
+      "opened": "2026-11-18T19:50:54Z",
+      "path": "reference/scenarios/openai-realtime/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-18T21:37:47Z",
+          "body": "Fixed in 79c121cb. The Realtime scenario now records `gen_ai.tool.definitions` as `[]` for explicit empty overrides and still records the session's tool list when `response.create` omits `tools`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/721#discussion_r4621199616"
+        }
+      ],
+      "reviewed": "21b36064eb452533cd6408bbbc9e16d05283ccec",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/721#discussion_r4619876430"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "This group is shared with `gen_ai.client.invoke_agent`, where workflows, framework entrypoints, handoffs and child agents don't apply (see the rendered `client-invoke-agent.md`). Maybe move this override onto `gen_ai.invoke_agent.internal` and give the client span a simpler brief, e.g. `The list of tool definitions configured for the invoked remote agent.`?",
+      "created": "2026-11-18T19:55:36Z",
+      "hunk": "@@ -124,6 +124,19 @@ attribute_groups:\n       - ref_group: attributes.gen_ai.content\n       - ref_group: attributes.gen_ai.error\n       - ref_group: attributes.gen_ai.invoked_agent.internal.common\n+      - ref: gen_ai.tool.definitions\n+        brief: The list of tool definitions configured for the invoked agent, workflow, or framework entry point.\n+        note: |\n+          > [!WARNING]\n+          > This attribute may contain sensitive information.\n+\n+          If there is no single configured list for the invocation, omit this attribute.\n+          Do not combine tool lists across child agents, handoffs, or steps. Record the tools\n+          supplied to each model call on its inference span instead.",
+      "id": "PRRT_kwDOSUeMrM65KxgP",
+      "opened": "2026-11-18T22:16:31Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-11-18T22:29:43Z",
+          "body": "1943766e",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/721#discussion_r4621750873"
+        }
+      ],
+      "reviewed": "21b36064eb452533cd6408bbbc9e16d05283ccec",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/721#discussion_r4619934053"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: the span note uses \"entrypoint\".\n\n```suggestion\n        brief: The list of tool definitions configured for the invoked agent, workflow, or framework entrypoint.\n```",
+      "created": "2026-11-18T19:55:36Z",
+      "hunk": "@@ -124,6 +124,19 @@ attribute_groups:\n       - ref_group: attributes.gen_ai.content\n       - ref_group: attributes.gen_ai.error\n       - ref_group: attributes.gen_ai.invoked_agent.internal.common\n+      - ref: gen_ai.tool.definitions\n+        brief: The list of tool definitions configured for the invoked agent, workflow, or framework entry point.",
+      "id": "PRRT_kwDOSUeMrM65KxgY",
+      "opened": "2026-11-18T22:16:31Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-11-18T22:29:40Z",
+          "body": "d78c97db",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/721#discussion_r4621750352"
+        }
+      ],
+      "reviewed": "21b36064eb452533cd6408bbbc9e16d05283ccec",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/721#discussion_r4619934066"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "This guidance is only about `gen_ai.tool.definitions`, so it would fit better as a note on the attribute ref below than in the span note. Something like:\n\n```yaml\n      - ref: gen_ai.tool.definitions\n        requirement_level: opt_in\n        brief: The list of tool definitions supplied to the model for this inference operation.\n        note: |\n          > [!WARNING]\n          > This attribute may contain sensitive information.\n\n          For providers with session-level tools and per-generation overrides, record\n          the generation's tools if set, otherwise the session's tools.\n\n          Since this attribute could be large, it's NOT RECOMMENDED to populate\n          non-required properties by default. Instrumentations MAY provide a way\n          to enable populating optional properties.\n```\n",
+      "created": "2026-11-18T19:55:36Z",
+      "hunk": "@@ -396,6 +411,10 @@ spans:\n       SHOULD record two spans. If the provider keeps one generation active across the tool\n       round trip, instrumentation SHOULD record one span covering the complete generation.\n \n+      When recording `gen_ai.tool.definitions`, use the tool definitions for the generation.\n+      For providers with session-level tools and per-generation overrides, use the session's\n+      tools unless the generation overrides them.",
+      "id": "PRRT_kwDOSUeMrM65Kxgl",
+      "opened": "2026-11-18T22:16:31Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-11-18T22:29:45Z",
+          "body": "031f80a5",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/721#discussion_r4621751266"
+        }
+      ],
+      "reviewed": "21b36064eb452533cd6408bbbc9e16d05283ccec",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/721#discussion_r4619934090"
+    }
+  ]
+}

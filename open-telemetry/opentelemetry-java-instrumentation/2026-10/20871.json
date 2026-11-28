@@ -1,0 +1,31 @@
+{
+  "head": "b610bed34ba086af9d64d38ba966afa55ef6c92a",
+  "merge": "935e65f42f19664d7e9004ce69085eb41c7b0d66",
+  "merged": "2026-10-23T06:47:37Z",
+  "missing_roots": 0,
+  "number": 20871,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Please retain both removed builder setters as deprecated forwarding methods for a transition release. They are public API in the published `io.opentelemetry.instrumentation:opentelemetry-micrometer-1.5` library, and neither was deprecated in the removed code. Existing compiled applications that call them will fail with `NoSuchMethodError` after upgrading. The repository's alpha API policy requires a released deprecation before removal in a later minor release. Delegate the retained methods to the new helpers, document the replacement and removal timing in their Javadoc, and record a deprecation rather than immediate removal in the changelog.",
+      "created": "2026-10-22T19:05:50Z",
+      "hunk": "@@ -25,6 +25,10 @@ public final class OpenTelemetryMeterRegistryBuilder {\n   private static final String INSTRUMENTATION_NAME = \"io.opentelemetry.micrometer-1.5\";\n \n   static {\n+    Experimental.internalSetBaseTimeUnit(\n+        (builder, baseTimeUnit) -> builder.baseTimeUnit = baseTimeUnit);\n+    Experimental.internalSetPrometheusMode(\n+        (builder, prometheusMode) -> builder.prometheusMode = prometheusMode);",
+      "id": "PRRT_kwDODJKVX86vVmKd",
+      "opened": "2026-10-22T19:05:50Z",
+      "path": "instrumentation/micrometer/micrometer-1.5/library/src/main/java/io/opentelemetry/instrumentation/micrometer/v1_5/OpenTelemetryMeterRegistryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-10-22T19:07:19Z",
+          "body": "The compatibility break is intentional. The user explicitly requested moving these alpha APIs to Experimental with \"no backcompat\", before stabilizing the remaining builder API. The removal and replacements are documented in the breaking-change changelog entry and PR description. Retaining deprecated builder aliases would contradict that request and carry the methods into the stable API, so no change is needed here.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20871#discussion_r4352412300"
+        }
+      ],
+      "reviewed": "9fe12e2298d10c815e6262913dd51798713106cb",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20871#discussion_r4352397345"
+    }
+  ]
+}

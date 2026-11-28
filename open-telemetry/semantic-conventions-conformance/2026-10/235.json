@@ -1,0 +1,31 @@
+{
+  "head": "f38dcd1411ccca4e24d8bd6f3ae36c9c60215622",
+  "merge": "53d16bc40832a3a122962bf3eaf5b8b55681b80d",
+  "merged": "2026-10-14T21:58:54Z",
+  "missing_roots": 0,
+  "number": 235,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This adds v5 alongside v4 rather than performing the advertised upgrade. The Echo workload still imports `github.com/labstack/echo/v4` (`echo/scenarios/server.go:10`), and its conformance metadata still identifies v4, so all scenarios continue exercising v4 while v5 remains unused. Replace the v4 dependency and migrate those call sites/metadata to v5 (including its pointer-based `Context` API).",
+      "created": "2026-09-21T06:15:37Z",
+      "hunk": "@@ -14,6 +14,7 @@ require (\n \tgithub.com/gin-gonic/gin v1.12.0\n \tgithub.com/gorilla/mux v1.8.1\n \tgithub.com/labstack/echo/v4 v4.15.4\n+\tgithub.com/labstack/echo/v5 v5.3.1",
+      "id": "PRRT_kwDOTuzK5c6kQEUO",
+      "opened": "2026-09-21T06:15:37Z",
+      "path": "scenarios/http/go/go.mod",
+      "replies": [
+        {
+          "at": "2026-10-14T21:34:16Z",
+          "body": "Fixed: the workload uses Echo v5 and `*echo.Context`, and the conformance metadata identifies Echo v5. Instrumentation now uses `github.com/labstack/echo-otel/v5`; the v4 dependency and v4-only `otelecho` middleware are removed.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/235#discussion_r4276514747"
+        }
+      ],
+      "reviewed": "9cdfbabdd2afb207a7cb62b6156ac18d664c079f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/235#discussion_r4059680049"
+    }
+  ]
+}

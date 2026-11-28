@@ -1,0 +1,31 @@
+{
+  "head": "5729eac7e3a7b14ed701b75e2185dbcd60418990",
+  "merge": "4db886967a9326f824069acf576681e3b232d772",
+  "merged": "2026-10-22T00:33:38Z",
+  "missing_roots": 0,
+  "number": 20147,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The linked rollout issue explicitly excludes smoke-test modules, and this module has only `src/test` Java sources. Because the new convention disables NullAway for every test compilation, applying it here analyzes no code while adding Error Prone/NullAway setup overhead. Remove this application; the production `bootstrap` and `custom` modules remain covered.",
+      "created": "2026-09-14T12:03:52Z",
+      "hunk": "@@ -1,5 +1,6 @@\n plugins {\n   id(\"otel.java-conventions\")\n+  id(\"otel.nullaway-conventions\")\n }",
+      "id": "PRRT_kwDODJKVX86iGPCP",
+      "opened": "2026-09-14T12:03:53Z",
+      "path": "examples/distro/smoke-tests/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-14T12:13:54Z",
+          "body": "Good catch. Removed the convention from the test-only smoke-test module in 67f24e4f17; the PR now applies NullAway only to the production `bootstrap` and `custom` modules.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20147#discussion_r4004995495"
+        }
+      ],
+      "reviewed": "0aeb2e3823913cf0922497fae3d77feb51be834b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20147#discussion_r4004924635"
+    }
+  ]
+}

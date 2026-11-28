@@ -1,0 +1,46 @@
+{
+  "head": "b0fbd9038938d02bc338cfac8b8f1ef77c917b96",
+  "merge": "fdeed7657131e6f383b388161479421353534fbe",
+  "merged": "2026-11-19T23:02:43Z",
+  "missing_roots": 0,
+  "number": 733,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n# Build the release assets for the development registry, which includes\n# items at every stability level:\n#   manifest-dev.yaml  publication manifest, served at the schema URL\n#   registry-dev.yaml  resolved registry that the manifest points to\n# The -dev suffix keeps these names distinct from a future stable\n# registry's assets, which can be attached to the same GitHub release.\n```",
+      "created": "2026-11-19T21:37:07Z",
+      "hunk": "@@ -121,16 +129,28 @@ generate-all: update-upstream-links generate-registry generate-docs generate-jso\n \t# text whose links are root-relative to the upstream repo.\n \t$(MAKE) update-upstream-links\n \n-# Package the registry into a publication artifact. The version comes from\n-# model/manifest.yaml's schema_url; bump it there to cut a new release.\n+print-version:\n+\t@echo $(VERSION)\n+\n+set-schema-url-dev:\n+\t$(call set_schema_url,$(SCHEMA_URL_BASE)/semconv-genai-dev/$(VERSION)-dev)\n+\n+set-schema-url-unreleased:\n+\t$(call set_schema_url,$(SCHEMA_URL_BASE)/semconv-genai-unreleased/$(VERSION)-unreleased)\n+\n+# Build the release assets. The -dev suffix leaves room for stable assets in\n+# the same release.",
+      "id": "PRRT_kwDOSUeMrM65ukKp",
+      "opened": "2026-11-19T22:07:56Z",
+      "path": "Makefile",
+      "replies": [],
+      "reviewed": "a1dd27e7b415b9711e2a4dc340f1127f98bd6237",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/733#discussion_r4635441916"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Is there advantage to separate `semconv-genai-unreleased` family vs `semconv-genai-dev/X.Y.Z-unreleased`?",
+      "created": "2026-11-19T22:07:49Z",
+      "hunk": "@@ -121,16 +129,28 @@ generate-all: update-upstream-links generate-registry generate-docs generate-jso\n \t# text whose links are root-relative to the upstream repo.\n \t$(MAKE) update-upstream-links\n \n-# Package the registry into a publication artifact. The version comes from\n-# model/manifest.yaml's schema_url; bump it there to cut a new release.\n+print-version:\n+\t@echo $(VERSION)\n+\n+set-schema-url-dev:\n+\t$(call set_schema_url,$(SCHEMA_URL_BASE)/semconv-genai-dev/$(VERSION)-dev)\n+\n+set-schema-url-unreleased:\n+\t$(call set_schema_url,$(SCHEMA_URL_BASE)/semconv-genai-unreleased/$(VERSION)-unreleased)",
+      "id": "PRRT_kwDOSUeMrM65vR8O",
+      "opened": "2026-11-19T22:07:56Z",
+      "path": "Makefile",
+      "replies": [
+        {
+          "at": "2026-11-19T23:00:20Z",
+          "body": "no good reason, updated",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/733#discussion_r4636255594"
+        }
+      ],
+      "reviewed": "a1dd27e7b415b9711e2a4dc340f1127f98bd6237",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/733#discussion_r4635754568"
+    }
+  ]
+}

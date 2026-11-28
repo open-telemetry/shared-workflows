@@ -1,0 +1,67 @@
+{
+  "head": "db379e9a47163ab28d6844763cf33a988376926d",
+  "merge": "222346e0922f8efaf906edb38089a2edabd6cbe5",
+  "merged": "2026-11-19T16:43:53Z",
+  "missing_roots": 0,
+  "number": 725,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Using this group for the two realtime session events replaces their previous `server.address` description with this brief. The generated event docs therefore lose the guidance to prefer a domain name only when available without a reverse DNS lookup, and otherwise use an IP address or socket name. Please preserve that guidance in the shared brief or in event-specific overrides, then regenerate the docs.",
+      "created": "2026-11-18T16:57:33Z",
+      "hunk": "@@ -0,0 +1,99 @@\n+file_format: definition/2\n+attribute_groups:\n+  - id: attributes.gen_ai.error\n+    visibility: internal\n+    attributes:\n+      - ref: error.type\n+        requirement_level:\n+          conditionally_required: \"If the operation ended in an error.\"\n+        note: |\n+          The `error.type` SHOULD match the error code returned by the Generative AI provider or the client library,\n+          the canonical name of exception that occurred, or another low-cardinality error identifier.\n+          Instrumentations SHOULD document the list of errors they report.\n+\n+  - id: attributes.gen_ai.common\n+    visibility: internal\n+    attributes:\n+      - ref: gen_ai.request.model\n+        requirement_level:\n+          conditionally_required: If available.\n+        note: >\n+          The name of the GenAI model a request is being made to. If the model is supplied by a vendor,\n+          then the value must be the exact name of the model requested. If the model is a fine-tuned\n+          custom model, the value should have a more specific name than the base model that's been fine-tuned.\n+      - ref: gen_ai.operation.name\n+        requirement_level: required\n+      - ref: gen_ai.provider.name\n+        requirement_level: required\n+\n+  - id: attributes.gen_ai.address_and_port\n+    visibility: internal\n+    attributes:\n+      - ref: server.address\n+        brief: GenAI server address.",
+      "id": "PRRT_kwDOSUeMrM65FzfO",
+      "opened": "2026-11-18T16:57:34Z",
+      "path": "model/gen-ai/common.yaml",
+      "replies": [
+        {
+          "at": "2026-11-18T17:01:38Z",
+          "body": "it aligns realtime server address and port with what we have for the rest of genai conventions.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/725#discussion_r4617808353"
+        }
+      ],
+      "reviewed": "8bb47e090d8c1eb3591026132a83be7fc8d26a8d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/725#discussion_r4617754148"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "Nit: now that `gen_ai.provider.name` is `required` in this shared group, a few callers lower it locally (e.g. `gen_ai.retrieval.client` → `conditionally_required: When applicable`, `gen_ai.client.operation.duration` → `conditionally_required: If the operation involves a call to a GenAI provider`). Resolved output is correct since the local ref wins, but could we add a short YAML comment here noting that signals may override this requirement level? Otherwise readers of `common.yaml` may assume it is always required.",
+      "created": "2026-11-18T21:45:27Z",
+      "hunk": "@@ -0,0 +1,99 @@\n+file_format: definition/2\n+attribute_groups:\n+  - id: attributes.gen_ai.error\n+    visibility: internal\n+    attributes:\n+      - ref: error.type\n+        requirement_level:\n+          conditionally_required: \"If the operation ended in an error.\"\n+        note: |\n+          The `error.type` SHOULD match the error code returned by the Generative AI provider or the client library,\n+          the canonical name of exception that occurred, or another low-cardinality error identifier.\n+          Instrumentations SHOULD document the list of errors they report.\n+\n+  - id: attributes.gen_ai.common\n+    visibility: internal\n+    attributes:\n+      - ref: gen_ai.request.model\n+        requirement_level:\n+          conditionally_required: If available.\n+        note: >\n+          The name of the GenAI model a request is being made to. If the model is supplied by a vendor,\n+          then the value must be the exact name of the model requested. If the model is a fine-tuned\n+          custom model, the value should have a more specific name than the base model that's been fine-tuned.\n+      - ref: gen_ai.operation.name\n+        requirement_level: required\n+      - ref: gen_ai.provider.name\n+        requirement_level: required",
+      "id": "PRRT_kwDOSUeMrM65N2L-",
+      "opened": "2026-11-18T21:45:27Z",
+      "path": "model/gen-ai/common.yaml",
+      "replies": [
+        {
+          "at": "2026-11-19T07:00:18Z",
+          "body": "Addressed in https://github.com/open-telemetry/semantic-conventions-genai/pull/725/commits/ba9effb37674266cd906171caf97517f51e9b232",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/725#discussion_r4625362751"
+        }
+      ],
+      "reviewed": "8bb47e090d8c1eb3591026132a83be7fc8d26a8d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/725#discussion_r4621287965"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Please correct the spelling of `overriden` to `overridden`.",
+      "created": "2026-11-19T07:06:13Z",
+      "hunk": "@@ -0,0 +1,100 @@\n+file_format: definition/2\n+attribute_groups:\n+  - id: attributes.gen_ai.error\n+    visibility: internal\n+    attributes:\n+      - ref: error.type\n+        requirement_level:\n+          conditionally_required: \"If the operation ended in an error.\"\n+        note: |\n+          The `error.type` SHOULD match the error code returned by the Generative AI provider or the client library,\n+          the canonical name of exception that occurred, or another low-cardinality error identifier.\n+          Instrumentations SHOULD document the list of errors they report.\n+\n+  - id: attributes.gen_ai.common\n+    visibility: internal\n+    attributes:\n+      - ref: gen_ai.request.model\n+        requirement_level:\n+          conditionally_required: If available.\n+        note: >\n+          The name of the GenAI model a request is being made to. If the model is supplied by a vendor,\n+          then the value must be the exact name of the model requested. If the model is a fine-tuned\n+          custom model, the value should have a more specific name than the base model that's been fine-tuned.\n+      - ref: gen_ai.operation.name\n+        requirement_level: required\n+      - ref: gen_ai.provider.name\n+        # overriden by some signals that use this group, but don't have provider always available.",
+      "id": "PRRT_kwDOSUeMrM65XUVG",
+      "opened": "2026-11-19T07:06:13Z",
+      "path": "model/gen-ai/common.yaml",
+      "replies": [],
+      "reviewed": "caddd1c8606d49cf86023be1193577d790e376f5",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/725#discussion_r4625409442"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "head": "49405b4fa2da021571fb0bae113d7cf0445f6408",
+  "merge": "5bb9804a0aa3563ffb8aa4f649a24f2b2d616cb0",
+  "merged": "2026-10-23T19:06:02Z",
+  "missing_roots": 0,
+  "number": 20907,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly by removing the newly added targetIsSharedWithBaseInstrumentation() test from VertxRedis445ServerTargetsTest and removing imports used only by that test, including RedisConnectionManagerUtil and RedisURI if unused afterward. Do not replace it with another test. The user wants this package-renaming PR kept focused: this test manually writes through RedisConnectionManagerUtil and reads through a baseline wrapper that delegates to the same utility, so it does not exercise the newer instrumentation's real state handoff or class-loader boundaries. Preserve all existing tests, the HBase and Vert.x package/class renames, and runtime behavior. Run the narrowest applicable formatter and relevant Vert.x unit tests where feasible. Acceptance is that this one newly introduced test and its now-unused imports are gone, with no unrelated code changes.",
+      "created": "2026-10-23T18:00:39Z",
+      "hunk": "@@ -17,19 +17,33 @@\n import io.vertx.redis.client.RedisSentinelConnectOptions;\n import io.vertx.redis.client.RedisStandaloneConnectOptions;\n import io.vertx.redis.client.TestConstantSupplier;\n+import io.vertx.redis.client.impl.RedisConnectionManagerUtil;\n+import io.vertx.redis.client.impl.RedisURI;\n import java.lang.reflect.Method;\n import java.net.URL;\n import java.net.URLClassLoader;\n import java.util.concurrent.atomic.AtomicBoolean;\n import java.util.function.Supplier;\n import org.junit.jupiter.api.Test;\n \n-class VertxRedisServerTargetsTest {\n+class VertxRedis445ServerTargetsTest {\n+\n+  @Test\n+  void targetIsSharedWithBaseInstrumentation() {",
+      "id": "PRRT_kwDODJKVX86vt9qt",
+      "opened": "2026-10-23T18:00:39Z",
+      "path": "instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/vertx/redisclient/v4_0/VertxRedis445ServerTargetsTest.java",
+      "replies": [
+        {
+          "at": "2026-10-23T18:07:40Z",
+          "body": "Removed the test and its unused imports in 49405b4f. The focused Vert.x Redis unit test class and project-scoped Java formatter both pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20907#discussion_r4362776435"
+        }
+      ],
+      "reviewed": "a02fc9f473ff2950db2c60e9e9ab1a924b7ea7da",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20907#discussion_r4362704638"
+    }
+  ]
+}

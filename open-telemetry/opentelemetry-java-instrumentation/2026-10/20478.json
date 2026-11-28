@@ -1,0 +1,124 @@
+{
+  "head": "b1ae7af1cd2d40ffef1ee627cf83ea72b6ae65e6",
+  "merge": "a3e1e3b3c357e2e0979fa4136171a9f2e58987c8",
+  "merged": "2026-10-13T13:00:59Z",
+  "missing_roots": 0,
+  "number": 20478,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    // SQL++ uses both single and double quotation marks for string literals.\n    // https://docs.couchbase.com/server/current/n1ql/n1ql-language-reference/literals.html\n```",
+      "created": "2026-10-09T18:22:26Z",
+      "hunk": "@@ -0,0 +1,65 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.couchbase.v2_0;\n+\n+import static io.opentelemetry.instrumentation.api.incubator.semconv.db.SqlDialect.DOUBLE_QUOTES_ARE_STRING_LITERALS;\n+import static java.util.Collections.emptyList;\n+import static java.util.Collections.singletonList;\n+\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.SqlClientAttributesGetter;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.SqlDialect;\n+import io.opentelemetry.javaagent.instrumentation.couchbase.common.v2_0.CouchbaseRequestInfo;\n+import java.net.InetSocketAddress;\n+import java.util.Collection;\n+import javax.annotation.Nullable;\n+\n+final class CouchbaseSqlAttributesGetter\n+    implements SqlClientAttributesGetter<CouchbaseRequestInfo, Void> {\n+\n+  private final CouchbaseAttributesGetter dbGetter = new CouchbaseAttributesGetter();\n+\n+  @Override\n+  public SqlDialect getSqlDialect(CouchbaseRequestInfo request) {\n+    // SQL++ uses both single and double quotation marks for string literals.",
+      "id": "PRRT_kwDODJKVX86q5hLV",
+      "opened": "2026-10-09T18:22:26Z",
+      "path": "instrumentation/couchbase/couchbase-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v2_0/CouchbaseSqlAttributesGetter.java",
+      "replies": [],
+      "reviewed": "d20bca913b703b286e59950eccbddea430bb8ad6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20478#discussion_r4233275821"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n  database setting.\n```",
+      "created": "2026-10-09T18:23:51Z",
+      "hunk": "@@ -4,6 +4,14 @@\n \n ### ⚠️ Breaking changes\n \n+- Couchbase 2.x SQL queries now use the shared SQL attribute extractor and no longer emit\n+  `db.operation.name`. SQL query attributes and span names are derived from the raw query text.\n+  Disabling query sanitization now affects only `db.query.text`: `db.query.summary` and\n+  query-derived span names are still produced, matching other SQL instrumentations. This applies\n+  to both `otel.instrumentation.couchbase.query-sanitization.enabled=false` and declarative\n+  `java.couchbase.query_sanitization.enabled: false`, including when inherited from the common\n+  database setting. Non-query operations, Couchbase view queries, and existing configuration names\n+  and precedence are unchanged.",
+      "id": "PRRT_kwDODJKVX86q5jNQ",
+      "opened": "2026-10-09T18:23:50Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "cbf018600317dd3751a07b7b8ca2910cc417e823",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20478#discussion_r4233288420"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The new sanitization coverage constructs `SqlClientAttributesExtractor` directly, so it never exercises this `DbConfig` lookup or the singleton/instrumenter selection used by an installed agent. A regression in the Couchbase flat, declarative, or inherited common setting could therefore leave `db.query.text` masked while these tests still pass. Please add agent-backed coverage that disables sanitization through the real configuration path and asserts raw `db.query.text` while the query summary and span name remain derived.",
+      "created": "2026-10-09T18:29:38Z",
+      "hunk": "@@ -26,35 +29,63 @@ public class CouchbaseSingletons {\n   private static final Logger logger = Logger.getLogger(CouchbaseSingletons.class.getName());\n \n   private static final Instrumenter<CouchbaseRequestInfo, Void> instrumenter;\n+  private static final Instrumenter<CouchbaseRequestInfo, Void> queryInstrumenter;\n \n   static {\n+    DeclarativeConfigProperties config =\n+        DeclarativeConfigUtil.getInstrumentationConfig(GlobalOpenTelemetry.get(), \"couchbase\");\n+    boolean captureExperimentalTelemetry = captureExperimentalTelemetry(config);\n+\n     CouchbaseAttributesGetter couchbaseAttributesGetter = new CouchbaseAttributesGetter();\n     SpanNameExtractor<CouchbaseRequestInfo> spanNameExtractor =\n         DbClientSpanNameExtractor.create(couchbaseAttributesGetter);\n \n+    instrumenter =\n+        buildInstrumenter(\n+            spanNameExtractor,\n+            DbClientAttributesExtractor.create(couchbaseAttributesGetter),\n+            captureExperimentalTelemetry);\n+\n+    CouchbaseSqlAttributesGetter sqlAttributesGetter = new CouchbaseSqlAttributesGetter();\n+    queryInstrumenter =\n+        buildInstrumenter(\n+            DbClientSpanNameExtractor.create(sqlAttributesGetter),\n+            SqlClientAttributesExtractor.builder(sqlAttributesGetter)\n+                .setQuerySanitizationEnabled(\n+                    DbConfig.isQuerySanitizationEnabled(GlobalOpenTelemetry.get(), \"couchbase\"))\n+                .build(),",
+      "id": "PRRT_kwDODJKVX86q5quH",
+      "opened": "2026-10-09T18:29:38Z",
+      "path": "instrumentation/couchbase/couchbase-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v2_0/CouchbaseSingletons.java",
+      "replies": [
+        {
+          "at": "2026-10-09T19:00:33Z",
+          "body": "Addressed in df0172ff82be3eff2d9a960129377e8da3a4fefa.\n\nAdded installed-agent coverage invoking the real CouchbaseAsyncBucket.query path with an N1qlQuery and a stub transport. Separate JVMs cover default sanitization, Couchbase flat and declarative disablement, and inherited common flat and declarative disablement. The Couchbase declarative fixture overrides an enabled common setting. Exact exported attributes assert raw or masked db.query.text as configured and unchanged derived db.query.summary and span name. All five cases and the experimental variant passed.\n\n<!-- copilot-loop:a534090c274753f1a8a7e556ec1f92fa48f97e8f652f7b6ec6011efe2e6e8bab:4233336415:97b01adb9c6241dea0f0ec52993e0b2a -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20478#discussion_r4233588054"
+        }
+      ],
+      "reviewed": "ec0b2c2e99d499d8ce9f807ff68fa944dcef6e2c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20478#discussion_r4233336415"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "did it previously use `null` for unknown queries?",
+      "created": "2026-10-10T14:47:14Z",
+      "hunk": "@@ -79,37 +69,36 @@ class CouchbaseQuerySanitizer {\n     ANALYTICS_GET_STATEMENT = analyticsGetStatement;\n   }\n \n-  static SqlQuery analyze(Object query) {\n+  @Nullable\n+  static String getSqlQueryText(Object query) {\n     if (query instanceof String) {\n-      return analyzeString((String) query);\n+      return (String) query;\n     }\n     // Query is present in Couchbase [2.0.0, 2.2.0)\n     // Statement is present starting from Couchbase 2.1.0\n     if ((QUERY_CLASS != null && QUERY_CLASS.isAssignableFrom(query.getClass()))\n         || (STATEMENT_CLASS != null && STATEMENT_CLASS.isAssignableFrom(query.getClass()))) {\n-      return analyzeString(query.toString());\n-    }\n-    // SpatialViewQuery is present starting from Couchbase 2.1.0\n-    String queryClassName = query.getClass().getName();\n-    if (queryClassName.equals(\"com.couchbase.client.java.view.ViewQuery\")\n-        || queryClassName.equals(\"com.couchbase.client.java.view.SpatialViewQuery\")) {\n-      return SqlQuery.create(query.toString(), null, null);\n+      return query.toString();\n     }\n     // N1qlQuery is present starting from Couchbase 2.2.0\n     if (N1QL_QUERY_CLASS != null && N1QL_QUERY_CLASS.isAssignableFrom(query.getClass())) {\n-      String queryText = getQueryText(N1QL_GET_STATEMENT, query);\n-      if (queryText != null) {\n-        return analyzeString(queryText);\n-      }\n+      return getQueryText(N1QL_GET_STATEMENT, query);\n     }\n     // AnalyticsQuery is present starting from Couchbase 2.4.3\n     if (ANALYTICS_QUERY_CLASS != null && ANALYTICS_QUERY_CLASS.isAssignableFrom(query.getClass())) {\n-      String queryText = getQueryText(ANALYTICS_GET_STATEMENT, query);\n-      if (queryText != null) {\n-        return analyzeString(queryText);\n-      }\n+      return getQueryText(ANALYTICS_GET_STATEMENT, query);\n     }\n-    return SqlQuery.create(query.getClass().getSimpleName(), null, null);\n+    return null;\n+  }\n+\n+  static String getNonSqlQueryText(Object query) {\n+    // SpatialViewQuery is present starting from Couchbase 2.1.0\n+    String queryClassName = query.getClass().getName();\n+    if (queryClassName.equals(\"com.couchbase.client.java.view.ViewQuery\")\n+        || queryClassName.equals(\"com.couchbase.client.java.view.SpatialViewQuery\")) {\n+      return query.toString();\n+    }\n+    return query.getClass().getSimpleName();",
+      "id": "PRRT_kwDODJKVX86rE4C3",
+      "opened": "2026-10-10T14:47:14Z",
+      "path": "instrumentation/couchbase/couchbase-common-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/common/v2_0/CouchbaseQueryText.java",
+      "replies": [
+        {
+          "at": "2026-10-13T01:25:12Z",
+          "body": "I think it's the same end result still, added test in 997cca17f479402586f208745d126da74fd0ae8a",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20478#discussion_r4253827333"
+        }
+      ],
+      "reviewed": "dbdbe278e6681008868cad05ce15a10b0aa84fcc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20478#discussion_r4237998153"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "do other instrumentations collect metadata for this?",
+      "created": "2026-10-10T14:48:03Z",
+      "hunk": "@@ -58,6 +58,7 @@ readonly INSTRUMENTATIONS=(\n   \"clickhouse:clickhouse-client-v2-0.8:javaagent:test\"\n   \"couchbase:couchbase-2.0:javaagent:test\"\n   \"couchbase:couchbase-2.0:javaagent:testExperimental\"\n+  \"couchbase:couchbase-2.0:javaagent:testQuerySanitizationDisabled\"",
+      "id": "PRRT_kwDODJKVX86rE4XW",
+      "opened": "2026-10-10T14:48:03Z",
+      "path": ".github/scripts/instrumentations.sh",
+      "replies": [
+        {
+          "at": "2026-10-13T01:27:11Z",
+          "body": "nope, fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20478/commits/e8cf2b3c370b9e9ec10f1a1ac57049403662d12d\r\n\r\nalso, trying to normalize the metadata collection more broadly\r\n - https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/20546",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20478#discussion_r4253835850"
+        }
+      ],
+      "reviewed": "dbdbe278e6681008868cad05ce15a10b0aa84fcc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20478#discussion_r4238000346"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Please address the remaining [metadata collection feedback](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20478#discussion_r4238000346). The sanitization-disabled task remains in `instrumentations.sh`. InfluxDB and OpenSearch have similar tasks and metadata labels, but neither task is enrolled in that collection list. This regression-only variant should stay in `check`, leave the collection list, drop `metadataConfig`, and explicitly set `collectMetadata=false`.",
+      "created": "2026-10-13T01:10:38Z",
+      "hunk": "@@ -58,6 +58,7 @@ readonly INSTRUMENTATIONS=(\n   \"clickhouse:clickhouse-client-v2-0.8:javaagent:test\"\n   \"couchbase:couchbase-2.0:javaagent:test\"\n   \"couchbase:couchbase-2.0:javaagent:testExperimental\"\n+  \"couchbase:couchbase-2.0:javaagent:testQuerySanitizationDisabled\"",
+      "id": "PRRT_kwDODJKVX86rrHZy",
+      "opened": "2026-10-13T01:10:38Z",
+      "path": ".github/scripts/instrumentations.sh",
+      "replies": [
+        {
+          "at": "2026-10-13T01:19:23Z",
+          "body": "Addressed in commit `COMMIT_PENDING`: the disabled variant remains in `check`, is removed from metadata collection, and now sets `collectMetadata=false` without `metadataConfig`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20478#discussion_r4253801097"
+        }
+      ],
+      "reviewed": "326f9a27656815bff6dea28c7cc2905689bbd1a4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20478#discussion_r4253761488"
+    }
+  ]
+}

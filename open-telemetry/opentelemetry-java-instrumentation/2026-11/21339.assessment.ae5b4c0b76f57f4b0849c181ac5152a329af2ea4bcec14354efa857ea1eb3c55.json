@@ -1,0 +1,35 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "b5e0c7a032cc00c12a8a21c197d01e533651483cb17ae103cd472106c9537d49",
+  "input_digest": "ae5b4c0b76f57f4b0849c181ac5152a329af2ea4bcec14354efa857ea1eb3c55",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ede124e00ab6228999dc909db4cf9260ec0a591d/smoke-tests/images/quarkus/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d8c2a12a3a01426898d0960dbbde5b3c2b835903/smoke-tests/images/quarkus/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/dafa6cee3714e5dbebe08fa2c04b505b13cc4e76"
+      ],
+      "id": "PRRT_kwDODJKVX865TJKl",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dafa6cee3714e5dbebe08fa2c04b505b13cc4e76/smoke-tests/src/test/java/io/opentelemetry/smoketest/TestImageVersions.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dafa6cee3714e5dbebe08fa2c04b505b13cc4e76/smoke-tests/src/test/java/io/opentelemetry/smoketest/QuarkusSmokeTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d8c2a12a3a01426898d0960dbbde5b3c2b835903/smoke-tests/src/test/java/io/opentelemetry/smoketest/TestImageVersions.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d8c2a12a3a01426898d0960dbbde5b3c2b835903/smoke-tests/src/test/java/io/opentelemetry/smoketest/QuarkusSmokeTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1eac233369df55cf51f68b1f5843f0bee099edc1"
+      ],
+      "id": "PRRT_kwDODJKVX865Ud7v",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "head": "85d82e897a4794679650c9a5716910e7ce5174bd",
+  "merge": "93fc00e7e781be529f836d01165301e27d9c5f3a",
+  "merged": "2026-10-18T09:10:25Z",
+  "missing_roots": 0,
+  "number": 20684,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "\n```suggestion\n```",
+      "created": "2026-10-18T03:43:08Z",
+      "hunk": "@@ -12,6 +12,19 @@ convention not caught by CI.\n \n ## Behavior coverage\n \n+- Prefer integration tests for instrumentation behavior: exercise the library through its normal\n+  API, use a real service when relevant, and assert emitted telemetry. Use the existing baseline and\n+  latest-dependency suites for version-dependent behavior. For javaagent changes supporting multiple\n+  runtime library versions, use the installed agent against the required versions so tests cover\n+  class transformation and runtime compatibility; direct helper tests and `javaagent-unit-tests`\n+  are not integration coverage.\n+- Tests that manually invoke instrumentation callbacks, populate library response objects, or mock\n+  the library behavior being verified do not substitute for integration coverage. Running them\n+  against multiple dependency versions still bypasses the library behavior that may change.",
+      "id": "PRRT_kwDODJKVX86tnCGy",
+      "opened": "2026-10-18T03:43:08Z",
+      "path": ".github/instructions/java-tests.instructions.md",
+      "replies": [],
+      "reviewed": "c50ee90368e04d41661066561c550090d72f731b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20684#discussion_r4305602791"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n  API, use a real service when relevant, and assert emitted telemetry.\n```",
+      "created": "2026-10-18T03:44:20Z",
+      "hunk": "@@ -12,6 +12,16 @@ convention not caught by CI.\n \n ## Behavior coverage\n \n+- Prefer integration tests for instrumentation behavior: exercise the library through its normal\n+  API, use a real service when relevant, and assert emitted telemetry. Use the existing baseline and\n+  latest-dependency suites for version-dependent behavior. For javaagent changes supporting multiple\n+  runtime library versions, use the installed agent against the required versions so tests cover\n+  class transformation and runtime compatibility; direct helper tests and `javaagent-unit-tests`\n+  are not integration coverage.",
+      "id": "PRRT_kwDODJKVX86tnClN",
+      "opened": "2026-10-18T03:44:19Z",
+      "path": ".github/instructions/java-tests.instructions.md",
+      "replies": [],
+      "reviewed": "e7699461edf3ca84ce59b30926e08ca0d238ff43",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20684#discussion_r4305605760"
+    }
+  ]
+}

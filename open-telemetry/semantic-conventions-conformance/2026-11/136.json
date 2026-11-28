@@ -1,0 +1,120 @@
+{
+  "head": "8df08a0e99488b2f760d8efe2ea071f7f7699701",
+  "merge": "3b7cded48fd51cd6638db62adcf89ba300dd683b",
+  "merged": "2026-11-03T22:36:51Z",
+  "missing_roots": 0,
+  "number": 136,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This authenticated ping can succeed against the image's temporary initialization `mongod` after the root user is created. `DatabaseContainer.start()` then immediately runs the bootstrap, which can race that server's shutdown and fail intermittently. Require authorization to be enabled before accepting readiness, since the temporary daemon runs without it and the final daemon enables it.",
+      "created": "2026-10-26T01:04:17Z",
+      "hunk": "@@ -0,0 +1,73 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"MongoDB backend definition.\"\"\"\n+\n+from __future__ import annotations\n+\n+from testcontainers.core.container import DockerContainer\n+\n+from ._container import BackendSpec, DatabaseContainer\n+\n+MONGODB_DATABASE = \"conformance\"\n+MONGODB_USER = \"conformance\"\n+MONGODB_PASSWORD = \"conformance\"\n+MONGODB_ROOT_USER = \"root\"\n+MONGODB_ROOT_PASSWORD = \"conformance-root\"\n+MONGODB_PORT = 27017\n+# renovate: datasource=docker depName=mongo versioning=docker\n+MONGODB_IMAGE = \"mongo:8.0.29-noble@sha256:021b2d5ae9d253f2cca17491cc8d03aed8df3c840f3252066aa62d3277fc406e\"\n+\n+MONGODB = BackendSpec(\n+    name=\"MongoDB\",\n+    image=MONGODB_IMAGE,\n+    port=MONGODB_PORT,\n+    database=MONGODB_DATABASE,\n+    user=MONGODB_USER,\n+    password=MONGODB_PASSWORD,\n+    environment=(\n+        (\"MONGO_INITDB_ROOT_USERNAME\", MONGODB_ROOT_USER),\n+        (\"MONGO_INITDB_ROOT_PASSWORD\", MONGODB_ROOT_PASSWORD),\n+    ),\n+    ready_command=(\n+        \"mongosh\",\n+        \"--quiet\",\n+        \"--host\",\n+        \"127.0.0.1\",\n+        \"--port\",\n+        str(MONGODB_PORT),\n+        \"--username\",\n+        MONGODB_ROOT_USER,\n+        \"--password\",\n+        MONGODB_ROOT_PASSWORD,\n+        \"--authenticationDatabase\",\n+        \"admin\",\n+        \"--eval\",\n+        \"quit(db.adminCommand('ping').ok ? 0 : 1)\",",
+      "id": "PRRT_kwDOTuzK5c6wG61-",
+      "opened": "2026-10-26T01:04:17Z",
+      "path": "tools/database/runner/src/database_conformance/_mongodb.py",
+      "replies": [
+        {
+          "at": "2026-10-26T01:28:39Z",
+          "body": "Addressed in 32c25a6c25de2bb8e52cd9ac550578e34c81a27b.\n\nThe frozen probe accepted any successful authenticated ping, which does not establish that authorization is enabled. The probe now requires the server's parsed authorization setting to be enabled. The existing root credentials are retained. Added a backend readiness regression assertion and documented why bootstrap must wait for the final daemon. Focused lifecycle tests pass; executing the probe JavaScript rejects missing or disabled authorization and accepts enabled authorization.\n\n<!-- copilot-loop:fbad2b44ab14f44c3bc039662d7a3f4b232ffedde31a93fef163c230ae69313d:4373219857:837a8b96d64d46f9993932e85561052e -->",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/136#discussion_r4373292668"
+        }
+      ],
+      "reviewed": "7fb33b681d1318b709eec0b5c6333b9359dde182",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/136#discussion_r4373219857"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "question: semconv drops `db.query.text` (and `db.query.summary`) from MongoDB spans - `unref` in `model/db/mongodb.yaml` in both v1.44.0 and v1.45.0, and the example says \"not set\". Should the contract stop requiring it? Pinning the full sanitized command (`lsid`, `$db`, `$readPreference`, field order) also ties both contracts to driver internals.",
+      "created": "2026-11-03T06:19:38Z",
+      "hunk": "@@ -0,0 +1,96 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+scenarios:\n+  find:\n+    spans:\n+      - match:\n+          attributes:\n+            db.system.name: mongodb\n+            db.operation.name: find\n+        expect:\n+          count: 1\n+          attributes:\n+            db.namespace: conformance\n+            db.collection.name: items\n+            db.operation.name: find\n+            db.query.text: '{\"find\": \"items\", \"filter\": {\"_id\": \"?\"}, \"limit\": \"?\", \"singleBatch\": \"?\", \"$db\": \"?\", \"lsid\": {\"id\": \"?\"}}'",
+      "id": "PRRT_kwDOTuzK5c6zAEsT",
+      "opened": "2026-11-03T06:29:36Z",
+      "path": "scenarios/database/contracts/mongodb.yaml",
+      "replies": [
+        {
+          "at": "2026-11-03T17:07:32Z",
+          "body": "2661c5d9bae2bdd95e02dcb3bc666acb68c8bd92",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/136#discussion_r4457981331"
+        },
+        {
+          "at": "2026-11-03T21:19:53Z",
+          "body": "also\r\n- https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/21189",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/136#discussion_r4460568426"
+        }
+      ],
+      "reviewed": "bb22c8bb75b0c1ab9e50722d5ec66e5801e7d6e9",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/136#discussion_r4451503433"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "All Redis packages have an `error` scenario; without one `error.type` and `db.response.status_code` (Conditionally Required for MongoDB) are never exercised. A duplicate `_id` insert would cover it:\n\n```yaml\n  error:\n    spans:\n      - match:\n          type: db.mongodb.client\n          attributes:\n            db.operation.name: insert\n        expect:\n          count: 1\n          attributes:\n            db.namespace: conformance\n            db.collection.name: items\n            db.response.status_code: \"11000\"\n            error.type: {present: true}\n```",
+      "created": "2026-11-03T06:19:38Z",
+      "hunk": "@@ -0,0 +1,96 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+scenarios:\n+  find:\n+    spans:\n+      - match:\n+          attributes:\n+            db.system.name: mongodb\n+            db.operation.name: find\n+        expect:\n+          count: 1\n+          attributes:\n+            db.namespace: conformance\n+            db.collection.name: items\n+            db.operation.name: find\n+            db.query.text: '{\"find\": \"items\", \"filter\": {\"_id\": \"?\"}, \"limit\": \"?\", \"singleBatch\": \"?\", \"$db\": \"?\", \"lsid\": {\"id\": \"?\"}}'\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+      - &end-sessions\n+        match:\n+          attributes:\n+            db.system.name: mongodb\n+            db.operation.name: endSessions\n+        expect:\n+          count: 1\n+          attributes:\n+            db.namespace: admin\n+            db.collection.name: {present: false}\n+            db.operation.name: endSessions\n+            db.query.text: '{\"endSessions\": [{\"id\": \"?\"}], \"$db\": \"?\", \"$readPreference\": {\"mode\": \"?\"}}'\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+    metrics:\n+      - db.client.operation.duration\n+    events: []\n+\n+  update:\n+    spans:\n+      - match:\n+          attributes:\n+            db.system.name: mongodb\n+            db.operation.name: update\n+        expect:\n+          count: 1\n+          attributes:\n+            db.namespace: conformance\n+            db.collection.name: items\n+            db.operation.name: update\n+            db.query.text: '{\"update\": \"items\", \"ordered\": \"?\", \"$db\": \"?\", \"lsid\": {\"id\": \"?\"}, \"updates\": [{\"q\": {\"_id\": \"?\"}, \"u\": {\"$set\": {\"name\": \"?\"}}}]}'\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+      - *end-sessions\n+    metrics:\n+      - db.client.operation.duration\n+    events: []\n+\n+  delete:\n+    spans:\n+      - match:\n+          attributes:\n+            db.system.name: mongodb\n+            db.operation.name: delete\n+        expect:\n+          count: 1\n+          attributes:\n+            db.namespace: conformance\n+            db.collection.name: items\n+            db.operation.name: delete\n+            db.query.text: '{\"delete\": \"items\", \"ordered\": \"?\", \"$db\": \"?\", \"lsid\": {\"id\": \"?\"}, \"deletes\": [{\"q\": {\"_id\": \"?\"}, \"limit\": \"?\"}]}'\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+      - *end-sessions\n+    metrics:\n+      - db.client.operation.duration\n+    events: []\n+\n+  aggregate:\n+    spans:\n+      - match:\n+          attributes:\n+            db.system.name: mongodb\n+            db.operation.name: aggregate\n+        expect:\n+          count: 1\n+          attributes:\n+            db.namespace: conformance\n+            db.collection.name: items\n+            db.operation.name: aggregate\n+            db.query.text: '{\"aggregate\": \"items\", \"pipeline\": [{\"$match\": {\"_id\": \"?\"}}], \"cursor\": {}, \"$db\": \"?\", \"lsid\": {\"id\": \"?\"}}'\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+      - *end-sessions\n+    metrics:\n+      - db.client.operation.duration\n+    events: []",
+      "id": "PRRT_kwDOTuzK5c6zAEsV",
+      "opened": "2026-11-03T06:29:36Z",
+      "path": "scenarios/database/contracts/mongodb.yaml",
+      "replies": [
+        {
+          "at": "2026-11-03T17:21:11Z",
+          "body": "1a016621ec6a6a24df99cf91d8f95da903323476",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/136#discussion_r4458135631"
+        }
+      ],
+      "reviewed": "bb22c8bb75b0c1ab9e50722d5ec66e5801e7d6e9",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/136#discussion_r4451503436"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "MongoDB semconv doesn't define `db.query.summary` for spans, so its absence is conformant rather than an omission coverage can record (the summary-tolerance test in `test_mongodb_contracts.py` is then moot too).\n\n```suggestion\nMongoDB semantic conventions do not define `db.query.text` or\n`db.query.summary` on spans, so their absence is expected.\n```",
+      "created": "2026-11-03T06:19:38Z",
+      "hunk": "@@ -0,0 +1,35 @@\n+# MongoDB workload\n+\n+The synchronous and Reactive Streams drivers each run\n+the same operations through Java-agent and published `opentelemetry-mongo-3.1`\n+library instrumentation. Workload projects perform database operations without\n+importing OpenTelemetry; launcher projects configure instrumentation.\n+\n+| Scenario | MongoDB command |\n+| --- | --- |\n+| `find` | `find` by `_id` |\n+| `update` | `updateOne` by `_id` |\n+| `delete` | `deleteOne` by `_id` |\n+| `aggregate` | one-stage `$match` aggregation |\n+\n+Each driver's agent and library packages share named telemetry expectations in\n+the [synchronous contract](../../../contracts/mongodb.yaml) or\n+[reactive contract](../../../contracts/mongodb-reactive.yaml). The reactive\n+aggregation command includes `cursor.batchSize`, unlike the synchronous command.\n+Package configurations declare only their run commands. Each expectation also\n+accounts for the driver's `endSessions` command when the client closes.\n+\n+MongoDB instrumentation does not currently emit `db.query.summary`. Coverage\n+records that omission; the contracts accept the attribute if instrumentation\n+starts emitting it.",
+      "id": "PRRT_kwDOTuzK5c6zAEsX",
+      "opened": "2026-11-03T06:29:36Z",
+      "path": "scenarios/database/java/shared/mongodb/README.md",
+      "replies": [
+        {
+          "at": "2026-11-03T17:05:22Z",
+          "body": "46109cba92705bcec9295ddf6140119fd6a26dfa",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/136#discussion_r4457955940"
+        }
+      ],
+      "reviewed": "bb22c8bb75b0c1ab9e50722d5ec66e5801e7d6e9",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/136#discussion_r4451503440"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: no other database package sets `OTEL_LOGS_EXPORTER: none`; needed here?\r\n\r\n```suggestion\r\n```",
+      "created": "2026-11-03T06:19:38Z",
+      "hunk": "@@ -0,0 +1,32 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+runner: database-conformance\n+runner_config:\n+  backend: mongodb\n+instrumented_library: mongodb-sync\n+instrumentation_library: io.opentelemetry.javaagent:opentelemetry-javaagent\n+scenario_contract: ../../../../contracts/mongodb.yaml\n+\n+env:\n+  OTEL_LOGS_EXPORTER: none",
+      "id": "PRRT_kwDOTuzK5c6zAEsb",
+      "opened": "2026-11-03T06:29:36Z",
+      "path": "scenarios/database/java/mongodb/sync/opentelemetry-javaagent/conformance.yaml",
+      "replies": [
+        {
+          "at": "2026-11-03T21:29:21Z",
+          "body": "6b4c855de8d3b21f1d8ec9a2fc8640023cec95fa",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/136#discussion_r4460657688"
+        }
+      ],
+      "reviewed": "bb22c8bb75b0c1ab9e50722d5ec66e5801e7d6e9",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/136#discussion_r4451503449"
+    }
+  ]
+}

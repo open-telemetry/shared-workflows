@@ -1,0 +1,46 @@
+{
+  "head": "1627771b90a27f02dd16a672d52fa6adde18f5ec",
+  "merge": "0aa389063721b3e14b69829e4913b494e4592864",
+  "merged": "2026-10-28T19:55:05Z",
+  "missing_roots": 0,
+  "number": 21032,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "The problem with `getMethod` and `getDeclaredMethod` is that they load all public or all declared methods (that is on hotspot, as far as I recall j9 did this differently). If a parameter type or return type for one of these methods (doesn't have to be the method that is being requested) is missing the call will fail. Similarly since it involves loading classes it is possible for one of these types to trigger loader constrain violation (didn't try this out). In that sense what we had before https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20914 was probably safer, the mistake was not specifying a class loader for `Class.forName`. `Class.forName(\"org.springframework.http.server.RequestPath\", false, pathUtilsClass);` would probably also have fixed it.",
+      "created": "2026-10-28T12:22:26Z",
+      "hunk": "@@ -99,6 +99,19 @@ advantage. Use the design criteria above instead.\n Mixed use of reflection objects and method handles does not itself require\n conversion.\n \n+### Avoid independently resolved signature types\n+\n+For runtime compatibility discovery, `getMethod` or `getDeclaredMethod` lets the actual method",
+      "id": "PRRT_kwDODJKVX86xHXUO",
+      "opened": "2026-10-28T12:22:26Z",
+      "path": ".github/agents/knowledge/java-reflection.md",
+      "replies": [],
+      "reviewed": "bf9d6e6ef4b85c1407ccc4b20a81bdaf5d3a46b7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21032#discussion_r4400476615"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly. The user requested: \"Okay update the guidance here to be clearer and push\". Clarify .github/agents/knowledge/java-reflection.md so readers can choose between exact method-handle lookup and reflective signature discovery without interpreting a known return-type change as an automatic reason to use reflection.\n\nThe settled rule is: when a handle is needed and the supported signatures are known, default to findStatic/findVirtual, including when there are a small number of known version-specific signatures. Try those known alternatives rather than switching to getMethod merely to remove branches. Resolve non-JDK signature types through the appropriate method-declaring-class loader without initialization. Runtime discovery is appropriate when the signature genuinely needs discovery and the benefit justifies the additional dependencies. If a Method is already available, retain the recommendation to unreflect it rather than reconstructing the signature.\n\nExplain the mechanism succinctly: on HotSpot, getMethod obtains declared public methods on each class it searches before selecting the requested method; getDeclaredMethod obtains all declared methods. Creating Method objects resolves their parameter, return, and declared exception types, so unrelated signatures can load dependencies and fail with NoClassDefFoundError or linkage errors. Exact lookup avoids that broad method enumeration, but is not immune to all class-loading or linkage failures. Do not equate loading with class initialization or claim every getMethod call enumerates an entire inheritance hierarchy.\n\nKeep the existing preference for direct access when ordinary calls work, and do not recommend converting setup-only reflection or reflection needed for metadata into handles indiscriminately. Check the nearby mechanism-selection table and prose for contradictions with this default and make only directly necessary adjustments. Keep the guidance concise and present-tense. Scope is this knowledge article only; do not modify Spring, Restlet, Redisson, other production code, or unrelated review threads. Preserve this PR's ready-for-review state. Run the repository Markdown formatter on the changed file if available; documentation-only work needs no Java build.",
+      "created": "2026-10-28T18:36:02Z",
+      "hunk": "@@ -99,6 +99,26 @@ advantage. Use the design criteria above instead.\n Mixed use of reflection objects and method handles does not itself require\n conversion.\n \n+### Account for signature class loaders and lookup scope\n+\n+When a method handle is needed for an exact known signature, prefer `findStatic` or `findVirtual`.",
+      "id": "PRRT_kwDODJKVX86xREjp",
+      "opened": "2026-10-28T18:36:02Z",
+      "path": ".github/agents/knowledge/java-reflection.md",
+      "replies": [
+        {
+          "at": "2026-10-28T18:39:26Z",
+          "body": "Updated the guidance and pushed in `e25744ef`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21032#discussion_r4404626263"
+        }
+      ],
+      "reviewed": "df7d4605a7ce41f02e07a6c8f931b6188fc75111",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21032#discussion_r4404592828"
+    }
+  ]
+}

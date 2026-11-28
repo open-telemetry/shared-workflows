@@ -1,0 +1,31 @@
+{
+  "head": "2290421df8e8f37d68ffe815db94b9ed268ad462",
+  "merge": "de7c3fcb7e565b6876e817b755fbc42688e49d93",
+  "merged": "2026-10-23T06:42:35Z",
+  "missing_roots": 0,
+  "number": 20883,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing PR directly to correct the histogram advice to the recommendations merged in open-telemetry/semantic-conventions#4185 on October 21, 2026: https://github.com/open-telemetry/semantic-conventions/pull/4185. The earlier assignment used stale rendered docs; the boundary list currently added by this PR is wrong. Do not create another PR or modify unrelated PRs. Preserve this PR's current draft state and base branch.\n\nGeneral RPC client and server preview duration histograms must use exactly these 13 boundaries in seconds: [0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10, 50, 100]. The authoritative source is https://github.com/open-telemetry/semantic-conventions/blob/main/docs/rpc/rpc-metrics.md, not the stale rendered website.\n\ngRPC explicitly overrides that recommendation with these 41 A66 boundaries in seconds, INCLUDING zero: [0, 0.00001, 0.00005, 0.0001, 0.0003, 0.0006, 0.0008, 0.001, 0.002, 0.003, 0.004, 0.005, 0.006, 0.008, 0.01, 0.013, 0.016, 0.02, 0.025, 0.03, 0.04, 0.05, 0.065, 0.08, 0.1, 0.13, 0.16, 0.2, 0.25, 0.3, 0.4, 0.5, 0.65, 0.8, 1, 2, 5, 10, 20, 50, 100]. See https://github.com/open-telemetry/semantic-conventions/blob/main/docs/rpc/grpc.md#metrics. Wire BOTH gRPC client and server new-convention duration metrics to this protocol-specific recommendation, including library instrumentation and javaagent/Armeria paths that use its telemetry builder. Do not apply the gRPC list to general RPC instrumentation.\n\nRelevant shared code is instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcClientMetrics.java, RpcServerMetrics.java, and RpcMetricsAdvice.java. The gRPC caller is instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/GrpcTelemetryBuilder.java. Use the simplest repository-consistent way for the gRPC instrumentation to select its metric advice at instrumenter construction. Keep the ordinary no-argument shared RPC metric factories using the general recommendation. Do not infer metric aggregation or dynamically choose advice from per-request attributes, install SDK views inside instrumentation, add user-facing configuration, or introduce a general-purpose customization framework solely for this.\n\nPreserve semconv selection, default behavior, legacy millisecond duration histogram boundaries and units, size histograms, all metric identities/descriptions and attribute advice, error classification, unknown-method naming and explicit schema ownership. Apply the new recommendations only to rpc.client.call.duration and rpc.server.call.duration when emitted, including dual emission. User-configured views must continue to override advice. Do not remove legacy conventions, stabilize APIs, or change unrelated telemetry.\n\nUpdate existing tests to assert the exact 13 general boundaries and exact 41 gRPC boundaries independently of production constants, for BOTH client and server in preview and duplicate modes, with legacy metrics remaining unchanged in legacy and duplicate modes. Include evidence that actual gRPC telemetry-builder metrics use the 41-boundary recommendation, not merely a test of an unused helper. Preserve or extend the existing custom-view override checks for both metric families. Keep short test-local expected values in assertions in the repository's established style. Run the narrowest relevant formatter immediately before targeted tests and report the exact commands and outcomes in your coding evidence; do not wait for CI. Do not post comments on unrelated PRs or reply to human reviewers.",
+      "created": "2026-10-23T04:14:33Z",
+      "hunk": "@@ -71,7 +71,8 @@ private RpcClientMetrics(Meter meter, boolean emitOldRpcSemconv, boolean emitPre\n           meter\n               .histogramBuilder(\"rpc.client.call.duration\")\n               .setDescription(\"Measures the duration of outbound remote procedure calls (RPC).\")\n-              .setUnit(\"s\");\n+              .setUnit(\"s\")\n+              .setExplicitBucketBoundariesAdvice(RpcMetricsAdvice.DURATION_SECONDS_BUCKETS);",
+      "id": "PRRT_kwDODJKVX86veCTx",
+      "opened": "2026-10-23T04:14:33Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/RpcClientMetrics.java",
+      "replies": [
+        {
+          "at": "2026-10-23T04:30:18Z",
+          "body": "Updated in 2290421: general RPC now uses the 13 recommended boundaries, while the gRPC builder selects the 41 A66 boundaries for client and server. Added emitted-metric assertions for preview/duplicate and legacy modes. Targeted formatting and tests passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20883#discussion_r4356098852"
+        }
+      ],
+      "reviewed": "a365143279d1129bffe6177e131231782041c593",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20883#discussion_r4356018085"
+    }
+  ]
+}

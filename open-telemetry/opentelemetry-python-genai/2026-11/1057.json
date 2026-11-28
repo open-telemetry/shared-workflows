@@ -1,0 +1,88 @@
+{
+  "head": "4f32d62ad7a288438e636ea43c7f8413a4970499",
+  "merge": "df1e23b7b0b8447ea673560550989ac6efb7cdcd",
+  "merged": "2026-11-14T03:34:07Z",
+  "missing_roots": 0,
+  "number": 1057,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These regressions call extraction helpers with a fabricated SDK resource, leaving the reported exported-attribute and warning behavior untested through the instrumentation. Add cassette-backed sync/async public-client regressions, including streaming, for `NOT_GIVEN` and supported `omit`, asserting absent sampling attributes, no invalid-type warnings, and the exact `extra_body` fallback value. Follow the [public-API testing rule](https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/instrumentation/AGENTS.md#tests), using the existing sync/async `messages.create()` tests as the pattern.",
+      "created": "2026-11-07T20:05:41Z",
+      "hunk": "@@ -105,6 +108,44 @@ def test_extract_params_ignores_non_mapping_extra_body():\n     assert params.top_k is None\n \n \n+def _assert_unset_sampling_params_dropped(unset):\n+    params = extract_params(\n+        temperature=unset, top_p=unset, top_k=unset, stop_sequences=unset\n+    )\n+\n+    assert params.temperature is None\n+    assert params.top_p is None\n+    assert params.top_k is None\n+    assert params.stop_sequences is None\n+\n+    attributes = get_llm_request_attributes(\n+        params, SimpleNamespace(_client=None)\n+    )",
+      "id": "PRRT_kwDOSbspP8606Tzh",
+      "opened": "2026-11-07T20:05:41Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_messages_extractors.py",
+      "replies": [
+        {
+          "at": "2026-11-07T20:42:25Z",
+          "body": "Moved the tests to the public client in 5278314.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1057#discussion_r4503657882"
+        }
+      ],
+      "reviewed": "d0b4c5ebce5ee37ad79d95153d7081ce85a71cd3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1057#discussion_r4503536992"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: `messages`, `stream`, `system` and `tools` on `MessageRequestParams` are never read, and `extra_body` already goes through the `isinstance(extra_body, Mapping)` check, so only the fields that end up in attributes need normalizing:\n\n```suggestion\n    max_tokens = _none_if_unset(max_tokens)\n    model = _none_if_unset(model)\n    stop_sequences = _none_if_unset(stop_sequences)\n    temperature = _none_if_unset(temperature)\n    top_k = _none_if_unset(top_k)\n    top_p = _none_if_unset(top_p)\n```",
+      "created": "2026-11-12T04:14:52Z",
+      "hunk": "@@ -276,6 +292,18 @@ def extract_params(  # pylint: disable=too-many-locals\n     timeout: float | _http_lib.Timeout | None = None,\n     **_kwargs: object,\n ) -> MessageRequestParams:\n+    max_tokens = _none_if_unset(max_tokens)\n+    messages = _none_if_unset(messages)\n+    model = _none_if_unset(model)\n+    stop_sequences = _none_if_unset(stop_sequences)\n+    stream = _none_if_unset(stream)\n+    system = _none_if_unset(system)\n+    temperature = _none_if_unset(temperature)\n+    tools = _none_if_unset(tools)\n+    top_k = _none_if_unset(top_k)\n+    top_p = _none_if_unset(top_p)\n+    extra_body = _none_if_unset(extra_body)",
+      "id": "PRRT_kwDOSbspP862dwj1",
+      "opened": "2026-11-12T04:19:01Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/messages_extractors.py",
+      "replies": [
+        {
+          "at": "2026-11-13T23:33:17Z",
+          "body": "Done in b618711, thanks.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1057#discussion_r4569866009"
+        }
+      ],
+      "reviewed": "52783145f6585090d0eda121a4a8e437a53acdfa",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1057#discussion_r4546218837"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`Omit` is already exported at the supported floor (`anthropic==0.51.0` has `from ._types import NOT_GIVEN, Omit, ...` in `__init__`), only the lowercase `omit` instance is newer. So this can be a plain import (`from anthropic import NotGiven, Omit`) and the `import anthropic` / `getattr` can go:\n\n```suggestion\n_T = TypeVar(\"_T\")\n\n_UNSET_TYPES = (NotGiven, Omit)\n```",
+      "created": "2026-11-12T04:14:52Z",
+      "hunk": "@@ -254,6 +256,20 @@ def set_invocation_response_attributes(\n         invocation.output_messages = get_output_messages_from_message(message)\n \n \n+_T = TypeVar(\"_T\")\n+\n+# `Omit` was added to the anthropic SDK after the supported floor.\n+_AnthropicOmit = getattr(anthropic, \"Omit\", None)\n+_UNSET_TYPES = (\n+    (NotGiven,) if _AnthropicOmit is None else (NotGiven, _AnthropicOmit)\n+)",
+      "id": "PRRT_kwDOSbspP862dwjp",
+      "opened": "2026-11-12T04:19:01Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/messages_extractors.py",
+      "replies": [
+        {
+          "at": "2026-11-13T23:32:55Z",
+          "body": "Done in b618711, thanks.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1057#discussion_r4569863719"
+        }
+      ],
+      "reviewed": "52783145f6585090d0eda121a4a8e437a53acdfa",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1057#discussion_r4546218822"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: the docstring repeats the function name and body, so it can go:\n\n```suggestion\ndef _none_if_unset(value: _T) -> _T | None:\n```",
+      "created": "2026-11-14T03:07:54Z",
+      "hunk": "@@ -254,6 +255,16 @@ def set_invocation_response_attributes(\n         invocation.output_messages = get_output_messages_from_message(message)\n \n \n+_T = TypeVar(\"_T\")\n+\n+_UNSET_TYPES = (NotGiven, Omit)\n+\n+\n+def _none_if_unset(value: _T) -> _T | None:\n+    \"\"\"Map the SDK's NotGiven/Omit \"unset\" sentinels to None.\"\"\"",
+      "id": "PRRT_kwDOSbspP863YCwW",
+      "opened": "2026-11-14T03:13:32Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/messages_extractors.py",
+      "replies": [],
+      "reviewed": "b6187112e11986a02256d6098c6abb3a501ecb3c",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1057#discussion_r4571148707"
+    }
+  ]
+}

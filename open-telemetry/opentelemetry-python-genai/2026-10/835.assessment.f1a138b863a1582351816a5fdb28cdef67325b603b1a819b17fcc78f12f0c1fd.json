@@ -1,0 +1,34 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "f5140936a845126e679f01ec02d7d5949bfac56b34779bd26bd7e5332370dd70",
+  "input_digest": "f1a138b863a1582351816a5fdb28cdef67325b603b1a819b17fcc78f12f0c1fd",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/7b544c8fea009e2298f91294b621e24a1dc9df08/instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_langgraph_interrupt.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/435999a03f312640162fbc3cc6b22a8a3019c5ba/instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_langgraph_interrupt.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/435999a03f312640162fbc3cc6b22a8a3019c5ba/util/opentelemetry-test-util-genai/src/opentelemetry/test_util_genai/logs.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/9b6d9d4a201065f8789de737a9b3718c416c78a5"
+      ],
+      "id": "PRRT_kwDOSbspP86ohG0O",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/7b544c8fea009e2298f91294b621e24a1dc9df08/instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_langgraph_interrupt.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/435999a03f312640162fbc3cc6b22a8a3019c5ba/instrumentation/opentelemetry-instrumentation-genai-langchain/tests/test_langgraph_interrupt.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/9b6d9d4a201065f8789de737a9b3718c416c78a5"
+      ],
+      "id": "PRRT_kwDOSbspP86ohG0R",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

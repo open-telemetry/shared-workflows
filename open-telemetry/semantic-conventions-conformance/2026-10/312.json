@@ -1,0 +1,25 @@
+{
+  "head": "d611cf6042214f36b5cdb1fe44423d57b01189b9",
+  "merge": "d4aeb81c139862e6c29894391b37bcf7b2c84df5",
+  "merged": "2026-10-13T21:56:29Z",
+  "missing_roots": 0,
+  "number": 312,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This declaration is not the version installed in this scenario: `[tool.uv]` still overrides this package to `0.8.1` at line 21, and the regenerated lockfile consequently still resolves `llama-index-llms-openai` to `0.8.1` (uv.lock:11, 852-861). Update the override to `0.8.3` and regenerate the lockfile; otherwise this half of the advertised dependency update never exercises 0.8.3.",
+      "created": "2026-10-13T00:33:11Z",
+      "hunk": "@@ -4,7 +4,7 @@ version = \"0.0.0\"\n requires-python = \">=3.12\"\n dependencies = [\n     \"llama-index-core==0.14.25\",\n-    \"llama-index-llms-openai==0.8.2\",\n+    \"llama-index-llms-openai==0.8.3\",",
+      "id": "PRRT_kwDOTuzK5c6rqpFl",
+      "opened": "2026-10-13T00:33:11Z",
+      "path": "scenarios/gen-ai/python/llama-index/openinference/pyproject.toml",
+      "replies": [],
+      "reviewed": "695a25505deb8e84ed09b9baa9f36f98a76c7d92",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/312#discussion_r4253559800"
+    }
+  ]
+}

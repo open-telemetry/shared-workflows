@@ -1,0 +1,124 @@
+{
+  "head": "686a92ec674bdcc360d6609f7394b170eb22e425",
+  "merge": "9cb4aa1532862f1e203aa5652ad029d74b62b0ff",
+  "merged": "2026-10-20T07:56:45Z",
+  "missing_roots": 0,
+  "number": 20651,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Please fix the JDK 27 CI failure in this test. In https://github.com/open-telemetry/opentelemetry-java-instrumentation/actions/runs/38951432856/job/117172397357, `byteBuffer3` fails on all six executions, including retries, because `verify(mockHandler).afterDefineClass(eq(null))` expects one invocation but receives three. The class-definition assertions and the target `beforeDefineClass(...)` verification pass.\n\nThe mock handler is global, and class-loading and lambda instrumentation share its exit callback. Unstubbed entry methods return null, so verifying `afterDefineClass(null)` also counts unrelated exits. Return a distinct mocked `DefineClassContext` from the entry callback for the target loader and class bytes, configure that stub before installing the global handler, and verify `afterDefineClass(same(context))` instead. Keep the exact-once entry verification and successful class-definition assertions. Do not hard-code three invocations or weaken the assertion to `atLeastOnce()`.\n\nRun the targeted `DefineClassInstrumentationTest` on JDK 27 and the default JDK. Keep this fix scoped to the test unless further evidence demonstrates a production defect.",
+      "created": "2026-10-16T23:41:55Z",
+      "hunk": "@@ -66,19 +72,27 @@ void ensureDefineClassInstrumented(int argCount) throws IOException {\n     DefineClassHelper.Handler originalHandler =\n         DefineClassHelper.internalSetHandlerForTests(mockHandler);\n     String expectedClassName;\n+    Class<?> definedClass;\n     try {\n-      switch (argCount) {\n-        case 3:\n+      switch (signature) {\n+        case \"byteArray3\":\n           expectedClassName = null;\n-          cl.doDefineClass(bytecode, 0, bytecode.length);\n+          definedClass = cl.doDefineClass(bytecode, 0, bytecode.length);\n+          break;\n+        case \"byteArray4\":\n+          expectedClassName = className;\n+          definedClass = cl.doDefineClass(className, bytecode, 0, bytecode.length);\n           break;\n-        case 4:\n+        case \"byteArray5\":\n           expectedClassName = className;\n-          cl.doDefineClass(className, bytecode, 0, bytecode.length);\n+          definedClass = cl.doDefineClass(className, bytecode, 0, bytecode.length, null);\n           break;\n-        case 5:\n+        case \"byteBuffer3\":\n           expectedClassName = className;\n-          cl.doDefineClass(className, bytecode, 0, bytecode.length, null);\n+          ByteBuffer buffer = ByteBuffer.allocateDirect(bytecode.length);",
+      "id": "PRRT_kwDODJKVX86tact5",
+      "opened": "2026-10-16T23:41:55Z",
+      "path": "instrumentation/internal/internal-class-loader/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/internal/classloader/DefineClassInstrumentationTest.java",
+      "replies": [
+        {
+          "at": "2026-10-16T23:54:30Z",
+          "body": "Fixed in 51e1c2da. The test now verifies the distinct context returned for the target definition, while retaining exact-once entry and class-definition assertions. The focused test passes on JDK 25 and 27.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20651#discussion_r4300349125"
+        }
+      ],
+      "reviewed": "9390b5be199bb50cc3c7b5bc3e689f380388e2b5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20651#discussion_r4300282840"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] This matcher now also selects `write(byte[], int, int)`, applying both byte-array advices to that overload. In both Servlet 3 and Servlet 5, the whole-array advice passes `0, write.length` to the snippet-injection helper instead of the requested offset and length. With injection enabled, a `<head>` outside the requested slice can cause the entire backing buffer to be written and the original sliced write to be skipped, corrupting the response or exposing unused buffer contents. Restore `takesArguments(1)` here to keep the overloads disjoint.",
+      "created": "2026-10-17T00:19:05Z",
+      "hunk": "@@ -48,17 +47,16 @@ public ElementMatcher<TypeDescription> typeMatcher() {\n   public void transform(TypeTransformer transformer) {\n     transformer.applyAdviceToMethod(\n         named(\"write\")\n-            .and(takesArguments(3))\n             .and(takesArgument(0, byte[].class))\n             .and(takesArgument(1, int.class))\n             .and(takesArgument(2, int.class))\n             .and(isPublic()),\n         writeBytesAndOffsetAdviceClassName);\n     transformer.applyAdviceToMethod(\n-        named(\"write\").and(takesArguments(1)).and(takesArgument(0, byte[].class)).and(isPublic()),\n+        named(\"write\").and(takesArgument(0, byte[].class)).and(isPublic()),",
+      "id": "PRRT_kwDODJKVX86ta1eu",
+      "opened": "2026-10-17T00:19:05Z",
+      "path": "instrumentation/servlet/servlet-common/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/servlet/common/service/ServletOutputStreamInstrumentation.java",
+      "replies": [],
+      "reviewed": "43929555959aa45c13de1985ce59159dc5082f18",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20651#discussion_r4300449600"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] Removing the first-argument check also selects the legacy `CoreProtostellar(Core, ..., Set)` constructor already handled by `LegacyConstructorAdvice`. `CoreConstructorAdvice` expects `@Advice.This Core`, but that constructor's receiver is a `CoreProtostellar`, not a `Core`. This introduces an incompatible receiver binding and an instrumentation failure on the legacy constructor path. Keep these matchers disjoint by restricting this advice to constructors declared by `Core`, or restore the `CoreEnvironment` argument check.",
+      "created": "2026-10-17T00:35:04Z",
+      "hunk": "@@ -36,7 +36,6 @@ public void transform(TypeTransformer transformer) {\n     transformer.applyAdviceToMethod(\n         isConstructor()\n             .and(takesArguments(3))\n-            .and(takesArgument(0, named(\"com.couchbase.client.core.env.CoreEnvironment\")))\n             .and(takesArgument(2, named(\"java.util.Set\"))),",
+      "id": "PRRT_kwDODJKVX86ta-kp",
+      "opened": "2026-10-17T00:35:04Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_2/CouchbaseProtostellarCoreInstrumentation.java",
+      "replies": [],
+      "reviewed": "9f058cd72e1101f984a76d3da6b4de7400481eb8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20651#discussion_r4300510002"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Please fix all of the following on this PR's existing branch.\n\n- In `CouchbaseProtostellarCoreInstrumentation.java`, restrict `CoreConstructorAdvice` to constructors declared by `com.couchbase.client.core.Core`, using `.and(isDeclaredBy(named(\"com.couchbase.client.core.Core\")))`. The current matcher also selects the supported Couchbase 3.4.3 `CoreProtostellar(Core, Authenticator, Set)` constructor. `CoreProtostellar` does not extend `Core`, so `@Advice.This Core` is incompatible. Keep the legacy constructor advice separate. This fixes the open review finding without restoring an unused-argument type constraint.\n- In the Google HTTP client module's `GoogleHttpRequestInstrumentation.java`, restore the static `ElementMatchers.takesArguments` import. The synchronous `execute` matcher still calls `takesArguments(0)` and currently fails compilation.\n- In Lettuce 4's `LettuceObservableCommandInstrumentation.java`, restore the static `ElementMatchers.takesArgument` import. The throwable matcher still calls `takesArgument(0, Throwable.class)` and currently fails compilation.\n- In Kafka's `KafkaConsumerInstrumentation.java`, remove the unused `java.time.Duration` import. Error Prone reports it and `-Werror` fails compilation.\n- In Vert.x SQL client 5's `ConnectionFactoryInstrumentation.java`, remove the unused static `ElementMatchers.takesArguments` import. This also fails compilation under `-Werror`.\n- Apply scoped Spotless tasks to the modules changed by this PR. The current Spotless job first fails on `ActivejAsyncServletInstrumentation.java`, where the simplified `serve` matcher should fit on one line. Because the job stops at its first violation, there may be more formatting issues in the touched files.\n\nCompile the affected modules and run the existing installed-agent Couchbase 3.4.3 and 3.4.4 tests, including `version343Test` and `version344Test`. Recheck CI after these fixes. The current build, test, latest-dependency, smoke-test, examples, and muzzle failures largely cascade from the compilation blockers above; do not treat each red job as an independent runtime bug.\n\nKeep the agreed batch rule: remove type constraints on arguments the advice does not use, and remove argument-count constraints that are unnecessary for advice compatibility or selecting the intended supported methods. Argument use includes `AllArguments`, helper calls, descriptor interpretation, and argument replacement. Relaxing constraints on used `Object` arguments remains outside this batch.\n\nPreserve the PR's current title, description, and ready-for-review state. Leave existing review threads unresolved.",
+      "created": "2026-10-17T00:51:09Z",
+      "hunk": "@@ -36,7 +36,6 @@ public void transform(TypeTransformer transformer) {\n     transformer.applyAdviceToMethod(\n         isConstructor()\n             .and(takesArguments(3))\n-            .and(takesArgument(0, named(\"com.couchbase.client.core.env.CoreEnvironment\")))\n             .and(takesArgument(2, named(\"java.util.Set\"))),",
+      "id": "PRRT_kwDODJKVX86tbIBm",
+      "opened": "2026-10-17T00:51:08Z",
+      "path": "instrumentation/couchbase/couchbase-3.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_2/CouchbaseProtostellarCoreInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-10-17T01:08:44Z",
+          "body": "Fixed in 9c585dfb. `CoreConstructorAdvice` now only matches constructors declared by `Core`; the Google HTTP client and Lettuce imports are restored. Kafka and Vert.x import cleanup was already included in c64324f0. Scoped formatting, affected-module compilation, and Couchbase `version343Test`/`version344Test` passed; the latest full PR build is still running.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20651#discussion_r4300644286"
+        }
+      ],
+      "reviewed": "9f058cd72e1101f984a76d3da6b4de7400481eb8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20651#discussion_r4300573747"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Please fix the remaining ClassLoader CI regression on this PR's existing branch. Add `.and(takesArguments(5))` to this byte-array `defineClass` matcher and restore the static import for `takesArguments`. Keep the unused `ProtectionDomain` type check removed.\n\nThe current matcher selects both `defineClass(String, byte[], int, int)` and `defineClass(String, byte[], int, int, ProtectionDomain)`. The four-argument wrapper delegates to the five-argument overload, so the advice invokes `beforeDefineClass` twice for one class definition. This is an argument-count constraint we must retain to select the intended method and avoid double advice on a delegating wrapper.\n\nIn https://github.com/open-telemetry/opentelemetry-java-instrumentation/actions/runs/38989325638/job/117268182158, `DefineClassInstrumentationTest.ensureDefineClassInstrumented` fails for `byteArray4` on every retry with `TooManyActualInvocations`: one `beforeDefineClass` invocation expected, two received. The latest-dependency job reports the same failure. This is different from the earlier unrelated null-context exit-callback verification problem.\n\nKeep the test's exact-once entry verification, context-specific exit verification, and successful class-definition assertions. Do not weaken the assertions to accept two callbacks or use `atLeastOnce()`. Keep this fix scoped to the byte-array matcher and its import.\n\nRun the module's scoped Spotless apply task, then `:instrumentation:internal:internal-class-loader:javaagent:test --tests '*DefineClassInstrumentationTest'` on the repository's default JDK and recheck CI. Preserve the existing PR title, description, and ready-for-review state. Leave existing review threads unresolved.",
+      "created": "2026-10-17T01:47:44Z",
+      "hunk": "@@ -29,13 +28,15 @@ public ElementMatcher<TypeDescription> typeMatcher() {\n   public void transform(TypeTransformer transformer) {\n     transformer.applyAdviceToMethod(\n         named(\"defineClass\")\n-            .and(\n-                takesArguments(\n-                    String.class, byte[].class, int.class, int.class, ProtectionDomain.class)),\n+            .and(takesArgument(0, String.class))\n+            .and(takesArgument(1, byte[].class))\n+            .and(takesArgument(2, int.class))\n+            .and(takesArgument(3, int.class)),",
+      "id": "PRRT_kwDODJKVX86tbn-o",
+      "opened": "2026-10-17T01:47:44Z",
+      "path": "instrumentation/internal/internal-class-loader/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/internal/classloader/DefineClassInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-10-17T01:58:27Z",
+          "body": "Fixed in `252c3511`. Restored `takesArguments(5)` and its import while keeping the `ProtectionDomain` type constraint removed. Scoped Spotless and all four `DefineClassInstrumentationTest` cases passed on JDK 25. The new PR build is pending and CodeQL is in progress.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20651#discussion_r4300819785"
+        }
+      ],
+      "reviewed": "9c585dfbb8d52303e5792c316c135f7020fcc162",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20651#discussion_r4300787891"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Please replace the `takesArgument(1, any())` existence check here with an explicit `namedOneOf` matcher for the two supported connection-string types:\n\n```java\nisConstructor()\n    .and(\n        takesArgument(\n            1,\n            namedOneOf(\n                \"com.couchbase.client.java.ConnectionString\",\n                \"com.couchbase.client.core.utils.ConnectionString\")))\n```\n\nThe first name appears in the earlier Couchbase 2.x constructors and the second in later 2.x constructors. These are the two argument types found when inspecting the cached 2.x library releases. Match their names rather than adding a custom minimum-arity lambda or retaining `any()`. The positional type matcher already guarantees argument 1 exists.\n\nKeep `@Advice.Argument(1) Object connectionString` in the advice so it can receive either class. Do not use `takesArgument(1, Object.class)`, which would require the constructor parameter to be declared exactly as `Object`. Keep the unused boolean constraint and unnecessary exact argument count removed.\n\nKeep this change scoped to the constructor matcher and its imports. Run the module's scoped Spotless apply task and the relevant Couchbase tests for both connection-string package eras. Preserve the PR's current title, description, and ready-for-review state, and leave existing review threads unresolved.",
+      "created": "2026-10-17T02:46:28Z",
+      "hunk": "@@ -31,8 +31,7 @@ public ElementMatcher<TypeDescription> typeMatcher() {\n   @Override\n   public void transform(TypeTransformer transformer) {\n     transformer.applyAdviceToMethod(\n-        isConstructor().and(takesArguments(3)).and(takesArgument(2, boolean.class)),\n-        getClass().getName() + \"$ConstructorAdvice\");\n+        isConstructor().and(takesArgument(1, any())), getClass().getName() + \"$ConstructorAdvice\");",
+      "id": "PRRT_kwDODJKVX86tcDCs",
+      "opened": "2026-10-17T02:46:28Z",
+      "path": "instrumentation/couchbase/couchbase-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v2_0/CouchbaseClusterTargetInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-10-17T02:56:40Z",
+          "body": "Updated in 8f6bdaf5: the matcher now selects constructors whose second argument is either supported connection-string type, while retaining the Object advice binding and leaving unrelated selector constraints removed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20651#discussion_r4301001982"
+        }
+      ],
+      "reviewed": "252c35112475d177cc1b22f6816d84f73d8ec8c9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20651#discussion_r4300967135"
+    }
+  ]
+}

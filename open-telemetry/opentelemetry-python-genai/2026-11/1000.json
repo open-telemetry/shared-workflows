@@ -1,0 +1,124 @@
+{
+  "head": "1ba5cde5a16c36d9a6a1c50c51f5e287e5b9d85a",
+  "merge": "87ba44b0fede005b145cf01aa51a24fd0cb04c19",
+  "merged": "2026-11-03T05:21:51Z",
+  "missing_roots": 0,
+  "number": 1000,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Counting only `FunctionSpanData` underreports tool calls: in supported SDK v0.3.3, [`ComputerAction.execute` and `LocalShellAction.execute`](https://github.com/openai/openai-agents-python/blob/v0.3.3/src/agents/_run_impl.py#L1266-L1424) execute client-side tools without creating function spans. Agents using these tools therefore report zero or partial totals, although the [metric definition](https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-metrics.md#metric-gen_aiinvoke_agenttool_calls) includes these executions. Observe those execution paths without double-counting function spans, or leave the metric unset when a complete count is unavailable, and add regression coverage.",
+      "created": "2026-10-28T19:32:48Z",
+      "hunk": "@@ -108,8 +113,27 @@ def on_span_start(self, span: Span[Any]) -> None:\n             invocation = self._handler.invoke_local_agent(\n                 agent_name=span_data.name,\n             )\n+            invocation.inference_calls = 0\n+            invocation.tool_calls = 0\n             self._invocations[span] = invocation\n+            self._agent_spans[span.span_id] = span\n             return\n+        agent_span = (\n+            self._agent_spans.get(span.parent_id)\n+            if span.parent_id is not None\n+            else None\n+        )\n+        agent = (\n+            self._invocations.get(agent_span)\n+            if agent_span is not None\n+            else None\n+        )\n+        if agent_span is not None and isinstance(agent, LocalAgentInvocation):\n+            self._agent_spans[span.span_id] = agent_span\n+            if isinstance(span_data, (GenerationSpanData, ResponseSpanData)):\n+                agent.inference_calls = (agent.inference_calls or 0) + 1\n+            elif isinstance(span_data, FunctionSpanData):\n+                agent.tool_calls = (agent.tool_calls or 0) + 1",
+      "id": "PRRT_kwDOSbspP86xSdjG",
+      "opened": "2026-10-28T19:32:48Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai-agents/src/opentelemetry/instrumentation/genai/openai_agents/processor.py",
+      "replies": [
+        {
+          "at": "2026-10-28T19:44:28Z",
+          "body": "Good catch. I’ve changed this to omit the tool-call metric for agents configured with computer or local-shell tools rather than report an incomplete total. Inference counts remain available.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1000#discussion_r4405308112"
+        }
+      ],
+      "reviewed": "1a022a09e9b461ca4788598e93b72e749e1e5eeb",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1000#discussion_r4405189537"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Requiring every configured tool to produce a function span discards valid counts for function-only agents: using one of two tools loses the count of 1, and using neither loses the zero sample. This biases the histogram toward runs that execute every configured tool. Determine completeness from tool types or tracing capabilities rather than whether each tool ran, preserve omission for genuinely unobservable client-side tools, and add regression coverage for unused ordinary function tools.",
+      "created": "2026-10-28T20:38:17Z",
+      "hunk": "@@ -122,10 +162,40 @@ def on_span_start(self, span: Span[Any]) -> None:\n         # are intentionally ignored. LLM-level spans come from the openai\n         # instrumentation; the rest have no semconv yet.\n \n+    def _record_agent_tools(\n+        self,\n+        span: Span[AgentSpanData],\n+        function_name: str | None = None,\n+    ) -> None:\n+        verified = self._verified_tools.get(span)\n+        if verified is None:\n+            return\n+        tools = span.span_data.tools\n+        if tools is None or len(set(tools)) != len(tools):\n+            self._verified_tools[span] = None\n+            return\n+        for name in tools:\n+            verified.setdefault(name, False)\n+        if function_name is not None:\n+            verified[function_name] = True\n+\n+    def _agent_tools_complete(self, span: Span[AgentSpanData]) -> bool:\n+        self._record_agent_tools(span)\n+        verified = self._verified_tools.pop(span, None)\n+        return verified is not None and all(verified.values())",
+      "id": "PRRT_kwDOSbspP86xT8wz",
+      "opened": "2026-10-28T20:38:18Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai-agents/src/opentelemetry/instrumentation/genai/openai_agents/processor.py",
+      "replies": [],
+      "reviewed": "b124741679b5e360b88dc26397e11c0b02c8a76b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1000#discussion_r4405825799"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "In supported SDK v0.24.0, [`on_llm_start` runs once before the runner's retry helper](https://github.com/openai/openai-agents-python/blob/v0.24.0/src/agents/run_internal/run_loop.py#L2967-L3042), so a failed model attempt followed by a successful retry records 1 inference call instead of 2. Streaming and exhausted retries are also undercounted, contrary to the [metric definition's inclusion of failed calls](https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-metrics.md#metric-gen_aiinvoke_agentinference_calls). Count individual model attempts or reconcile retry-aware counts, including terminal failures, and add streaming and non-streaming retry regression tests.",
+      "created": "2026-10-29T19:46:18Z",
+      "hunk": "@@ -148,13 +158,79 @@ def on_span_end(self, span: Span[Any]) -> None:\n             return\n         invocation.stop()\n \n+    def _get_current_agent(self) -> LocalAgentInvocation | None:\n+        span = get_current_span()\n+        agent_span = (\n+            self._agent_spans.get(span.span_id) if span is not None else None\n+        )\n+        invocation = (\n+            self._invocations.get(agent_span)\n+            if agent_span is not None\n+            else None\n+        )\n+        return (\n+            invocation\n+            if isinstance(invocation, LocalAgentInvocation)\n+            else None\n+        )\n+\n     def shutdown(self) -> None:\n         for invocation in list(self._invocations.values()):\n             try:\n                 invocation.stop()\n             except Exception:  # pylint: disable=broad-except\n                 pass\n         self._invocations.clear()\n+        self._agent_spans.clear()\n \n     def force_flush(self) -> None:  # pragma: no cover - nothing to flush\n         pass\n+\n+\n+class GenAIRunHooks(RunHooks[Any]):\n+    \"\"\"Count execution events while forwarding application lifecycle hooks.\"\"\"\n+\n+    def __init__(\n+        self,\n+        hooks: RunHooks[Any] | None,\n+        processor: GenAITracingProcessor,\n+    ) -> None:\n+        self._hooks = hooks if hooks is not None else RunHooks()\n+        self._processor = processor\n+\n+    def _get_invocation(self) -> LocalAgentInvocation | None:\n+        invocation = self._processor._get_current_agent()\n+        if invocation is not None:\n+            if invocation.inference_calls is None:\n+                invocation.inference_calls = 0\n+            if invocation.tool_calls is None:\n+                invocation.tool_calls = 0\n+        return invocation\n+\n+    async def on_agent_start(self, *args: Any, **kwargs: Any) -> None:\n+        self._get_invocation()\n+        await self._hooks.on_agent_start(*args, **kwargs)\n+\n+    async def on_agent_end(self, *args: Any, **kwargs: Any) -> None:\n+        await self._hooks.on_agent_end(*args, **kwargs)\n+\n+    async def on_llm_start(self, *args: Any, **kwargs: Any) -> None:\n+        invocation = self._get_invocation()\n+        if invocation is not None:\n+            invocation.inference_calls = (invocation.inference_calls or 0) + 1",
+      "id": "PRRT_kwDOSbspP86xuefe",
+      "opened": "2026-10-29T19:46:19Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai-agents/src/opentelemetry/instrumentation/genai/openai_agents/processor.py",
+      "replies": [],
+      "reviewed": "30833517ccb35243dffbdb4b3eaba6d3d5ab10f9",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1000#discussion_r4417132021"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Any `RunHooks` callback the SDK adds later (like `on_llm_start`/`on_llm_end` were) resolves to the inherited no-op here, so the user's override is silently dropped once they upgrade the SDK. `test_run_hooks_implement_sdk_callbacks` only catches it for the tested version. Maybe forward everything not overridden:\n\n```python\n    def __getattribute__(self, name: str) -> Any:\n        if name.startswith(\"on_\") and name not in GenAIRunHooks.__dict__:\n            return getattr(object.__getattribute__(self, \"_hooks\"), name)\n        return object.__getattribute__(self, name)\n```",
+      "created": "2026-10-31T19:21:11Z",
+      "hunk": "@@ -148,13 +158,82 @@ def on_span_end(self, span: Span[Any]) -> None:\n             return\n         invocation.stop()\n \n+    def _get_current_agent(self) -> LocalAgentInvocation | None:\n+        span = get_current_span()\n+        agent_span = (\n+            self._agent_spans.get(span.span_id) if span is not None else None\n+        )\n+        invocation = (\n+            self._invocations.get(agent_span)\n+            if agent_span is not None\n+            else None\n+        )\n+        return (\n+            invocation\n+            if isinstance(invocation, LocalAgentInvocation)\n+            else None\n+        )\n+\n     def shutdown(self) -> None:\n         for invocation in list(self._invocations.values()):\n             try:\n                 invocation.stop()\n             except Exception:  # pylint: disable=broad-except\n                 pass\n         self._invocations.clear()\n+        self._agent_spans.clear()\n \n     def force_flush(self) -> None:  # pragma: no cover - nothing to flush\n         pass\n+\n+\n+class GenAIRunHooks(RunHooks[Any]):",
+      "id": "PRRT_kwDOSbspP86yT482",
+      "opened": "2026-10-31T19:27:29Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai-agents/src/opentelemetry/instrumentation/genai/openai_agents/processor.py",
+      "replies": [
+        {
+          "at": "2026-11-02T18:20:28Z",
+          "body": "Addressed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1000#discussion_r4446098955"
+        }
+      ],
+      "reviewed": "51167c3e02d917ee519441d6c251330fbedb6dc4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1000#discussion_r4432999159"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "semconv defines the inference span as a [logical client call](https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/client-inference.md#span-gen_aiclientinference), not a per-try one, so `inference_calls` should count logical calls too. `on_llm_start` already does that, so maybe drop the retry-helper patching (`_original_retry_functions`, `_wrap_model_retry`, `count_inference_calls`)? That also removes the dependency on the private `agents.run_internal.run_loop` module.\n",
+      "created": "2026-10-31T19:21:11Z",
+      "hunk": "@@ -92,6 +105,16 @@ def _instrument(self, **kwargs: Any) -> None:\n         if self._processor is not None:\n             return\n \n+        if hasattr(ModelSettings, \"retry\"):\n+            retry_module = import_module(\"agents.run_internal.run_loop\")\n+            self._original_retry_functions = {\n+                name: getattr(retry_module, name)\n+                for name in (\n+                    \"get_response_with_retry\",\n+                    \"stream_response_with_retry\",\n+                )\n+            }",
+      "id": "PRRT_kwDOSbspP86yT48v",
+      "opened": "2026-10-31T19:27:29Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai-agents/src/opentelemetry/instrumentation/genai/openai_agents/__init__.py",
+      "replies": [
+        {
+          "at": "2026-11-02T18:20:27Z",
+          "body": "Addressed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1000#discussion_r4446098684"
+        }
+      ],
+      "reviewed": "51167c3e02d917ee519441d6c251330fbedb6dc4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1000#discussion_r4432999152"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit:\n\n```suggestion\nRecord agent inference and tool call count metrics\n```",
+      "created": "2026-10-31T19:26:04Z",
+      "hunk": "@@ -0,0 +1 @@\n+Record agent inference attempts, including retries, and client-side tool call metrics",
+      "id": "PRRT_kwDOSbspP86yT6_u",
+      "opened": "2026-10-31T19:27:29Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-openai-agents/.changelog/1000.added",
+      "replies": [
+        {
+          "at": "2026-11-02T18:20:34Z",
+          "body": "Addressed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1000#discussion_r4446100058"
+        }
+      ],
+      "reviewed": "51167c3e02d917ee519441d6c251330fbedb6dc4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1000#discussion_r4433012460"
+    }
+  ]
+}

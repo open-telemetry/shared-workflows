@@ -1,0 +1,31 @@
+{
+  "head": "bf17be16a3280739eec2364252d0e8fcf706b1d5",
+  "merge": "39667f4dc75942d29fa7df5043fd059529bad9a8",
+  "merged": "2026-11-22T19:44:45Z",
+  "missing_roots": 0,
+  "number": 21368,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing PR directly on `open-telemetry/opentelemetry-java-instrumentation:copilot/shutdown-cleanup`. Keep the cloud-assigned branch and any platform-assigned follow-up branch. Do not rename or replace branches or open a separate PR yourself. Keep the existing base and draft state.\n\nNarrow this PR to Vibur DBCP cleanup. HikariCP and runtime telemetry already close the observable handles they own. A separate SDK fix will release the callback registrations from closed handles, so defer that SDK retention bug rather than working around it here. Do not wait for the SDK fix or change SDK versions.\n\nDrop this PR's changes to HikariCP `OpenTelemetryMetricsTracker` and runtime telemetry `RuntimeTelemetry` and Java 17 `RecordedEventHandler`. Restore their existing callback close behavior, including the user metrics tracker cleanup and runtime telemetry error handling.\n\nKeep the `ViburDbcpDataSourceInstrumentation` advice on zero-argument `terminate()` so both a direct `terminate()` and `close()` unregister the pool's observable metrics. In supported Vibur, `close()` calls `terminate()`. Keep the regression for direct termination and the existing coverage for close, including the post-shutdown metric absence assertion. The final PR diff should be limited to `instrumentation/vibur-dbcp-11.0`.\n\nRun the narrowest applicable `spotlessApply` directly, then the focused Vibur javaagent and library tests with the repo's required JDK if available. Report any validation blocker. Do not change any other PR or add unrelated fixes.",
+      "created": "2026-11-20T05:04:52Z",
+      "hunk": "@@ -32,7 +32,7 @@ public void transform(TypeTransformer transformer) {\n     transformer.applyAdviceToMethod(\n         named(\"start\").and(takesArguments(0)), getClass().getName() + \"$StartAdvice\");\n     transformer.applyAdviceToMethod(\n-        named(\"close\").and(takesArguments(0)), getClass().getName() + \"$CloseAdvice\");\n+        named(\"terminate\").and(takesArguments(0)), getClass().getName() + \"$TerminateAdvice\");",
+      "id": "PRRT_kwDODJKVX8652CHc",
+      "opened": "2026-11-20T05:04:52Z",
+      "path": "instrumentation/vibur-dbcp-11.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/viburdbcp/v11_0/ViburDbcpDataSourceInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-11-20T05:15:07Z",
+          "body": "Updated in `4dec3c22`: restored the HikariCP and runtime telemetry files, kept Vibur cleanup on zero-argument `terminate()`, and retained direct-terminate and close metric-absence coverage. Spotless and focused Vibur javaagent/library tests passed on Java 25. CodeQL timed out; its tool instructed not to retry.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21368#discussion_r4638751907"
+        }
+      ],
+      "reviewed": "270757cf7dbfba340c18055e0652383d8f503e4c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21368#discussion_r4638687389"
+    }
+  ]
+}

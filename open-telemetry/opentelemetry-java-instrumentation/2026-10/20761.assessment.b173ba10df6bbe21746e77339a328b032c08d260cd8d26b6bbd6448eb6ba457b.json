@@ -1,0 +1,45 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "8f2304c14f4373e98dcac931dd31ab53ce550db3128e05d46e77306f15777a82",
+  "input_digest": "b173ba10df6bbe21746e77339a328b032c08d260cd8d26b6bbd6448eb6ba457b",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9916458be6153191df52f67252c9d85658cf5a8f/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/instrumenter/InstrumenterBuilder.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/57fda9976244c91dde1b17156a7de8fe01f028fd/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/instrumenter/InstrumenterBuilder.java"
+      ],
+      "id": "PRRT_kwDODJKVX86uhPJ9",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fbde88110371fef19a67eeb53bc2fc8a2db552c0/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/HttpInstrumenterSchemaTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/57fda9976244c91dde1b17156a7de8fe01f028fd/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/HttpInstrumenterSchemaTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fbde88110371fef19a67eeb53bc2fc8a2db552c0/instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/instrumenter/InstrumenterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/57fda9976244c91dde1b17156a7de8fe01f028fd/instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/instrumenter/InstrumenterTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86uhX9Q",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/14d292de6185635b6ba1ec5dee32f6ed6ba277c6/docs/contributing/using-instrumenter-api.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/57fda9976244c91dde1b17156a7de8fe01f028fd/docs/contributing/using-instrumenter-api.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/57fda9976244c91dde1b17156a7de8fe01f028fd"
+      ],
+      "id": "PRRT_kwDODJKVX86uhmGC",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

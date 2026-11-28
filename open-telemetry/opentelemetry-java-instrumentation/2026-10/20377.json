@@ -1,0 +1,112 @@
+{
+  "head": "5915e623ac3030fde5d8ddd4e49e8330e5b58a7b",
+  "merge": "02a00ba23d37e5b2763333cf091ff00880d12325",
+  "merged": "2026-10-05T19:07:39Z",
+  "missing_roots": 0,
+  "number": 20377,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n### ⚠️ Breaking changes to non-stable APIs\n```",
+      "created": "2026-10-03T23:36:16Z",
+      "hunk": "@@ -2,6 +2,14 @@\n \n ## Unreleased\n \n+### ⚠️ Breaking changes",
+      "id": "PRRT_kwDODJKVX86otDd1",
+      "opened": "2026-10-03T23:36:16Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "6a21a78b5f5cc74e4d6c8785cb4fa110156fe691",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20377#discussion_r4175410241"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n- Remove `otel.javaagent.experimental.indy` and `distribution.javaagent.indy/development`.\n  The javaagent now always uses invokedynamic for compatible instrumentation.\n  Instrumentation that intentionally uses inlined advice remains supported.\n```",
+      "created": "2026-10-03T23:36:51Z",
+      "hunk": "@@ -2,6 +2,14 @@\n \n ## Unreleased\n \n+### ⚠️ Breaking changes to non-stable APIs\n+\n+- Remove `otel.javaagent.experimental.indy` and `distribution.javaagent.indy/development`.\n+  The javaagent now always uses invokedynamic for compatible instrumentation. Remove these settings\n+  from your configuration; there is no global opt-out. Instrumentation that intentionally uses\n+  inlined advice remains supported.",
+      "id": "PRRT_kwDODJKVX86otDs0",
+      "opened": "2026-10-03T23:36:50Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "6bfa25f34d2063ede2ad0f28cc73c9cc77e164e7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20377#discussion_r4175411680"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "`invokedynamic` is an implementation detail, perhaps it would be better to talk about inline and non-inline advice",
+      "created": "2026-10-05T07:45:50Z",
+      "hunk": "@@ -1,23 +1,22 @@\n # Debugging\n \n-Debugging javaagent instrumentation can be a challenging task since instrumentation\n-code is directly inlined into target classes.\n+Debugging advice methods depends on whether the instrumentation uses invokedynamic",
+      "id": "PRRT_kwDODJKVX86o8Y1F",
+      "opened": "2026-10-05T07:45:50Z",
+      "path": "docs/contributing/debugging.md",
+      "replies": [],
+      "reviewed": "028d763fb6732adc7000e9dcd04012947bdb8ca4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20377#discussion_r4181722390"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "did you need this because of the early java 8 test? Another option could be to remove `inline = false` from the advice in `InnerClassLambdaMetafactoryInstrumentation`. Then `getAdditionalHelperClassNames` could also be deleted.",
+      "created": "2026-10-05T07:49:33Z",
+      "hunk": "@@ -24,6 +26,13 @@ public boolean defaultEnabled() {\n     return true;\n   }\n \n+  @Override\n+  public HelperClassStrategy helperClassStrategy() {",
+      "id": "PRRT_kwDODJKVX86o8dNP",
+      "opened": "2026-10-05T07:49:32Z",
+      "path": "instrumentation/internal/internal-lambda/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/internal/lambda/LambdaInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-10-05T16:59:46Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20377/commits/77d1ede53befbf5f3311a43bb123d4017a3e912c",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20377#discussion_r4186594957"
+        }
+      ],
+      "reviewed": "028d763fb6732adc7000e9dcd04012947bdb8ca4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20377#discussion_r4181748898"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-05T16:06:41Z",
+      "hunk": "@@ -20,6 +20,9 @@ auto-instrumentations using that java version which runs the Gradle build\n itself. These tests usually use the minimal supported version of the\n instrumented library.\n \n+The javaagent uses non-inline advice for compatible instrumentation, including in tests. Instrumentation\n+that intentionally uses inline advice remains supported.\n+",
+      "id": "PRRT_kwDODJKVX86pHSQw",
+      "opened": "2026-10-05T16:06:40Z",
+      "path": "docs/contributing/running-tests.md",
+      "replies": [],
+      "reviewed": "bdd396f969fb3a9dd32e044c857bfea6490895dc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20377#discussion_r4186110598"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This new inline/non-inline distinction conflicts with the retained paragraph below, which still says disabling inlining should only be used for debugging. Non-inline advice is now a normal supported mechanism, so clarify that only temporarily changing an otherwise inline advice for debugging is discouraged; otherwise readers are told both that `inline = false` is supported and that it should not be used.",
+      "created": "2026-10-05T16:46:55Z",
+      "hunk": "@@ -1,23 +1,20 @@\n # Debugging\n \n-Debugging javaagent instrumentation can be a challenging task since instrumentation\n-code is directly inlined into target classes.\n+Debugging advice methods depends on whether the advice is inline or non-inline.\n \n-## Indy compatible instrumentation\n+## Non-inline advice methods\n \n-For instrumentation that has been migrated to use the\n-[invokedynamic based instrumentation mechanism](https://github.com/open-telemetry/opentelemetry-java-instrumentation/issues/8999),\n-you can leverage breakpoints and standard debugging strategies by adding `-PtestIndy=true` to the\n-gradle command when running tests:\n+Non-inline advice methods are annotated with `@Advice.OnMethodEnter(inline = false)` or\n+`@Advice.OnMethodExit(inline = false)`. Breakpoints work in these methods when running tests:\n \n ```\n-./gradlew -PtestIndy=true :instrumentation:<INSTRUMENTATION_NAME>:test\n+./gradlew :instrumentation:<INSTRUMENTATION_NAME>:test\n ```\n \n-## Advice methods\n+## Inline advice methods\n \n-Breakpoints do not work in advice methods, because their code is directly inlined\n-by ByteBuddy into the target class. It is good to keep these methods as small as possible.\n+Some instrumentation intentionally uses inline advice. Breakpoints do not work in these methods,\n+because ByteBuddy copies their code into the target class. Keep these methods as small as possible.",
+      "id": "PRRT_kwDODJKVX86pIMHY",
+      "opened": "2026-10-05T16:46:55Z",
+      "path": "docs/contributing/debugging.md",
+      "replies": [
+        {
+          "at": "2026-10-05T17:19:37Z",
+          "body": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20377/commits/390996314a51db4b37035e52495a6c840509a001",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20377#discussion_r4186769736"
+        }
+      ],
+      "reviewed": "77d1ede53befbf5f3311a43bb123d4017a3e912c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20377#discussion_r4186479572"
+    }
+  ]
+}

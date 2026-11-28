@@ -1,0 +1,61 @@
+{
+  "head": "5f4d5988c442750af2817ba07af1e682ec7a47f2",
+  "merge": "ee98296f52941d66db5df1465d49558b97b1d2fd",
+  "merged": "2026-10-14T18:35:35Z",
+  "missing_roots": 0,
+  "number": 20589,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The static initializer is placed after instance fields, contrary to the repository's required class order (static fields, static initializers, then instance fields). Move this block immediately after the two static method-handle fields.",
+      "created": "2026-10-14T08:32:02Z",
+      "hunk": "@@ -33,9 +37,33 @@\n  * at any time.\n  */\n public class KafkaConsumerTelemetry {\n+  private static final MethodHandle NEXT_OFFSETS;\n+  private static final MethodHandle NEW_CONSUMER_RECORDS;\n+\n   private final Instrumenter<KafkaReceiveRequest, Void> consumerReceiveInstrumenter;\n   private final Instrumenter<KafkaProcessRequest, Void> consumerProcessInstrumenter;\n \n+  static {",
+      "id": "PRRT_kwDODJKVX86sOj-7",
+      "opened": "2026-10-14T08:32:03Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/internal/KafkaConsumerTelemetry.java",
+      "replies": [],
+      "reviewed": "50c3eb0e9c7854c7ffdfedc66b6a575432d2ee68",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20589#discussion_r4268497042"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This new Kafka 4.4 compatibility path has no behavioral coverage: no test asserts `nextOffsets` after `addTracing`/`onConsume`. A broken lookup or dropped map would therefore pass the latest-dependency suite while returning incorrect commit offsets to callers. Add a latest-dependency test with non-empty next offsets and assert that the returned `ConsumerRecords` preserves them.",
+      "created": "2026-10-14T08:32:02Z",
+      "hunk": "@@ -57,9 +85,30 @@ public <K, V> ConsumerRecords<K, V> addTracing(\n       }\n       records.put(partition, list);\n     }\n+    return newConsumerRecords(records, consumerRecords);\n+  }\n+\n+  @SuppressWarnings(\"unchecked\") // casting MethodHandle.invoke result\n+  private static <K, V> ConsumerRecords<K, V> newConsumerRecords(\n+      Map<TopicPartition, List<ConsumerRecord<K, V>>> records,\n+      ConsumerRecords<K, V> consumerRecords) {\n+    if (NEXT_OFFSETS != null && NEW_CONSUMER_RECORDS != null) {\n+      try {\n+        Map<TopicPartition, OffsetAndMetadata> nextOffsets =\n+            (Map<TopicPartition, OffsetAndMetadata>) NEXT_OFFSETS.invoke(consumerRecords);\n+        return (ConsumerRecords<K, V>) NEW_CONSUMER_RECORDS.invoke(records, nextOffsets);",
+      "id": "PRRT_kwDODJKVX86sOj-W",
+      "opened": "2026-10-14T08:32:03Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/internal/KafkaConsumerTelemetry.java",
+      "replies": [
+        {
+          "at": "2026-10-14T16:28:38Z",
+          "body": "Added a latest-deps regression in 5f4d5988c4 that passes a nonempty batch through `onConsume` and checks the complete `nextOffsets()` map, including leader epochs, metadata, and offsets for a partition with no returned records.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20589#discussion_r4273474985"
+        }
+      ],
+      "reviewed": "50c3eb0e9c7854c7ffdfedc66b6a575432d2ee68",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20589#discussion_r4268496989"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Naming] The repository convention requires a used `Throwable` catch parameter to be named `t`. Rename this parameter to keep changed Java code consistent.",
+      "created": "2026-10-14T08:32:02Z",
+      "hunk": "@@ -57,9 +85,30 @@ public <K, V> ConsumerRecords<K, V> addTracing(\n       }\n       records.put(partition, list);\n     }\n+    return newConsumerRecords(records, consumerRecords);\n+  }\n+\n+  @SuppressWarnings(\"unchecked\") // casting MethodHandle.invoke result\n+  private static <K, V> ConsumerRecords<K, V> newConsumerRecords(\n+      Map<TopicPartition, List<ConsumerRecord<K, V>>> records,\n+      ConsumerRecords<K, V> consumerRecords) {\n+    if (NEXT_OFFSETS != null && NEW_CONSUMER_RECORDS != null) {\n+      try {\n+        Map<TopicPartition, OffsetAndMetadata> nextOffsets =\n+            (Map<TopicPartition, OffsetAndMetadata>) NEXT_OFFSETS.invoke(consumerRecords);\n+        return (ConsumerRecords<K, V>) NEW_CONSUMER_RECORDS.invoke(records, nextOffsets);\n+      } catch (Throwable throwable) {\n+        sneakyThrow(throwable);\n+      }",
+      "id": "PRRT_kwDODJKVX86sOj_O",
+      "opened": "2026-10-14T08:32:03Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/src/main/java/io/opentelemetry/instrumentation/kafkaclients/v2_6/internal/KafkaConsumerTelemetry.java",
+      "replies": [],
+      "reviewed": "50c3eb0e9c7854c7ffdfedc66b6a575432d2ee68",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20589#discussion_r4268497083"
+    }
+  ]
+}

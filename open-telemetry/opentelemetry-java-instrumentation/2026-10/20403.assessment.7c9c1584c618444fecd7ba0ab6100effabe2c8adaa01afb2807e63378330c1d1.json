@@ -1,0 +1,84 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "154df2642969fd30d8694581400482529d1471d1fda92552e0446da76c9d4169",
+  "input_digest": "7c9c1584c618444fecd7ba0ab6100effabe2c8adaa01afb2807e63378330c1d1",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/72b48263dc75b0938f7f1dc55458321dba6c9886/.github/agents/knowledge/testing-general-patterns.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/72b48263dc75b0938f7f1dc55458321dba6c9886/.github/agents/knowledge/testing-semconv-stability.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/21808559178978df3e4942c5ea7445e37dd02155/.github/agents/knowledge/testing-general-patterns.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/21808559178978df3e4942c5ea7445e37dd02155/.github/agents/knowledge/testing-semconv-stability.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/21808559178978df3e4942c5ea7445e37dd02155/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/SemconvStability.java"
+      ],
+      "id": "PRRT_kwDODJKVX86pT9DH",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/72b48263dc75b0938f7f1dc55458321dba6c9886/.github/agents/knowledge/testing-semconv-stability.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/72b48263dc75b0938f7f1dc55458321dba6c9886/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/SemconvSelectionResolver.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/21808559178978df3e4942c5ea7445e37dd02155/.github/agents/knowledge/testing-semconv-stability.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/21808559178978df3e4942c5ea7445e37dd02155/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/SemconvSelectionResolver.java"
+      ],
+      "id": "PRRT_kwDODJKVX86pT9DW",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/72b48263dc75b0938f7f1dc55458321dba6c9886/.github/agents/knowledge/testing-semconv-stability.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/21808559178978df3e4942c5ea7445e37dd02155/.github/agents/knowledge/testing-semconv-stability.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/72b48263dc75b0938f7f1dc55458321dba6c9886/instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/21808559178978df3e4942c5ea7445e37dd02155/instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86pT9Dh",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/72b48263dc75b0938f7f1dc55458321dba6c9886/.github/instructions/instrumentation-gradle.instructions.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/21808559178978df3e4942c5ea7445e37dd02155/.github/instructions/instrumentation-gradle.instructions.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/72b48263dc75b0938f7f1dc55458321dba6c9886/instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/21808559178978df3e4942c5ea7445e37dd02155/instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86pT9Dy",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/72b48263dc75b0938f7f1dc55458321dba6c9886/.github/agents/knowledge/gradle-conventions.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/21808559178978df3e4942c5ea7445e37dd02155/.github/agents/knowledge/gradle-conventions.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/21808559178978df3e4942c5ea7445e37dd02155"
+      ],
+      "id": "PRRT_kwDODJKVX86peYBt",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86pedBi",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86plc7_",
+      "kind": null,
+      "status": "other"
+    }
+  ]
+}

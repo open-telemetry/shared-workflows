@@ -1,0 +1,54 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "94780a74cd1d04b6fa07200aa5a3fdb715d289de5959a8fac599f3b2a0f047d8",
+  "input_digest": "5909b9f5135e4fb594e73399cc4b96ea2fadb2897f09d4d888bee867e8fa39e3",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/89df90ef39fbbc5e61c3bcbc5096c297208a399f/instrumentation/spring/spring-webmvc/spring-webmvc-3.1/javaagent/src/main/java/org/springframework/web/servlet/v3_1/OpenTelemetryHandlerMappingFilter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fee6ea871378d4c042ff966dc06796914e7318ec/instrumentation/spring/spring-webmvc/spring-webmvc-3.1/javaagent/src/main/java/org/springframework/web/servlet/v3_1/OpenTelemetryHandlerMappingFilter.java"
+      ],
+      "id": "PRRT_kwDODJKVX86vyJb5",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/22e841df989ed3930fc288bc9efe0c32b954e4fb/instrumentation/spring/spring-webmvc/spring-webmvc-3.1/javaagent/src/main/java/org/springframework/web/servlet/v3_1/OpenTelemetryHandlerMappingFilter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fee6ea871378d4c042ff966dc06796914e7318ec/instrumentation/spring/spring-webmvc/spring-webmvc-3.1/javaagent/src/main/java/org/springframework/web/servlet/v3_1/OpenTelemetryHandlerMappingFilter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/22e841df989ed3930fc288bc9efe0c32b954e4fb/smoke-tests/images/servlet/spring-war/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fee6ea871378d4c042ff966dc06796914e7318ec/smoke-tests/images/servlet/spring-war/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/de9e7ff59205ed701c253ce9cb2cdf341d602284"
+      ],
+      "id": "PRRT_kwDODJKVX86vy0PF",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86vy_oo",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/de9e7ff59205ed701c253ce9cb2cdf341d602284/instrumentation/spring/spring-webmvc/spring-webmvc-3.1/javaagent/src/main/java/org/springframework/web/servlet/v3_1/OpenTelemetryHandlerMappingFilter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fee6ea871378d4c042ff966dc06796914e7318ec/instrumentation/spring/spring-webmvc/spring-webmvc-3.1/javaagent/src/main/java/org/springframework/web/servlet/v3_1/OpenTelemetryHandlerMappingFilter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/de9e7ff59205ed701c253ce9cb2cdf341d602284/smoke-tests/src/test/java/io/opentelemetry/smoketest/appserver/TomcatSpringWarTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fee6ea871378d4c042ff966dc06796914e7318ec/smoke-tests/src/test/java/io/opentelemetry/smoketest/appserver/TomcatSpringWarTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/de9e7ff59205ed701c253ce9cb2cdf341d602284/smoke-tests/src/test/java/io/opentelemetry/smoketest/appserver/TomcatSpringWarNoAgentSmokeTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fee6ea871378d4c042ff966dc06796914e7318ec/smoke-tests/src/test/java/io/opentelemetry/smoketest/appserver/TomcatSpringWarNoAgentSmokeTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86w7p0a",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unclear"
+    }
+  ]
+}

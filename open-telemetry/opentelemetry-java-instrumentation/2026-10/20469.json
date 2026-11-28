@@ -1,0 +1,118 @@
+{
+  "head": "3c3a23dc85c3bd6ceebf6e8dbcf968945b0267e8",
+  "merge": "a08d6dc800d04ed2d48a2c26eee654a0e619d0ac",
+  "merged": "2026-10-12T13:14:37Z",
+  "missing_roots": 0,
+  "number": 20469,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] SDK 1.67 adds five abstract type-predicate methods to `DeclarativeConfigProperties`, but this update only adapts the two bridge implementations. `SpringDeclarativeConfigProperties` and `SemconvStabilityTest.TestDeclarativeConfigProperties` still implement the interface without `isString`, `isBoolean`, `isInt`, `isLong`, and `isDouble`, so their modules no longer compile against this version. Please update both remaining implementations (and cover the Spring adapter’s coercion behavior) as part of the version bump.",
+      "created": "2026-10-09T15:58:38Z",
+      "hunk": "@@ -5,7 +5,7 @@ plugins {\n data class DependencySet(val group: String, val version: String, val modules: List<String>)\n \n // this line is managed by .github/scripts/update-sdk-version.sh\n-val otelSdkVersion = \"1.66.0\"\n+val otelSdkVersion = \"1.67.0\"",
+      "id": "PRRT_kwDODJKVX86q2inq",
+      "opened": "2026-10-09T15:58:39Z",
+      "path": "dependencyManagement/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-12T03:16:20Z",
+          "body": "No code change.\n\nAlready addressed in frozen head 94bc36c1966e5d76d9db0badb2bf86d7188fab1d. SpringDeclarativeConfigProperties.java:206-229 and SemconvStabilityTest.java:420-444 already implement all five predicates. Spring predicates delegate to the corresponding coercing getters; SpringDeclarativeConfigPropertiesTest.java:29-79 covers scalar coercion and rejection of collections, null, and missing values. The existing focused Spring tests (16 cases) and SemconvStabilityTest (38 cases) passed. No further source changes are warranted for this stale finding.\n\n<!-- copilot-loop:c28e95f0b09eea5bf93e939ec227a22c6acca4c1fc741f594d5073af6fa53d9d:4232044407:57e585b2e5784b829b8a13818e5c6fbf -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20469#discussion_r4244402043"
+        }
+      ],
+      "reviewed": "1300ca6fe15729f7047def008ed465c1edb23009",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20469#discussion_r4232044407"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] These application-facing compatibility methods are not exercised with API 1.67. This module forces all test compile/runtime classpaths to `opentelemetry-api-incubator:1.56.0-alpha`, whose interface does not expose these methods, and the existing installed-agent test only calls `getString`. Add an agent-backed 1.67 test variant that invokes the new `is*` methods through the application's `DeclarativeConfigProperties` interface so linkage and interface dispatch are covered.",
+      "created": "2026-10-11T00:03:47Z",
+      "hunk": "@@ -76,6 +76,26 @@ public double getDouble(String name, double defaultValue) {\n     return instrumentationConfig.getDouble(name, defaultValue);\n   }\n \n+  public boolean isString(String name) {\n+    return instrumentationConfig.isString(name);",
+      "id": "PRRT_kwDODJKVX86rI25V",
+      "opened": "2026-10-11T00:03:47Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.56/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_56/incubator/config/ApplicationDeclarativeConfigProperties156Incubator.java",
+      "replies": [
+        {
+          "at": "2026-10-11T22:34:43Z",
+          "body": "This coverage is already in the diff. With `-PtestLatestDeps=true` or `-PtestApi167=true`, the module uses application API/incubator 1.67. `configTypePredicates()` runs with the installed agent and invokes all five `is*` methods reflectively through the application's `DeclarativeConfigProperties` interface, covering linkage and interface dispatch. It skips only under the 1.56 baseline, where those methods do not exist. The PR's latest-dependencies CI runs the 1.67 configuration.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20469#discussion_r4243536749"
+        }
+      ],
+      "reviewed": "80d24fef514e4ef688e3ed2b9af27018f11d5f17",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20469#discussion_r4239661548"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Config] @copilot Please make `isInt`, `isLong`, and `isDouble` return `false` for invalid values instead of throwing `ConfigurationException`. For example, `isInt` on a flat property containing `\"abc\"` currently throws, but the declarative interface documents `false` for an invalid scalar.\n\nCatch `ConfigurationException` narrowly around the existing getter calls, preserving property mappings and the JMX duration/fallback behavior in `getLong`. Leave the regular getters, `isString`, and `isBoolean` unchanged. Add coverage for invalid numeric values and out-of-range integers.",
+      "created": "2026-10-11T18:07:26Z",
+      "hunk": "@@ -182,6 +182,31 @@ public Double getDouble(String name) {\n     return configProperties.getDouble(resolvePropertyKey(name));\n   }\n \n+  @Override\n+  public boolean isString(String name) {\n+    return getString(name) != null;\n+  }\n+\n+  @Override\n+  public boolean isBoolean(String name) {\n+    return getBoolean(name) != null;\n+  }\n+\n+  @Override\n+  public boolean isInt(String name) {\n+    return getInt(name) != null;",
+      "id": "PRRT_kwDODJKVX86rQGNd",
+      "opened": "2026-10-11T18:07:26Z",
+      "path": "declarative-config-bridge/src/main/java/io/opentelemetry/instrumentation/config/bridge/ConfigPropertiesBackedDeclarativeConfigProperties.java",
+      "replies": [
+        {
+          "at": "2026-10-11T18:22:46Z",
+          "body": "Updated `isInt`, `isLong`, and `isDouble` to return false on `ConfigurationException` while preserving JMX duration/fallback resolution, and added invalid, out-of-range, and JMX behavior coverage. Commit: `6713a3ff`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20469#discussion_r4242680800"
+        }
+      ],
+      "reviewed": "80d24fef514e4ef688e3ed2b9af27018f11d5f17",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20469#discussion_r4242631396"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] The 1.67 `TextMapGetter.getAll` method is not forwarded by this adapter. `AgentGetter` therefore inherits the default implementation that derives one value from `get`; if an application getter exposes repeated `baggage` or `tracestate` headers through `getAll`, the agent propagator sees only one and loses propagation data. Add a 1.67-aware adapter that delegates `getAll`, while retaining the legacy path for older application APIs.",
+      "created": "2026-10-12T00:20:34Z",
+      "hunk": "@@ -60,6 +60,7 @@ private static class AgentGetter<C> implements TextMapGetter<C> {\n       this.applicationGetter = applicationGetter;\n     }\n \n+    @SuppressWarnings(\"deprecation\")",
+      "id": "PRRT_kwDODJKVX86rTAIG",
+      "opened": "2026-10-12T00:20:34Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opentelemetryapi/v1_0/context/propagation/ApplicationTextMapPropagator.java",
+      "replies": [],
+      "reviewed": "1c29becf2aa341edaabf9b9a563ecea49e3d0160",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20469#discussion_r4243844966"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "semi-related fix",
+      "created": "2026-10-12T02:33:54Z",
+      "hunk": "@@ -249,7 +274,7 @@ public <T> List<T> getScalarList(String name, Class<T> scalarType) {\n \n   @Nullable\n   private static String stringOrNull(@Nullable Object value) {\n-    if (value == null) {\n+    if (value == null || !isPrimitive(value)) {",
+      "id": "PRRT_kwDODJKVX86rUAKP",
+      "opened": "2026-10-12T02:33:54Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/SpringDeclarativeConfigProperties.java",
+      "replies": [],
+      "reviewed": "94bc36c1966e5d76d9db0badb2bf86d7188fab1d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20469#discussion_r4244256994"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "wondering if we could shade the otel api dependencies in testing-common for the otel api bridge tests to avoid these compatibility issues",
+      "created": "2026-10-12T13:14:15Z",
+      "hunk": "@@ -46,6 +46,14 @@ configurations.configureEach {\n     resolutionStrategy {\n       // earliest version that works with our test harness\n       force(\"io.opentelemetry:opentelemetry-api:1.4.0\")\n+      force(\"io.opentelemetry:opentelemetry-context:1.4.0\")\n+      // SDK 1.67 requires AttributesBuilder.removeIf(), which is absent from API 1.4.",
+      "id": "PRRT_kwDODJKVX86reSDa",
+      "opened": "2026-10-12T13:14:15Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "3c3a23dc85c3bd6ceebf6e8dbcf968945b0267e8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20469#discussion_r4248417914"
+    }
+  ]
+}

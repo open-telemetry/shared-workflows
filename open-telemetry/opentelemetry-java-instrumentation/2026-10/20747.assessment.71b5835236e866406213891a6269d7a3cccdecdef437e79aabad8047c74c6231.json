@@ -1,0 +1,54 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "8d181c5801aaf35f8be28eea7063d61d6ef8c05446aa88e63eea1b4d1eec5c64",
+  "input_digest": "71b5835236e866406213891a6269d7a3cccdecdef437e79aabad8047c74c6231",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c627bf34b8c45e3eda38fb750085c295e6b673b6/instrumentation/couchbase/couchbase-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_0/CouchbaseRequestTracer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c627bf34b8c45e3eda38fb750085c295e6b673b6/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/internal/DbSchemaUrls.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c627bf34b8c45e3eda38fb750085c295e6b673b6/instrumentation/couchbase/couchbase-3.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_1/CouchbaseRequestTracer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c627bf34b8c45e3eda38fb750085c295e6b673b6/instrumentation/couchbase/couchbase-3.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_2/CouchbaseRequestTracer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0a253ea4b57df1d80a16da515398fba5e753276d/instrumentation/couchbase/couchbase-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_0/CouchbaseRequestTracer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0a253ea4b57df1d80a16da515398fba5e753276d/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/internal/DbSchemaUrls.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0a253ea4b57df1d80a16da515398fba5e753276d/instrumentation/couchbase/couchbase-3.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_1/CouchbaseRequestTracer.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0a253ea4b57df1d80a16da515398fba5e753276d/instrumentation/couchbase/couchbase-3.2/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/couchbase/v3_2/CouchbaseRequestTracer.java"
+      ],
+      "id": "PRRT_kwDODJKVX86uLfOM",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/24b89012c9f21a8c3defc3a84b24bdb1b5cd831c/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/HttpInstrumenterSchemaTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0a253ea4b57df1d80a16da515398fba5e753276d/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/builder/internal/HttpInstrumenterSchemaTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86udaGX",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cf39371f973249551daa47a0344a91e8b246da9a/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/internal/RpcSemconvSelection.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0a253ea4b57df1d80a16da515398fba5e753276d/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/rpc/internal/RpcSemconvSelection.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/a8e8bd1261643810d14cf7b3d9793fd2bc69e1c7"
+      ],
+      "id": "PRRT_kwDODJKVX86uie-S",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86upaRH",
+      "kind": null,
+      "status": "other"
+    }
+  ]
+}

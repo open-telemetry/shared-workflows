@@ -1,0 +1,40 @@
+{
+  "head": "783e84bd50f87d87700e585f913e0dce55279da3",
+  "merge": "19af7a7fe8c115328349af07546183569c67cba2",
+  "merged": "2026-10-13T16:16:06Z",
+  "missing_roots": 0,
+  "number": 888,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The step label still says “Set up Python 3.14”, so the Actions UI will report the wrong interpreter for this job. Update the label alongside the version.",
+      "created": "2026-10-13T00:26:22Z",
+      "hunk": "@@ -30,10 +30,10 @@ jobs:\n       - name: Set up Python 3.14\n         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0\n         with:\n-          python-version: \"3.14\"\n+          python-version: \"3.15\"",
+      "id": "PRRT_kwDOSbspP86rqjVF",
+      "opened": "2026-10-13T00:26:22Z",
+      "path": ".github/workflows/ci.yml",
+      "replies": [],
+      "reviewed": "b5c3acce6e4cf35e1684d7fd91d5daf41980ca98",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/888#discussion_r4253521445"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The step label still says “Set up Python 3.14”, so the Actions UI will report the wrong interpreter for this job. Update the label alongside the version.\n\nThis issue also appears in the following locations of the same file:\n- line 60\n- line 81\n- line 105\n- line 126\n- line 147\n- ...and 5 more",
+      "created": "2026-10-13T00:26:22Z",
+      "hunk": "@@ -34,10 +34,10 @@ jobs:\n       - name: Set up Python 3.14\n         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0\n         with:\n-          python-version: \"3.14\"\n+          python-version: \"3.15\"",
+      "id": "PRRT_kwDOSbspP86rqjVb",
+      "opened": "2026-10-13T00:26:22Z",
+      "path": ".github/workflows/misc.yml",
+      "replies": [],
+      "reviewed": "b5c3acce6e4cf35e1684d7fd91d5daf41980ca98",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/888#discussion_r4253521477"
+    }
+  ]
+}

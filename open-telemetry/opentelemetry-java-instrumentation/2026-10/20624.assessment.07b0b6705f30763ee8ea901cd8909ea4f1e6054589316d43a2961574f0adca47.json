@@ -1,0 +1,45 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "e603441be235947639831fc0fa7d7790952d9a5426c15c37776d00841b203eb5",
+  "input_digest": "07b0b6705f30763ee8ea901cd8909ea4f1e6054589316d43a2961574f0adca47",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6d0cf97f8ffc837bf777fa4c5ff96b61c936d455/instrumentation/lettuce/lettuce-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v4_0/LettuceClusterClientInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/299e61d5fdbd7654f6aa6ab8ad198a960428a37f/instrumentation/lettuce/lettuce-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/lettuce/v4_0/LettuceClusterClientInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e21d5307e1fa75e6526d3b36b8edd37eece6a6db"
+      ],
+      "id": "PRRT_kwDODJKVX86s7GCJ",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6d0cf97f8ffc837bf777fa4c5ff96b61c936d455/instrumentation/okhttp/okhttp-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/okhttp/v3_0/OkHttp3DispatcherInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/299e61d5fdbd7654f6aa6ab8ad198a960428a37f/instrumentation/okhttp/okhttp-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/okhttp/v3_0/OkHttp3DispatcherInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e21d5307e1fa75e6526d3b36b8edd37eece6a6db"
+      ],
+      "id": "PRRT_kwDODJKVX86s7GCa",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6d0cf97f8ffc837bf777fa4c5ff96b61c936d455/instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/OptimizedOperationInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/299e61d5fdbd7654f6aa6ab8ad198a960428a37f/instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/OptimizedOperationInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e21d5307e1fa75e6526d3b36b8edd37eece6a6db"
+      ],
+      "id": "PRRT_kwDODJKVX86s7GCf",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

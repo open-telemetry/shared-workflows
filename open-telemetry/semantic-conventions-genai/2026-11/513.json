@@ -1,0 +1,88 @@
+{
+  "head": "28ecf933a52e5e105f43497b12ee55bf2c4e3f40",
+  "merge": "af28cec3dc071d5df2ffaf310773b5d73a0320b5",
+  "merged": "2026-11-06T03:14:52Z",
+  "missing_roots": 0,
+  "number": 513,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This new `invoke_agent.client` requirement is not demonstrated by any reference scenario. In particular, `reference/scenarios/aws-bedrock-agent/scenario.py` calls `client.invoke_agent(...)` and consumes its `response[\"completion\"]` event stream, but never emits `gen_ai.request.stream`; the generated report therefore lists `(none)` for this attribute. Set the attribute from that streaming call and regenerate the scenario data/report, or add equivalent streaming coverage for an applicable agent library.",
+      "created": "2026-09-13T22:02:30Z",
+      "hunk": "@@ -534,6 +537,9 @@ spans:\n         sampling_relevant: true\n       - ref: server.port\n         sampling_relevant: true\n+      - ref: gen_ai.request.stream\n+        requirement_level:\n+          conditionally_required: If and only if the request is streaming. If unset, the request is assumed to be non-streaming.",
+      "id": "PRRT_kwDOSUeMrM6h8aHi",
+      "opened": "2026-09-13T22:02:31Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "7823ba758430eb962bd1c79b34aaa9cf9592030e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/513#discussion_r4001044414"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`interactions.create` is called with `model=...` and no agent, and `interactions_agent` is not derived from any SDK input, response, or state. This fabricates an agent identity and counts a model inference call as evidence for `gen_ai.invoke_agent.client` streaming. Use an actual agent invocation with an SDK-derived identity, or emit an inference span and regenerate the coverage data and report.",
+      "created": "2026-10-30T17:34:17Z",
+      "hunk": "@@ -277,6 +277,53 @@ def run_interactions_continuation():\n         print(f\"    -> previous_response_id: {previous_interaction_id}\")\n \n \n+def run_interactions_streaming():\n+    \"\"\"Scenario: Google GenAI Interactions API streaming.\"\"\"\n+    from google import genai\n+    from google.genai import types\n+    from google.genai.interactions import Interaction\n+\n+    print(\"  [interactions_streaming] interactions streaming via Google GenAI (reference implementation)\")\n+    client = genai.Client(\n+        api_key=\"mock-key\",\n+        http_options=types.HttpOptions(\n+            base_url=MOCK_BASE_URL,\n+            api_version=\"v1beta\",\n+        ),\n+    )\n+    request_model = \"gemini-2.0-flash\"\n+    prompt_text = \"Tell me a joke.\"\n+    span_attributes = {\n+        \"gen_ai.operation.name\": \"invoke_agent\",\n+        \"gen_ai.provider.name\": \"gcp.gemini\",\n+        \"gen_ai.request.model\": request_model,\n+        \"gen_ai.agent.name\": \"interactions_agent\",",
+      "id": "PRRT_kwDOSUeMrM6yEvFC",
+      "opened": "2026-10-30T17:34:18Z",
+      "path": "reference/scenarios/google-genai/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-05T19:29:51Z",
+          "body": "Switched to a managed agent invocation via `interactions.create(agent=...)` - agent name comes from the SDK input: 6f706607",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/513#discussion_r4485053923"
+        }
+      ],
+      "reviewed": "98ee0d7037034567ce63a0ef80dbd72bbbd2666c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/513#discussion_r4426595046"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This span includes `runs.create`, `runs.retrieve`, and `messages.list`, so its duration covers application orchestration rather than one SDK operation. That violates the span-boundary rule in `.github/instructions/evaluate-reference.instructions.md:39`. Scope the span to the run stream and obtain usage and output from its events, or use one SDK helper that owns the whole operation.",
+      "created": "2026-10-30T17:34:18Z",
+      "hunk": "@@ -222,6 +222,84 @@ def get_weather(location):\n     client.beta.assistants.delete(assistant.id)\n \n \n+def run_invoke_agent_streaming(client):\n+    \"\"\"Exercise OpenAI Assistants API streaming run with manual OTel spans.\"\"\"\n+    print(\"  [invoke_agent_streaming] OpenAI Assistants: streaming run\")\n+    request_model = \"gpt-4o-mini\"\n+    assistant_name = \"refimpl-test-assistant\"\n+\n+    # Create assistant\n+    assistant = client.beta.assistants.create(\n+        model=request_model,\n+        name=assistant_name,\n+        instructions=\"You are a helpful assistant.\",\n+    )\n+\n+    # Create thread\n+    thread = client.beta.threads.create()\n+\n+    # Add message\n+    user_message = \"Hello, assistant!\"\n+    client.beta.threads.messages.create(\n+        thread_id=thread.id,\n+        role=\"user\",\n+        content=user_message,\n+    )\n+\n+    span_attributes = {\n+        \"gen_ai.operation.name\": \"invoke_agent\",\n+        \"gen_ai.provider.name\": \"openai\",\n+        \"gen_ai.request.model\": request_model,\n+        \"gen_ai.agent.name\": assistant.name or \"\",\n+        \"gen_ai.request.stream\": True,\n+        \"server.address\": _SERVER_ADDRESS,\n+        \"server.port\": _SERVER_PORT,\n+    }\n+    with tracer.start_as_current_span(\n+        f\"invoke_agent {assistant.name}\", kind=SpanKind.CLIENT, attributes=span_attributes\n+    ) as span:",
+      "id": "PRRT_kwDOSUeMrM6yEvFs",
+      "opened": "2026-10-30T17:34:18Z",
+      "path": "reference/scenarios/openai-assistants/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-05T19:29:53Z",
+          "body": "Span now covers only the run stream; usage and output come from `thread.run.completed` / `thread.message.completed` events. Needs #691 for the mock to stream: 6f706607",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/513#discussion_r4485054328"
+        }
+      ],
+      "reviewed": "98ee0d7037034567ce63a0ef80dbd72bbbd2666c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/513#discussion_r4426595124"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The stream's run data is discarded, and the lookup uses the fixture-specific ID `run-mock-001`. If the API returns another ID, this fetches an unrelated run or fails, so the recorded usage does not reliably describe this invocation. Read usage from the completed run event instead of retrieving a hardcoded run.",
+      "created": "2026-10-30T17:34:18Z",
+      "hunk": "@@ -222,6 +222,84 @@ def get_weather(location):\n     client.beta.assistants.delete(assistant.id)\n \n \n+def run_invoke_agent_streaming(client):\n+    \"\"\"Exercise OpenAI Assistants API streaming run with manual OTel spans.\"\"\"\n+    print(\"  [invoke_agent_streaming] OpenAI Assistants: streaming run\")\n+    request_model = \"gpt-4o-mini\"\n+    assistant_name = \"refimpl-test-assistant\"\n+\n+    # Create assistant\n+    assistant = client.beta.assistants.create(\n+        model=request_model,\n+        name=assistant_name,\n+        instructions=\"You are a helpful assistant.\",\n+    )\n+\n+    # Create thread\n+    thread = client.beta.threads.create()\n+\n+    # Add message\n+    user_message = \"Hello, assistant!\"\n+    client.beta.threads.messages.create(\n+        thread_id=thread.id,\n+        role=\"user\",\n+        content=user_message,\n+    )\n+\n+    span_attributes = {\n+        \"gen_ai.operation.name\": \"invoke_agent\",\n+        \"gen_ai.provider.name\": \"openai\",\n+        \"gen_ai.request.model\": request_model,\n+        \"gen_ai.agent.name\": assistant.name or \"\",\n+        \"gen_ai.request.stream\": True,\n+        \"server.address\": _SERVER_ADDRESS,\n+        \"server.port\": _SERVER_PORT,\n+    }\n+    with tracer.start_as_current_span(\n+        f\"invoke_agent {assistant.name}\", kind=SpanKind.CLIENT, attributes=span_attributes\n+    ) as span:\n+        span.set_attribute(\"gen_ai.agent.id\", assistant.id)\n+        span.set_attribute(\"gen_ai.conversation.id\", thread.id)\n+        span.set_attribute(\n+            \"gen_ai.input.messages\",\n+            json.dumps([{\"role\": \"user\", \"parts\": [{\"type\": \"text\", \"content\": user_message}]}]),\n+        )\n+        stream = client.beta.threads.runs.create(\n+            thread_id=thread.id,\n+            assistant_id=assistant.id,\n+            model=request_model,\n+            stream=True,\n+        )\n+        for _event in stream:\n+            pass\n+\n+        # In the Assistants API, usage and completion state are retrieved from the run\n+        run = client.beta.threads.runs.retrieve(thread_id=thread.id, run_id=\"run-mock-001\")",
+      "id": "PRRT_kwDOSUeMrM6yEvGJ",
+      "opened": "2026-10-30T17:34:18Z",
+      "path": "reference/scenarios/openai-assistants/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-05T19:29:56Z",
+          "body": "Removed along with the retrieve call: 6f706607",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/513#discussion_r4485054725"
+        }
+      ],
+      "reviewed": "98ee0d7037034567ce63a0ef80dbd72bbbd2666c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/513#discussion_r4426595171"
+    }
+  ]
+}

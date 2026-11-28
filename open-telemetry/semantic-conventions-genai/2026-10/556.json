@@ -1,0 +1,156 @@
+{
+  "head": "b4748832b9d5e11e09bab7bc6032e2a483e6ca85",
+  "merge": "ce949a197884ca82ead650ccf8686044f7d49f9e",
+  "merged": "2026-10-30T22:56:56Z",
+  "missing_roots": 0,
+  "number": 556,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This summary links only the client `invoke_agent` span, but `gen_ai.conversation.id` is also defined on the internal `invoke_agent` span through `attributes.gen_ai.invoke_agent.common`. Since this section is meant to show every operation that shares the attribute, distinguish and link both invocation variants as the next row does for `gen_ai.agent.name`.",
+      "created": "2026-10-01T16:12:24Z",
+      "hunk": "@@ -26,4 +26,22 @@ See also:\n \n * [Model Context Protocol](./mcp.md): Semantic Conventions for [MCP](https://modelcontextprotocol.io)\n \n+## Attributes shared across operations\n+\n+Conversation and agent attributes appear on several GenAI operations, allowing\n+queries to select related work without traversing the span hierarchy. The table\n+below summarizes their existing use. Follow each signal's attribute requirements\n+and availability conditions when recording them.\n+\n+| Attribute | Use across spans | Use on metrics |\n+| --- | --- | --- |\n+| [`gen_ai.conversation.id`](/docs/registry/attributes/gen-ai.md) | Correlates [agent invocations](gen-ai-agent-spans.md#invoke-agent-client-span), [workflow invocations](gen-ai-agent-spans.md#invoke-workflow-span), [inference](gen-ai-spans.md#inference), and [tool executions](gen-ai-spans.md#execute-tool-span) belonging to the same conversation. | Not defined on GenAI metrics. |",
+      "id": "PRRT_kwDOSUeMrM6oB_Wt",
+      "opened": "2026-10-01T16:12:25Z",
+      "path": "docs/gen-ai/README.md",
+      "replies": [],
+      "reviewed": "1e35a60f31eac5fb6ebb90a8a2d4a415545b01eb",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/556#discussion_r4157709709"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Let's make it normative and more specific:\n\n```suggestion\nInstrumentations MAY propagate context containing attributes listed below to nested\ninstrumentations within the same process. This allows queries to select related\nspans without traversing the hierarchy.\n\nLanguage-specific helper packages (such as [`opentelemetry-util-genai`](https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/util/opentelemetry-util-genai))\nMAY support propagating these attributes within the process.\n\nWhen an attribute is available both from the instrumented library and from outer\ncontext, instrumentation SHOULD prefer the library's value.\n\nInstrumentations and helpers SHOULD NOT propagate attributes not listed here.\nInstrumentations SHOULD NOT use these attributes on signals that don't reference them\nexplicitly.\n```",
+      "created": "2026-10-12T19:56:29Z",
+      "hunk": "@@ -26,4 +26,22 @@ See also:\n \n * [Model Context Protocol](./mcp.md): Semantic Conventions for [MCP](https://modelcontextprotocol.io)\n \n+## Attributes shared across operations\n+\n+Conversation and agent attributes appear on several GenAI operations, allowing\n+queries to select related work without traversing the span hierarchy. The table\n+below summarizes their existing use. Follow each signal's attribute requirements\n+and availability conditions when recording them.",
+      "id": "PRRT_kwDOSUeMrM6rmitl",
+      "opened": "2026-10-12T20:04:25Z",
+      "path": "docs/gen-ai/README.md",
+      "replies": [
+        {
+          "at": "2026-10-13T14:11:35Z",
+          "body": "Applied your proposed wording in b21ec2c, including library-value precedence and the propagation/signal limits. I also updated the description and added a clarification changelog. Weaver policy checks and doc generation pass. The existing scenarios do not exercise optional context propagation, which is stated in the description.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/556#discussion_r4259719663"
+        }
+      ],
+      "reviewed": "ce066fb91ea1fc8a32ff9df2fac6a988119a09fe",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/556#discussion_r4251823662"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "instead of duplicating attribute definitions and guidance let's convert it into a list with links to anchored attribute definitions  like https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/registry/attributes/gen-ai.md#gen-ai-agent-name\n\nUse across spans and metrics is covered by \n\n> Instrumentations SHOULD NOT use these attributes on signals that don't reference them\nexplicitly.\n\nI proposed above\n",
+      "created": "2026-10-12T20:03:11Z",
+      "hunk": "@@ -26,4 +26,22 @@ See also:\n \n * [Model Context Protocol](./mcp.md): Semantic Conventions for [MCP](https://modelcontextprotocol.io)\n \n+## Attributes shared across operations\n+\n+Conversation and agent attributes appear on several GenAI operations, allowing\n+queries to select related work without traversing the span hierarchy. The table\n+below summarizes their existing use. Follow each signal's attribute requirements\n+and availability conditions when recording them.\n+\n+| Attribute | Use across spans | Use on metrics |\n+| --- | --- | --- |\n+| [`gen_ai.conversation.id`](/docs/registry/attributes/gen-ai.md) | Correlates [remote](gen-ai-agent-spans.md#invoke-agent-client-span) and [local](gen-ai-agent-spans.md#invoke-agent-internal-span) agent invocations, [workflow invocations](gen-ai-agent-spans.md#invoke-workflow-span), [inference](gen-ai-spans.md#inference), and [tool executions](gen-ai-spans.md#execute-tool-span) belonging to the same conversation. | Not defined on GenAI metrics. |\n+| [`gen_ai.agent.name`](/docs/registry/attributes/gen-ai.md) | Identifies the agent being [created](gen-ai-agent-spans.md#create-agent-span) or invoked, either [remotely](gen-ai-agent-spans.md#invoke-agent-client-span) or [locally](gen-ai-agent-spans.md#invoke-agent-internal-span), and the agent [planning](gen-ai-agent-spans.md#plan-span) or [executing a tool](gen-ai-spans.md#execute-tool-span). It is not currently defined on inference spans. | Included in [agent metrics](gen-ai-metrics.md#generative-ai-agent-metrics) and [tool metrics](gen-ai-metrics.md#generative-ai-tool-metrics). |",
+      "id": "PRRT_kwDOSUeMrM6rmqC8",
+      "opened": "2026-10-12T20:04:25Z",
+      "path": "docs/gen-ai/README.md",
+      "replies": [
+        {
+          "at": "2026-10-13T14:11:37Z",
+          "body": "Replaced the table with links to the two anchored attribute definitions in b21ec2c. Both anchors are verified; per-signal use stays with the signal conventions.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/556#discussion_r4259719958"
+        }
+      ],
+      "reviewed": "ce066fb91ea1fc8a32ff9df2fac6a988119a09fe",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/556#discussion_r4251870935"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "```suggestion\n```\n\nThis is covered by conventions describing specific signals, no need to repeat here where it will go out of date and does not have any normative power or unique content",
+      "created": "2026-10-12T20:04:05Z",
+      "hunk": "@@ -26,4 +26,22 @@ See also:\n \n * [Model Context Protocol](./mcp.md): Semantic Conventions for [MCP](https://modelcontextprotocol.io)\n \n+## Attributes shared across operations\n+\n+Conversation and agent attributes appear on several GenAI operations, allowing\n+queries to select related work without traversing the span hierarchy. The table\n+below summarizes their existing use. Follow each signal's attribute requirements\n+and availability conditions when recording them.\n+\n+| Attribute | Use across spans | Use on metrics |\n+| --- | --- | --- |\n+| [`gen_ai.conversation.id`](/docs/registry/attributes/gen-ai.md) | Correlates [remote](gen-ai-agent-spans.md#invoke-agent-client-span) and [local](gen-ai-agent-spans.md#invoke-agent-internal-span) agent invocations, [workflow invocations](gen-ai-agent-spans.md#invoke-workflow-span), [inference](gen-ai-spans.md#inference), and [tool executions](gen-ai-spans.md#execute-tool-span) belonging to the same conversation. | Not defined on GenAI metrics. |\n+| [`gen_ai.agent.name`](/docs/registry/attributes/gen-ai.md) | Identifies the agent being [created](gen-ai-agent-spans.md#create-agent-span) or invoked, either [remotely](gen-ai-agent-spans.md#invoke-agent-client-span) or [locally](gen-ai-agent-spans.md#invoke-agent-internal-span), and the agent [planning](gen-ai-agent-spans.md#plan-span) or [executing a tool](gen-ai-spans.md#execute-tool-span). It is not currently defined on inference spans. | Included in [agent metrics](gen-ai-metrics.md#generative-ai-agent-metrics) and [tool metrics](gen-ai-metrics.md#generative-ai-tool-metrics). |\n+\n+Use the conversation identifier available to the instrumented library or supplied\n+by the application. Leave it unset when unavailable, as described in the\n+[attribute definition](/docs/registry/attributes/gen-ai.md#gen-ai-conversation-id).\n+An agent name describes the agent involved in that operation; a nested agent\n+invocation can name a different agent from its parent.",
+      "id": "PRRT_kwDOSUeMrM6rmrBM",
+      "opened": "2026-10-12T20:04:25Z",
+      "path": "docs/gen-ai/README.md",
+      "replies": [
+        {
+          "at": "2026-10-13T14:11:39Z",
+          "body": "Removed the duplicated availability and nested-agent guidance in b21ec2c.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/556#discussion_r4259720328"
+        }
+      ],
+      "reviewed": "ce066fb91ea1fc8a32ff9df2fac6a988119a09fe",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/556#discussion_r4251877091"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "two potential issues:\n\n### Inherited agent names can identify the wrong agent\n\n```\nAgent A                                  Remote agent B\nname = \"Planner\"                          name unknown to caller\n    |\n    +-- invoke_agent(agentId=\"B\", agentAliasId=\"...\")\n        |\n        +-- client span\n            gen_ai.agent.id   = \"B\"        <- invoked agent\n            gen_ai.agent.name = \"Planner\"  <- inherited from A\n                                             WRONG agent\n```\n\nI like the idea of adding `gen_ai.main_agent.name` and having that be the attribute which is propagated, which could address this.\n\n### Agent-name propagation still excludes inference spans\n\nDue to\n\n> Instrumentations SHOULD NOT use these attributes on signals that don't reference them explicitly.\n\n```\ninvoke_agent \"Planner\"\n  gen_ai.agent.name = \"Planner\"\n  |\n  +-- execute_tool \"search\"\n  |     gen_ai.agent.name = \"Planner\"   <- explicitly listed, allowed\n  |\n  +-- chat \"gpt-4o\"\n        gen_ai.agent.name = \"Planner\"   <- not listed, SHOULD NOT record\n```\n\ndo we need this restriction? or maybe broaden it to all gen_ai signals?",
+      "created": "2026-10-23T18:49:29Z",
+      "hunk": "@@ -26,4 +26,23 @@ See also:\n \n * [Model Context Protocol](./mcp.md): Semantic Conventions for [MCP](https://modelcontextprotocol.io)\n \n+## Attributes shared across operations\n+\n+Instrumentations MAY propagate context containing attributes listed below to nested\n+instrumentations within the same process. This allows queries to select related\n+spans without traversing the hierarchy.\n+\n+Language-specific helper packages (such as [`opentelemetry-util-genai`](https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/util/opentelemetry-util-genai))\n+MAY support propagating these attributes within the process.\n+\n+When an attribute is available both from the instrumented library and from outer\n+context, instrumentation SHOULD prefer the library's value.\n+\n+Instrumentations and helpers SHOULD NOT propagate attributes not listed here.\n+Instrumentations SHOULD NOT use these attributes on signals that don't reference them\n+explicitly.\n+\n+* [`gen_ai.conversation.id`](/docs/registry/attributes/gen-ai.md#gen-ai-conversation-id)\n+* [`gen_ai.agent.name`](/docs/registry/attributes/gen-ai.md#gen-ai-agent-name)",
+      "id": "PRRT_kwDOSUeMrM6vu-kt",
+      "opened": "2026-10-23T18:49:29Z",
+      "path": "docs/gen-ai/README.md",
+      "replies": [
+        {
+          "at": "2026-10-23T19:51:05Z",
+          "body": "Discussed on the GenAI SIG call:\r\n\r\n- we should consider using `gen_ai.main_agent.*` namespace here - there is a proposal to propagate it https://github.com/open-telemetry/semantic-conventions-genai/pull/385\r\n- if we propagate main_agent info, do we still need to stamp closest parent? Probably on tool calls and inference spans where it's useful to know who makes these calls directly and it'd be in addition to main agent.\r\n\r\nBut for this PR, the suggestion is to remove `gen_ai.agent.name` for now and continue in https://github.com/open-telemetry/semantic-conventions-genai/pull/385 with main agent.\r\n\r\nWe can add `gen_ai.agent.*` back here along with adding it on inference spans and we can have a discussion then if we need both, main agent and immediate parent on them - this would be a separate PR.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/556#discussion_r4363636787"
+        },
+        {
+          "at": "2026-10-27T18:31:30Z",
+          "body": "Removed `gen_ai.agent.name` in 6d76444; the list now carries `gen_ai.conversation.id` only. Agent naming continues in #385 with `gen_ai.main_agent.*`. Happy to bring `gen_ai.agent.*` back with inference-span coverage in a separate PR once that lands.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/556#discussion_r4392628953"
+        }
+      ],
+      "reviewed": "b21ec2c8354abff13867aa2a095e0097ce2ae4d1",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/556#discussion_r4363137924"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "not sure this is needed (though not harmful either)\n```suggestion\n```",
+      "created": "2026-10-30T17:13:44Z",
+      "hunk": "@@ -26,4 +26,22 @@ See also:\n \n * [Model Context Protocol](./mcp.md): Semantic Conventions for [MCP](https://modelcontextprotocol.io)\n \n+## Attributes shared across operations\n+\n+Instrumentations MAY propagate context containing attributes listed below to nested\n+instrumentations within the same process. This allows queries to select related\n+spans without traversing the hierarchy.\n+\n+Language-specific helper packages (such as [`opentelemetry-util-genai`](https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/util/opentelemetry-util-genai))\n+MAY support propagating these attributes within the process.",
+      "id": "PRRT_kwDOSUeMrM6yERSW",
+      "opened": "2026-10-30T17:14:04Z",
+      "path": "docs/gen-ai/README.md",
+      "replies": [
+        {
+          "at": "2026-10-30T22:49:10Z",
+          "body": "Removed the helper-package paragraph in b474883.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/556#discussion_r4429133445"
+        }
+      ],
+      "reviewed": "6d76444bc71f342978082f0a9407aa836d1218f1",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/556#discussion_r4426398025"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "(related to above)\n```suggestion\nInstrumentations SHOULD NOT propagate attributes not listed here.\n```",
+      "created": "2026-10-30T17:14:01Z",
+      "hunk": "@@ -26,4 +26,22 @@ See also:\n \n * [Model Context Protocol](./mcp.md): Semantic Conventions for [MCP](https://modelcontextprotocol.io)\n \n+## Attributes shared across operations\n+\n+Instrumentations MAY propagate context containing attributes listed below to nested\n+instrumentations within the same process. This allows queries to select related\n+spans without traversing the hierarchy.\n+\n+Language-specific helper packages (such as [`opentelemetry-util-genai`](https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/util/opentelemetry-util-genai))\n+MAY support propagating these attributes within the process.\n+\n+When an attribute is available both from the instrumented library and from outer\n+context, instrumentation SHOULD prefer the library's value.\n+\n+Instrumentations and helpers SHOULD NOT propagate attributes not listed here.",
+      "id": "PRRT_kwDOSUeMrM6yERt_",
+      "opened": "2026-10-30T17:14:04Z",
+      "path": "docs/gen-ai/README.md",
+      "replies": [
+        {
+          "at": "2026-10-30T22:49:12Z",
+          "body": "Applied your wording in b474883; the rule now refers to instrumentations only.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/556#discussion_r4429133651"
+        }
+      ],
+      "reviewed": "6d76444bc71f342978082f0a9407aa836d1218f1",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/556#discussion_r4426400827"
+    }
+  ]
+}

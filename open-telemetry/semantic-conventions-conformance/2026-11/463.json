@@ -1,0 +1,51 @@
+{
+  "head": "81dd07824ecccf5b538de2c15f836a30859ffa6b",
+  "merge": "711f597ab5ab282534edcd9c939c28db2e41d425",
+  "merged": "2026-11-08T16:31:07Z",
+  "missing_roots": 0,
+  "number": 463,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The committed `data.json` still contains findings for `com.anthropic.sdk.python` and `anthropic.messages.create`, so the published results retain the SDK telemetry this setting disables. Without regenerating it, CI's coverage-freshness check will fail when it compares the new results with the committed report. Run `otel-conformance scenarios/gen-ai/python/anthropic/opentelemetry-langchain-anthropic --report-only` and commit the regenerated `data.json` alongside this change.",
+      "created": "2026-11-04T16:20:36Z",
+      "hunk": "@@ -11,6 +11,7 @@ server:\n env:\n   ANTHROPIC_BASE_URL: ${MOCK_SERVER_URL}\n   ANTHROPIC_API_KEY: test_anthropic_api_key\n+  ANTHROPIC_OPEN_TELEMETRY: \"false\"",
+      "id": "PRRT_kwDOTuzK5c6zr-ki",
+      "opened": "2026-11-04T16:20:37Z",
+      "path": "scenarios/gen-ai/python/anthropic/opentelemetry-langchain-anthropic/conformance.yaml",
+      "replies": [
+        {
+          "at": "2026-11-04T16:48:56Z",
+          "body": "81dd07824ecccf5b538de2c15f836a30859ffa6b",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/463#discussion_r4470484285"
+        },
+        {
+          "at": "2026-11-04T16:56:45Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/463/commits/81dd07824ecccf5b538de2c15f836a30859ffa6b",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/463#discussion_r4470577204"
+        }
+      ],
+      "reviewed": "d9c3c4e0445567ad27fcc06c704f73e97c2e5cf2",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/463#discussion_r4470143831"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "Non-blocking follow-up idea: as #459 showed, a dependency refresh can quietly add SDK spans to a non-native report. The runner could catch this by flagging scopes other than the declared instrumentation, or by setting `ANTHROPIC_OPEN_TELEMETRY=false` by default outside `native`.",
+      "created": "2026-11-08T16:08:21Z",
+      "hunk": "@@ -11,6 +11,7 @@ server:\n env:\n   ANTHROPIC_BASE_URL: ${MOCK_SERVER_URL}\n   ANTHROPIC_API_KEY: test_anthropic_api_key\n+  ANTHROPIC_OPEN_TELEMETRY: \"false\"",
+      "id": "PRRT_kwDOTuzK5c61CK4L",
+      "opened": "2026-11-08T16:17:08Z",
+      "path": "scenarios/gen-ai/python/anthropic/opentelemetry-langchain-anthropic/conformance.yaml",
+      "replies": [],
+      "reviewed": "81dd07824ecccf5b538de2c15f836a30859ffa6b",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/463#discussion_r4506860347"
+    }
+  ]
+}

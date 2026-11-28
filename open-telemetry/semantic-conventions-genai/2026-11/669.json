@@ -1,0 +1,31 @@
+{
+  "head": "fa9e4a7dec823d2e9d6d15b68d8824521ceee02f",
+  "merge": "58daeb9da6d24757c51b51ec044aecfb3c0e2844",
+  "merged": "2026-11-05T02:17:22Z",
+  "missing_roots": 0,
+  "number": 669,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The committed `reference/scenarios/openai/data.json` lacks both `gen_ai.client.fetch_response.exception` and `error.type` coverage on the fetch-response span. The new scenario changes that snapshot, so the freshness check in `.github/workflows/ci.yml:185-191` will fail. Run `cd reference && uv run run-scenario openai` and commit the regenerated data.",
+      "created": "2026-11-02T01:34:56Z",
+      "hunk": "@@ -1322,6 +1359,7 @@ def main():\n     run_chat_audio_reference(client)\n     run_responses_with_prompt_template_reference(client)\n     run_fetch_response_reference(client)\n+    run_fetch_response_error_reference()",
+      "id": "PRRT_kwDOSUeMrM6ygg7B",
+      "opened": "2026-11-02T01:34:56Z",
+      "path": "reference/scenarios/openai/scenario.py",
+      "replies": [
+        {
+          "at": "2026-11-02T03:28:47Z",
+          "body": "The committed reference/scenarios/openai/data.json already includes gen_ai.client.fetch_response.exception and error.type coverage for the fetch-response span. The hosted scenario and committed-data freshness checks pass on the current head, bac92117. No additional generated-data change is needed.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/669#discussion_r4438675801"
+        }
+      ],
+      "reviewed": "11eadbce6a3a1f8011e790f88db673768473186d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/669#discussion_r4438224504"
+    }
+  ]
+}

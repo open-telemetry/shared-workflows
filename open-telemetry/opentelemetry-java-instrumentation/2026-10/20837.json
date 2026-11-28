@@ -1,0 +1,91 @@
+{
+  "head": "41f729778ba01d1266097026b397d13e2b93c5c7",
+  "merge": "d96c1ff31b499a938a5e2b5c28e6f3520ef5239d",
+  "merged": "2026-10-22T09:56:51Z",
+  "missing_roots": 0,
+  "number": 20837,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with one remaining bridge-specific documentation correction; do not create a separate follow-up PR. The delivered bridge deprecations and caller replacements are present and should remain unchanged.\n\nThe unchanged Java8BytecodeBridge section in .github/agents/knowledge/javaagent-advice-patterns.md still instructs authors to use the bridge directly in annotated advice and says source-level inline = false does not create an exception because the transformer controls inlining. This contradicts this PR's updated .github/instructions/javaagent.instructions.md, the new deprecation Javadoc, and the migrated non-inlined callers. Update only that bridge-specific section to recommend direct OpenTelemetry APIs for non-inlined advice and ordinary helpers, state that Java8BytecodeBridge is deprecated, and retain the pre-Java-8 static-interface-call caveat: genuinely inlined advice needs a Java-8-compiled helper or conversion to non-inlined advice rather than blindly substituting static interface calls. Remove the stale transformer-overrides-inline claim there. Keep this concise and do not recommend new calls to either deprecated bridge.\n\nBroader indy-first policy is being handled separately by existing PR #20827. Do not duplicate its broader article or contributor-guide rewrite, change runtime code, remove compatibility methods, or expand the cleanup. Acceptance: the bridge-specific knowledge section no longer contradicts this PR's deprecation and direct-call guidance. Use the existing repository Markdown validation for the changed file and report any concrete blocker. No runtime build is needed for this documentation-only correction.",
+      "created": "2026-10-22T05:20:44Z",
+      "hunk": "@@ -89,8 +89,9 @@ describe selectable behavior, not Muzzle implementation identities.\n   restriction. `isMethod()` is redundant after a non-empty `named(...)` or\n   `namedOneOf(...)` matcher. Keep it when the name can be empty, because `named(\"\")`\n   can match constructors and class initializers.\n-- Use `Java8BytecodeBridge` only for supported API calls directly in annotated advice;\n-  helper methods use the normal API even when nested inside the advice class. Add a\n+- Use the normal OpenTelemetry API in non-inlined advice and helper methods. Inlined advice",
+      "id": "PRRT_kwDODJKVX86vDohK",
+      "opened": "2026-10-22T05:20:44Z",
+      "path": ".github/instructions/javaagent.instructions.md",
+      "replies": [],
+      "reviewed": "372cb1e204c74b481fad4ab264387cdca6ef2867",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20837#discussion_r4344820765"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n  in favor of direct `Context`, `Span`, and `Baggage` APIs now that non-inline instrumentation\n  is the default.\n```",
+      "created": "2026-10-22T05:29:52Z",
+      "hunk": "@@ -398,6 +398,13 @@\n   `MessagingAttributesGetter` no longer requires or exposes `getMessageBodySize()` or\n   `getMessageEnvelopeSize()`.\n \n+### 🚫 Deprecations\n+\n+- Deprecate both `Java8BytecodeBridge` classes in `javaagent-extension-api` and `testing-common`\n+  in favor of direct `Context`, `Span`, and `Baggage` APIs. They may be removed in a subsequent\n+  minor release. Inlined advice targeting pre-Java-8 classes must use non-inlined advice or a\n+  Java-8-compiled helper for static interface calls.",
+      "id": "PRRT_kwDODJKVX86vDvpw",
+      "opened": "2026-10-22T05:29:52Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "372cb1e204c74b481fad4ab264387cdca6ef2867",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20837#discussion_r4344868204"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n *     Java-8-compiled helper instead.\n```",
+      "created": "2026-10-22T05:30:28Z",
+      "hunk": "@@ -15,7 +15,14 @@\n  * into an instrumented class, however many times the instrumented class has been compiled to a\n  * previous version of bytecode and so we cannot inline calls to static interface methods, as those\n  * were not supported prior to Java 8 and will lead to a class verification error.\n+ *\n+ * @deprecated Use {@link Context#current()}, {@link Context#root()}, {@link Span#current()}, {@link\n+ *     Span#fromContext(Context)}, and {@link Baggage#fromContext(Context)} directly in non-inlined\n+ *     advice and helpers. Static interface calls must not be copied into pre-Java-8 class files:\n+ *     extension authors with inlined advice must use non-inlined advice or their own\n+ *     Java-8-compiled helper instead. This class may be removed in a subsequent minor release.",
+      "id": "PRRT_kwDODJKVX86vDwJ8",
+      "opened": "2026-10-22T05:30:28Z",
+      "path": "javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/bootstrap/Java8BytecodeBridge.java",
+      "replies": [],
+      "reviewed": "68e6a9972ed7a3f496619703c345f86884a1b673",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20837#discussion_r4344871483"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Implement the remaining bridge-specific knowledge correction directly on this PR's existing head, without creating a follow-up PR. The earlier coding session 4c8d23ac-f806-41db-b981-294ac756a781 finished, but the requested section remains unchanged in the actual PR diff. The current head 23d14907940e5544f0171ad90bba75ed7fa1873b also contains Trask's applied suggestions to the changelog and bootstrap Javadoc. Preserve those edits, including the removed release-timing text.\n\nChange only the Java8BytecodeBridge section of .github/agents/knowledge/javaagent-advice-patterns.md, between that heading and the next heading. Replace its obsolete recommendation to use the bridge in annotated advice, and its false transformer-overrides-inline claim, with concise guidance equivalent to:\n\n```markdown\n## `Java8BytecodeBridge`\n\n`Java8BytecodeBridge` is deprecated. In non-inlined advice and ordinary helpers, call OpenTelemetry APIs such as `Context.current()` and `Span.fromContext(context)` directly.\n\nDo not inline static interface calls into pre-Java-8 class files. Use non-inlined advice or a Java-8-compiled helper for those calls.\n```\n\nThis must agree with this PR's deprecation and direct-API guidance. Leave runtime code, caller migrations, compatibility classes, changelog, and every other file unchanged. Do not duplicate the broader indy-first policy work in PR #20827. Run the repository's existing Markdown validation for this file, then commit and push this one-file correction to the existing head. If anything prevents the edit or push, report that concrete blocker instead of treating the change as delivered.",
+      "created": "2026-10-22T05:32:17Z",
+      "hunk": "@@ -89,8 +89,9 @@ describe selectable behavior, not Muzzle implementation identities.\n   restriction. `isMethod()` is redundant after a non-empty `named(...)` or\n   `namedOneOf(...)` matcher. Keep it when the name can be empty, because `named(\"\")`\n   can match constructors and class initializers.\n-- Use `Java8BytecodeBridge` only for supported API calls directly in annotated advice;\n-  helper methods use the normal API even when nested inside the advice class. Add a\n+- Use the normal OpenTelemetry API in non-inlined advice and helper methods. Inlined advice",
+      "id": "PRRT_kwDODJKVX86vDxh3",
+      "opened": "2026-10-22T05:32:17Z",
+      "path": ".github/instructions/javaagent.instructions.md",
+      "replies": [
+        {
+          "at": "2026-10-22T05:34:37Z",
+          "body": "Blocked: this environment does not permit accessing or modifying files under `.github/agents/`, including the requested knowledge file. No files were changed, no validation was run, and no commit was pushed. The existing changelog and Javadoc edits remain untouched.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20837#discussion_r4344892480"
+        }
+      ],
+      "reviewed": "23d14907940e5544f0171ad90bba75ed7fa1873b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20837#discussion_r4344880732"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] Please include the removal timeline in this `@deprecated` Javadoc, as already done for the testing-common bridge. This class is part of the published extension API, and extension authors reading its generated documentation otherwise cannot tell that it may be removed in a subsequent minor release.",
+      "created": "2026-10-22T05:39:07Z",
+      "hunk": "@@ -15,7 +15,14 @@\n  * into an instrumented class, however many times the instrumented class has been compiled to a\n  * previous version of bytecode and so we cannot inline calls to static interface methods, as those\n  * were not supported prior to Java 8 and will lead to a class verification error.\n+ *\n+ * @deprecated Use {@link Context#current()}, {@link Context#root()}, {@link Span#current()}, {@link\n+ *     Span#fromContext(Context)}, and {@link Baggage#fromContext(Context)} directly in non-inlined\n+ *     advice and helpers. Static interface calls must not be copied into pre-Java-8 class files:\n+ *     extension authors with inlined advice must use non-inlined advice or their own\n+ *     Java-8-compiled helper instead.",
+      "id": "PRRT_kwDODJKVX86vD2ue",
+      "opened": "2026-10-22T05:39:07Z",
+      "path": "javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/bootstrap/Java8BytecodeBridge.java",
+      "replies": [],
+      "reviewed": "23d14907940e5544f0171ad90bba75ed7fa1873b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20837#discussion_r4344915864"
+    }
+  ]
+}

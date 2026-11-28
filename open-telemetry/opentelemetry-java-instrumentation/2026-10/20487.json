@@ -1,0 +1,25 @@
+{
+  "head": "dc9bd24486135c2a27ad7ea601a75d1aa4c14773",
+  "merge": "b68366bf3beb55efa268cab0bc99afd9b65ec1fe",
+  "merged": "2026-10-12T19:11:32Z",
+  "missing_roots": 0,
+  "number": 20487,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This classpath-only task has no `metadataConfig`, so `MetaDataCollector` labels its output as `default` and merges it with the ordinary test task's telemetry. Keep the task in `check`, but remove it from this metadata-collection list so the alternate-classpath observations are not attributed to the default run; non-default metadata tasks must describe their actual JVM setting.",
+      "created": "2026-10-09T16:24:37Z",
+      "hunk": "@@ -47,9 +47,12 @@ readonly INSTRUMENTATIONS=(\n   \"c3p0-0.9:javaagent:test\"\n   \"camel-2.20:javaagent:test\"\n   \"camel-2.20:javaagent:testExperimental\"\n-  \"camel-2.20:javaagent:testStableSemconv\"\n-  \"camel-2.20:javaagent:testStableSemconvAdaptersDisabled\"\n-  \"camel-2.20:javaagent:testStableSemconvCamelDisabled\"\n+  \"camel-2.20:javaagent:testAdaptersDisabled\"\n+  \"camel-2.20:javaagent:testCamelDisabled\"\n+  \"camel-2.20:javaagent:testJmsDisabled\"\n+  \"camel-2.20:javaagent:testReceiveTelemetry\"\n+  \"camel-2.20:javaagent:testSjmsWithoutCamelJms\"\n+  \"camel-2.20:javaagent:testSpanKindBasedSuppression\"",
+      "id": "PRRT_kwDODJKVX86q3FpS",
+      "opened": "2026-10-09T16:24:37Z",
+      "path": ".github/scripts/instrumentations.sh",
+      "replies": [],
+      "reviewed": "6d150e5892bb649de02cb3a62f39f127ecd8fec4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20487#discussion_r4232269451"
+    }
+  ]
+}

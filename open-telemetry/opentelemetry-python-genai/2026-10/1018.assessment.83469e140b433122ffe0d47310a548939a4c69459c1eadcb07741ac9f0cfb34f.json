@@ -1,0 +1,22 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "3b13a13fb1c3bfbe558e46ecdcebd71edd41b8513765398036c1ff2a49dbd105",
+  "input_digest": "83469e140b433122ffe0d47310a548939a4c69459c1eadcb07741ac9f0cfb34f",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/2f2b41ea7993da0b433285d350094f1f45440e09/instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/extractors.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/compare/2f2b41ea7993da0b433285d350094f1f45440e09...d9765665e2652c3f9744af62bc1175bceb8fefc6",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/3747f16c86668e6dba990ceea30fced9298b8851/instrumentation/opentelemetry-instrumentation-genai-bedrock/src/opentelemetry/instrumentation/genai/bedrock/extractors.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/d9765665e2652c3f9744af62bc1175bceb8fefc6"
+      ],
+      "id": "PRRT_kwDOSbspP86yURqe",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

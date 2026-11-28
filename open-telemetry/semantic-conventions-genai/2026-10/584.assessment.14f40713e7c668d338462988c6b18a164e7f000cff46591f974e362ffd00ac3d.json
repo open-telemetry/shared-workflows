@@ -1,0 +1,88 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "3624987e566c4e72009cd93f9774dd8ec6305b722c08b799bbf809c42cd67c8f",
+  "input_digest": "14f40713e7c668d338462988c6b18a164e7f000cff46591f974e362ffd00ac3d",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/83b1c23b6f62b36b9cf230ca5e1f978e09b099a8/docs/gen-ai/non-normative/models.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/83b1c23b6f62b36b9cf230ca5e1f978e09b099a8/docs/gen-ai/non-normative/tests/cases/input-messages-generic-part.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/83b1c23b6f62b36b9cf230ca5e1f978e09b099a8/docs/gen-ai/non-normative/tests/cases/input-messages-parts-missing-required.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/390a4667ed098276b834522d3575184ff8e49f48/docs/gen-ai/non-normative/models.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/390a4667ed098276b834522d3575184ff8e49f48/docs/gen-ai/non-normative/tests/cases/input-messages-generic-part.yaml"
+      ],
+      "id": "PRRT_kwDOSUeMrM6qMzKc",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/440014145585f5b1858f48245de555f8dc3da808/docs/gen-ai/non-normative/models.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/390a4667ed098276b834522d3575184ff8e49f48/docs/gen-ai/non-normative/models.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/440014145585f5b1858f48245de555f8dc3da808/docs/gen-ai/non-normative/tests/cases/input-messages-generic-part.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/390a4667ed098276b834522d3575184ff8e49f48/docs/gen-ai/non-normative/tests/cases/input-messages-generic-part.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/390a4667ed098276b834522d3575184ff8e49f48"
+      ],
+      "id": "PRRT_kwDOSUeMrM6qpQcd",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/1d980728684562b683fe80481ac2c140ad60a56c/docs/gen-ai/non-normative/examples-llm-calls.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/390a4667ed098276b834522d3575184ff8e49f48/docs/gen-ai/non-normative/examples-llm-calls.md",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/390a4667ed098276b834522d3575184ff8e49f48"
+      ],
+      "id": "PRRT_kwDOSUeMrM6uCfp9",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/1d980728684562b683fe80481ac2c140ad60a56c/reference/scenarios/anthropic/scenario.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/390a4667ed098276b834522d3575184ff8e49f48/reference/scenarios/anthropic/scenario.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/commit/390a4667ed098276b834522d3575184ff8e49f48"
+      ],
+      "id": "PRRT_kwDOSUeMrM6uCfqB",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/1d980728684562b683fe80481ac2c140ad60a56c/docs/gen-ai/non-normative/tests/cases/tool-definitions-wrong-field-types.yaml",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/390a4667ed098276b834522d3575184ff8e49f48/docs/gen-ai/non-normative/tests/cases/tool-definitions-wrong-field-types.yaml"
+      ],
+      "id": "PRRT_kwDOSUeMrM6uCfqW",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "id": "PRRT_kwDOSUeMrM6uO-Vl",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/03e1f926594abd9b9e8d69d13840427397046e43/docs/gen-ai/non-normative/models.py",
+        "https://github.com/open-telemetry/semantic-conventions-genai/blob/390a4667ed098276b834522d3575184ff8e49f48/docs/gen-ai/non-normative/models.py"
+      ],
+      "id": "PRRT_kwDOSUeMrM6u4RzT",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

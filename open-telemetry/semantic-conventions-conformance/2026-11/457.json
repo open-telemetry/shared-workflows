@@ -1,0 +1,25 @@
+{
+  "head": "0ece52908a2a34bc8026ecc71f3aadeee9a12c3b",
+  "merge": "be7b4d2dcec4102e3f342d10c22c642e57967b6c",
+  "merged": "2026-11-04T01:45:20Z",
+  "missing_roots": 0,
+  "number": 457,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This image change makes `test_hbase_fixture_uses_pinned_upstream_inputs` fail: `tools/database/runner/tests/test_database_backends.py:978-982` still requires the exact Java 17 tag and digest. Update that assertion to the new pinned image in the same PR so the backend test suite remains passing.",
+      "created": "2026-11-03T23:58:52Z",
+      "hunk": "@@ -1,7 +1,7 @@\n # Copyright The OpenTelemetry Authors\n # SPDX-License-Identifier: Apache-2.0\n \n-FROM eclipse-temurin:17-jre-jammy@sha256:c35794d1348777e6bc310b9b7f420098ef8f37e988199549b545fded79a895a2\n+FROM eclipse-temurin:25-jre-jammy@sha256:659b528cca74a0edc5c25315ec5819f35bce40bbcec645c4c534987e4c6be7c1",
+      "id": "PRRT_kwDOTuzK5c6zYomo",
+      "opened": "2026-11-03T23:58:52Z",
+      "path": "tools/database/runner/src/database_conformance/hbase-image/Dockerfile",
+      "replies": [],
+      "reviewed": "892c1e282d364ae0a01a5f9c459b5b7f95c27fdc",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/457#discussion_r4461913399"
+    }
+  ]
+}

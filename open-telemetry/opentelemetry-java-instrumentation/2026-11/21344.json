@@ -1,0 +1,144 @@
+{
+  "head": "3904eb65d5d5ffd1b6d357c2d3ced0976445875a",
+  "merge": "05a153f92047392b0dc03416e93c04eaf7c13012",
+  "merged": "2026-11-25T14:54:13Z",
+  "missing_roots": 0,
+  "number": 21344,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This case re-tests the unchanged shared instrumentation-enable condition rather than Gateway-specific behavior. `.github/instructions/java-tests.instructions.md` explicitly keeps selector enable/disable coverage centralized. Please remove this selector-only case; retain the bean-registration, Gateway-absence, custom-filter, and emitted-telemetry tests.",
+      "created": "2026-11-18T21:17:16Z",
+      "hunk": "@@ -0,0 +1,65 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.spring.autoconfigure.internal.instrumentation.springcloudgateway;\n+\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.api.OpenTelemetry;\n+import io.opentelemetry.instrumentation.spring.cloud.gateway.v2_0.SpringCloudGatewayRouteFilter;\n+import org.junit.jupiter.api.Test;\n+import org.springframework.boot.autoconfigure.AutoConfigurations;\n+import org.springframework.boot.test.context.FilteredClassLoader;\n+import org.springframework.boot.test.context.runner.ApplicationContextRunner;\n+import org.springframework.context.annotation.Bean;\n+import org.springframework.context.annotation.Configuration;\n+\n+class SpringCloudGatewayInstrumentationAutoConfigurationTest {\n+  private final ApplicationContextRunner contextRunner =\n+      new ApplicationContextRunner()\n+          .withBean(OpenTelemetry.class, OpenTelemetry::noop)\n+          .withConfiguration(\n+              AutoConfigurations.of(SpringCloudGatewayInstrumentationAutoConfiguration.class));\n+\n+  @Test\n+  void instrumentationEnabledByDefault() {\n+    contextRunner.run(\n+        context -> assertThat(context).hasSingleBean(SpringCloudGatewayRouteFilter.class));\n+  }\n+\n+  @Test\n+  void instrumentationDisabled() {\n+    contextRunner\n+        .withPropertyValues(\"otel.instrumentation.spring-cloud-gateway.enabled=false\")\n+        .run(context -> assertThat(context).doesNotHaveBean(SpringCloudGatewayRouteFilter.class));\n+  }\n+",
+      "id": "PRRT_kwDODJKVX865NIhj",
+      "opened": "2026-11-18T21:17:16Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/test/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/springcloudgateway/SpringCloudGatewayInstrumentationAutoConfigurationTest.java",
+      "replies": [],
+      "reviewed": "4dd76bacea55442af5242b7aa74d17fb0d1cf249",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21344#discussion_r4620978132"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`HIGHEST_PRECEDENCE` can tie with an application `GlobalFilter`. If an equal-order auth filter runs first and returns 401 without calling the chain, Gateway has already matched a route, but this filter never sees it.\n\nI'd let the WebFlux telemetry filter accept a route fallback and read `GATEWAY_ROUTE_ATTR` from the exchange just before `instrumenter.end()`. That keeps the Gateway dependency in this module and removes the ordering dependency. Add a test with a first-in-chain global filter that returns 401, and assert the route on the server span and duration metric.\n\nI put the change in [onurkybsi/opentelemetry-java-instrumentation#1](https://github.com/onurkybsi/opentelemetry-java-instrumentation/pull/1), targeting this PR's branch.",
+      "created": "2026-11-21T01:10:15Z",
+      "hunk": "@@ -0,0 +1,42 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.spring.cloud.gateway.v2_0;\n+\n+import static io.opentelemetry.instrumentation.api.semconv.http.HttpServerRouteSource.NESTED_CONTROLLER;\n+import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.semconv.http.HttpServerRoute;\n+import io.opentelemetry.instrumentation.spring.cloud.gateway.common.internal.GatewayRouteIdConverger;\n+import org.springframework.cloud.gateway.filter.GatewayFilterChain;\n+import org.springframework.cloud.gateway.filter.GlobalFilter;\n+import org.springframework.cloud.gateway.route.Route;\n+import org.springframework.core.Ordered;\n+import org.springframework.web.server.ServerWebExchange;\n+import reactor.core.publisher.Mono;\n+\n+/** A Spring Cloud Gateway filter that records the matched route on HTTP server telemetry. */\n+public final class SpringCloudGatewayRouteFilter implements GlobalFilter, Ordered {\n+  /** Creates a new route filter. */\n+  public SpringCloudGatewayRouteFilter() {}\n+\n+  @Override\n+  public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {\n+    Route route = exchange.getAttribute(GATEWAY_ROUTE_ATTR);\n+    HttpServerRoute.update(\n+        Context.current(),\n+        NESTED_CONTROLLER,\n+        (context, matchedRoute) ->\n+            matchedRoute == null ? null : GatewayRouteIdConverger.converge(matchedRoute.getId()),\n+        route);\n+    return chain.filter(exchange);\n+  }\n+\n+  @Override\n+  public int getOrder() {\n+    return Ordered.HIGHEST_PRECEDENCE;",
+      "id": "PRRT_kwDODJKVX866PTkP",
+      "opened": "2026-11-21T02:31:33Z",
+      "path": "instrumentation/spring/spring-cloud-gateway/spring-cloud-gateway-2.0/library/src/main/java/io/opentelemetry/instrumentation/spring/cloud/gateway/v2_0/SpringCloudGatewayRouteFilter.java",
+      "replies": [
+        {
+          "at": "2026-11-24T07:33:16Z",
+          "body": "Yeah, makes sense to me 🙂",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21344#discussion_r4676831077"
+        },
+        {
+          "at": "2026-11-24T18:25:39Z",
+          "body": "sorry, I forgot to mark it ready for review, can you merge it now? thanks!",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21344#discussion_r4684640607"
+        }
+      ],
+      "reviewed": "9e68177b3fabf43f6226661a1c03d78275ce1189",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21344#discussion_r4649538023"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "On a `forward:` route, the destination WebFlux controller can supply a path template on the same exchange. `NESTED_CONTROLLER` outranks the `CONTROLLER` update, so the Gateway ID replaces the existing `http.route` and span name.\n\nUse `SERVER` so proxy routes still get the Gateway ID and the local controller's template takes precedence.\n\nA regression test that forwards to `/local/123` should assert `/local/{id}` on both the server span and the duration metric.\n\n```suggestion\n        SERVER,\n```\n",
+      "created": "2026-11-21T01:10:15Z",
+      "hunk": "@@ -0,0 +1,42 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.spring.cloud.gateway.v2_0;\n+\n+import static io.opentelemetry.instrumentation.api.semconv.http.HttpServerRouteSource.NESTED_CONTROLLER;\n+import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.semconv.http.HttpServerRoute;\n+import io.opentelemetry.instrumentation.spring.cloud.gateway.common.internal.GatewayRouteIdConverger;\n+import org.springframework.cloud.gateway.filter.GatewayFilterChain;\n+import org.springframework.cloud.gateway.filter.GlobalFilter;\n+import org.springframework.cloud.gateway.route.Route;\n+import org.springframework.core.Ordered;\n+import org.springframework.web.server.ServerWebExchange;\n+import reactor.core.publisher.Mono;\n+\n+/** A Spring Cloud Gateway filter that records the matched route on HTTP server telemetry. */\n+public final class SpringCloudGatewayRouteFilter implements GlobalFilter, Ordered {\n+  /** Creates a new route filter. */\n+  public SpringCloudGatewayRouteFilter() {}\n+\n+  @Override\n+  public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {\n+    Route route = exchange.getAttribute(GATEWAY_ROUTE_ATTR);\n+    HttpServerRoute.update(\n+        Context.current(),\n+        NESTED_CONTROLLER,",
+      "id": "PRRT_kwDODJKVX866PTkR",
+      "opened": "2026-11-21T02:31:33Z",
+      "path": "instrumentation/spring/spring-cloud-gateway/spring-cloud-gateway-2.0/library/src/main/java/io/opentelemetry/instrumentation/spring/cloud/gateway/v2_0/SpringCloudGatewayRouteFilter.java",
+      "replies": [
+        {
+          "at": "2026-11-24T14:20:34Z",
+          "body": "Looks like https://github.com/onurkybsi/opentelemetry-java-instrumentation/pull/1 already handles that.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21344#discussion_r4681342868"
+        }
+      ],
+      "reviewed": "9e68177b3fabf43f6226661a1c03d78275ce1189",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21344#discussion_r4649538028"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "[Naming] Could we give the new library its own versioned directory, like we do for Spring WebFlux? The agent supports Gateway 2.0, but the standalone setup requires WebFlux 5.3 or later. I'd keep the agent in `spring-cloud-gateway-2.0/javaagent` and use `spring-cloud-gateway-3.0/library` if an end-to-end test passes on [Gateway 3.0.0 with Boot 2.4.1](https://spring.io/blog/2020/12/22/spring-cloud-2020-0-0-aka-ilford-is-available/).\n\nOtherwise, I'd use `spring-cloud-gateway-3.1/library` and document Gateway 3.1.8 on Boot 2.7.18 as the oldest verified pair in the README and supported-libraries table.",
+      "created": "2026-11-21T01:10:15Z",
+      "hunk": "@@ -0,0 +1,48 @@\n+# Library Instrumentation for Spring Cloud Gateway 2.0 and higher",
+      "id": "PRRT_kwDODJKVX866PTkT",
+      "opened": "2026-11-21T02:31:33Z",
+      "path": "instrumentation/spring/spring-cloud-gateway/spring-cloud-gateway-2.0/library/README.md",
+      "replies": [
+        {
+          "at": "2026-11-24T14:51:52Z",
+          "body": "Yeah, that makes sense. I merged your PR locally and tested it with Spring Cloud Gateway 3.0.0 and Spring Boot 2.4.1; `spring-cloud-gateway-3.0/library` works. I’ll make the versioning changes once your PR is merged.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21344#discussion_r4681810812"
+        }
+      ],
+      "reviewed": "9e68177b3fabf43f6226661a1c03d78275ce1189",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21344#discussion_r4649538030"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "With `-PtestLatestDeps=true`, `spring-boot-starter-test` and `spring-boot-starter-webflux` resolve to the latest Spring Boot (4.1.x). The latest Gateway release (5.0.x) doesn't support Boot 4.1, so `SpringCloudGatewayRouteFilterIntegrationTest` would likely fail to start its application context in latest-deps runs. The existing `spring-cloud-gateway-webflux-4.3:testing` and `spring-cloud-gateway-webmvc-4.3:javaagent` modules hit the same problem and pin Boot to `4.0.+` (\"latest Spring Cloud release is not compatible with Spring Boot 4.1\"). Both Boot test dependencies here need the same constraint.\n\n```suggestion\n  testLibrary(\"org.springframework.boot:spring-boot-starter-test:2.7.18\")\n  testLibrary(\"org.springframework.boot:spring-boot-starter-webflux:2.7.18\")\n  testLibrary(\"org.springframework.cloud:spring-cloud-starter-gateway:3.1.8\")\n\n  latestDepTestLibrary(\"org.springframework.cloud:spring-cloud-starter-gateway-server-webflux:latest.release\")\n  // latest Spring Cloud release is not compatible with Spring Boot 4.1\n  latestDepTestLibrary(\"org.springframework.boot:spring-boot-starter-test:4.0.+\") // related dependency\n  latestDepTestLibrary(\"org.springframework.boot:spring-boot-starter-webflux:4.0.+\") // related dependency\n```",
+      "created": "2026-11-24T15:51:01Z",
+      "hunk": "@@ -0,0 +1,41 @@\n+plugins {\n+  id(\"otel.library-instrumentation\")\n+  id(\"otel.nullaway-conventions\")\n+}\n+\n+dependencies {\n+  library(\"org.springframework.cloud:spring-cloud-starter-gateway:2.0.0.RELEASE\")\n+\n+  implementation(\n+    project(\":instrumentation:spring:spring-cloud-gateway:spring-cloud-gateway-common:library\")\n+  )\n+\n+  testImplementation(\n+    project(\":instrumentation:spring:spring-webflux:spring-webflux-5.3:library\")\n+  )\n+  testLibrary(\"org.springframework.boot:spring-boot-starter-test:2.7.18\")\n+  testLibrary(\"org.springframework.boot:spring-boot-starter-webflux:2.7.18\")\n+  testLibrary(\"org.springframework.cloud:spring-cloud-starter-gateway:3.1.8\")\n+\n+  latestDepTestLibrary(\"org.springframework.cloud:spring-cloud-starter-gateway-server-webflux:latest.release\")",
+      "id": "PRRT_kwDODJKVX867c_Ov",
+      "opened": "2026-11-24T15:51:01Z",
+      "path": "instrumentation/spring/spring-cloud-gateway/spring-cloud-gateway-2.0/library/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-24T16:12:51Z",
+          "body": "The [latest-deps CI job](https://github.com/open-telemetry/opentelemetry-java-instrumentation/actions/runs/44828381983/job/136606784096) ran `SpringCloudGatewayRouteFilterIntegrationTest` and passed. The startup log shows Spring Boot `4.1.2`, and the [dependency pins at the tested commit](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/453290c5caebf0385bc708daa65191bbcd55a4ed/.github/config/latest-dep-versions.json#L559-L578) select Gateway `5.0.4`.\n\nGateway `5.0.4` ships in Spring Cloud `2025.1.4`, and the [Spring Cloud Commons `5.0.4` compatibility verifier](https://github.com/spring-cloud/spring-cloud-commons/blob/v5.0.4/spring-cloud-commons/src/main/java/org/springframework/cloud/configuration/CompatibilityVerifierProperties.java) accepts both Boot `4.0.x` and `4.1.x`. The suggested `4.0.+` pins aren't needed here.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21344#discussion_r4682958044"
+        }
+      ],
+      "reviewed": "9e68177b3fabf43f6226661a1c03d78275ce1189",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21344#discussion_r4682660745"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "[Simplification] The server span always comes from `SpringWebfluxServerTelemetry`, whose scope name is fixed as `io.opentelemetry.spring-webflux-5.3`. You don't need to capture it through an `AtomicReference` from inside the span assertion. Using the literal makes the trace assertion side-effect-free and drops the `java.util.concurrent.atomic.AtomicReference` import, which you should also remove. The same change applies to `gatewayRouteEnrichesServerTelemetryWhenShortCircuited` in `AbstractOtelReactiveSpringStarterSmokeTest`, which can keep its client-span assertion.\n\n```suggestion\n    testing.waitAndAssertTraces(\n        trace ->\n            trace.hasSpansSatisfyingExactly(\n                span ->\n                    span.hasName(\"GET \" + routeId)\n                        .hasKind(SpanKind.SERVER)\n                        .hasAttribute(HTTP_ROUTE, routeId)));\n    testing.waitAndAssertMetrics(\n        \"io.opentelemetry.spring-webflux-5.3\",\n```",
+      "created": "2026-11-24T15:51:01Z",
+      "hunk": "@@ -0,0 +1,108 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.spring.cloud.gateway.v2_0;\n+\n+import static io.opentelemetry.semconv.HttpAttributes.HTTP_ROUTE;\n+import static java.nio.charset.StandardCharsets.UTF_8;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.api.trace.SpanKind;\n+import io.opentelemetry.instrumentation.spring.webflux.v5_3.SpringWebfluxServerTelemetry;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.LibraryInstrumentationExtension;\n+import io.opentelemetry.testing.internal.armeria.client.WebClient;\n+import io.opentelemetry.testing.internal.armeria.common.AggregatedHttpResponse;\n+import java.util.concurrent.atomic.AtomicReference;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+import org.springframework.beans.factory.annotation.Value;\n+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;\n+import org.springframework.boot.test.context.SpringBootTest;\n+import org.springframework.cloud.gateway.route.RouteLocator;\n+import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;\n+import org.springframework.context.annotation.Bean;\n+import org.springframework.context.annotation.Configuration;\n+import org.springframework.web.server.WebFilter;\n+import reactor.core.publisher.Mono;\n+\n+@SpringBootTest(\n+    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,\n+    classes = SpringCloudGatewayRouteFilterIntegrationTest.TestApplication.class)\n+class SpringCloudGatewayRouteFilterIntegrationTest {\n+  @RegisterExtension\n+  static final InstrumentationExtension testing = LibraryInstrumentationExtension.create();\n+\n+  @Value(\"${local.server.port}\")\n+  private int port;\n+\n+  @Test\n+  void enrichesServerSpanAndMetricWhenRouteShortCircuits() {\n+    // given\n+    String routeId = \"test-gateway-route\";\n+\n+    // when\n+    AggregatedHttpResponse response =\n+        WebClient.of(\"h1c://localhost:\" + port).get(\"/gateway/test\").aggregate().join();\n+\n+    // then\n+    assertThat(response.status().code()).isEqualTo(200);\n+    assertThat(response.contentUtf8()).isEqualTo(\"gateway\");\n+\n+    AtomicReference<String> instrumentationName = new AtomicReference<>();\n+    testing.waitAndAssertTraces(trace ->\n+        trace.hasSpansSatisfyingExactly(span -> {\n+          span.hasName(\"GET \" + routeId).hasKind(SpanKind.SERVER).hasAttribute(HTTP_ROUTE, routeId);\n+          instrumentationName.set(span.actual().getInstrumentationScopeInfo().getName());\n+        }));\n+    testing.waitAndAssertMetrics(\n+        instrumentationName.get(),",
+      "id": "PRRT_kwDODJKVX867c_PJ",
+      "opened": "2026-11-24T15:51:01Z",
+      "path": "instrumentation/spring/spring-cloud-gateway/spring-cloud-gateway-2.0/library/src/test/java/io/opentelemetry/instrumentation/spring/cloud/gateway/v2_0/SpringCloudGatewayRouteFilterIntegrationTest.java",
+      "replies": [],
+      "reviewed": "9e68177b3fabf43f6226661a1c03d78275ce1189",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21344#discussion_r4682660787"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Please add `spring-cloud-gateway-3.0/metadata.yaml` for this new instrumentation, including its description, library link, and `HTTP_ROUTE` feature. New modules require metadata (`.github/instructions/instrumentation-gradle.instructions.md:10–11`), and the documentation generator looks in this module's own directory; it will not reuse the existing `spring-cloud-gateway-2.0/metadata.yaml`. Without it, the generated catalog lacks the new library's descriptive and feature metadata.",
+      "created": "2026-11-25T09:26:23Z",
+      "hunk": "@@ -0,0 +1,40 @@\n+plugins {\n+  id(\"otel.library-instrumentation\")\n+  id(\"otel.nullaway-conventions\")\n+}",
+      "id": "PRRT_kwDODJKVX8670XQ4",
+      "opened": "2026-11-25T09:26:24Z",
+      "path": "instrumentation/spring/spring-cloud-gateway/spring-cloud-gateway-3.0/library/build.gradle.kts",
+      "replies": [],
+      "reviewed": "f347ff9452d164f28c8a36ed2241164d4d40683d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21344#discussion_r4692826106"
+    }
+  ]
+}

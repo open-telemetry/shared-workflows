@@ -1,0 +1,178 @@
+{
+  "head": "1a74a2eee892e69c9f53b42fa0cfe94f49dd63bc",
+  "merge": "f965d782ea3bf19efc60bab92febcb0ff709781a",
+  "merged": "2026-10-28T21:28:11Z",
+  "missing_roots": 0,
+  "number": 20903,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Both this customizer and `SpringWebClientInstrumentationSpringBoot4AutoConfiguration.otelWebClientCustomizer()` lose the duplicate-filter check previously performed by `addFilter`. Customizing a builder that already contains a tracing filter, including one obtained from an instrumented client's `mutate()`, now appends another `WebClientTracingFilter`; repeated customization keeps growing the filter chain. `WebClientBeanPostProcessor` only avoids adding its own filter and does not remove existing duplicates. Preserve the presence check in both customizers, preferably by sharing the post-processor's existing check. Add customizer coverage for an already-instrumented builder and repeated customization; the new post-processor test does not exercise these paths.",
+      "created": "2026-10-23T16:41:33Z",
+      "hunk": "@@ -55,7 +55,7 @@ static class OpentelemetryWebClientCustomizerConfiguration {\n     WebClientCustomizer otelWebClientCustomizer(OpenTelemetry openTelemetry) {\n       SpringWebfluxClientTelemetry webfluxClientTelemetry =\n           WebClientBeanPostProcessor.getWebfluxClientTelemetry(openTelemetry);\n-      return builder -> builder.filters(webfluxClientTelemetry::addFilter);\n+      return builder -> builder.filter(webfluxClientTelemetry.createFilter());",
+      "id": "PRRT_kwDODJKVX86vsPg7",
+      "opened": "2026-10-23T16:41:33Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/webflux/SpringWebfluxInstrumentationAutoConfiguration.java",
+      "replies": [
+        {
+          "at": "2026-10-23T16:58:41Z",
+          "body": "Fixed in 5fa4ea01d06c103260063c8d4ea0cd46d20308e9. Both Boot customizers and the bean postprocessor now share the starter's internal presence-check/install helper. Existing filters remain untouched, and the shared customizer tests cover preinstalled filters, mutated instrumented clients, and repeated customization. The public library API remains factory-only.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20903#discussion_r4362130227"
+        }
+      ],
+      "reviewed": "808b1764391505a9206eedf063075df60aa3dc56",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20903#discussion_r4361973623"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with one scoped correction to preserve the Spring Boot starter's duplicate-filter detection across all automatic configuration paths. Copilot review 5631530461 identified a real omission: SpringWebfluxInstrumentationAutoConfiguration.otelWebClientCustomizer and SpringWebClientInstrumentationSpringBoot4AutoConfiguration.otelWebClientCustomizer now unconditionally append createFilter(), whereas their previous addFilter calls checked for an existing WebClientTracingFilter. WebClientBeanPostProcessor still checks independently, but cannot remove duplicates already introduced by either customizer.\n\nKeep the requested public API changes exactly as delivered: WebFlux client createFilter/createFilterAndRegisterReactorHook factories with no list-mutating helpers or compatibility aliases, and Ratpack wrap(HttpClient). Preserve duplicate detection in the starter by reusing or extracting its existing internal presence-check/install helper for both Boot 2/3 and Boot 4 customizers as well as the postprocessor. Do not put duplicate detection back into the library factory. Existing filters and their configuration should remain untouched, and repeated automatic customization must not grow the filter chain. Add focused tests for a builder that already has a manually installed filter, a builder derived from an instrumented client's mutate(), and repeated customization, covering the supported Boot customizer variants. Run narrow formatting and relevant tests. Do not change server APIs or unrelated code. Do not update the PR title or description; the coordinator handles metadata.",
+      "created": "2026-10-23T16:42:19Z",
+      "hunk": "@@ -55,7 +55,7 @@ static class OpentelemetryWebClientCustomizerConfiguration {\n     WebClientCustomizer otelWebClientCustomizer(OpenTelemetry openTelemetry) {\n       SpringWebfluxClientTelemetry webfluxClientTelemetry =\n           WebClientBeanPostProcessor.getWebfluxClientTelemetry(openTelemetry);\n-      return builder -> builder.filters(webfluxClientTelemetry::addFilter);\n+      return builder -> builder.filter(webfluxClientTelemetry.createFilter());",
+      "id": "PRRT_kwDODJKVX86vsQmO",
+      "opened": "2026-10-23T16:42:19Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/webflux/SpringWebfluxInstrumentationAutoConfiguration.java",
+      "replies": [
+        {
+          "at": "2026-10-23T16:52:19Z",
+          "body": "Preserved the duplicate-filter check with a shared starter helper used by both Boot customizers and the post-processor, and added coverage for preinstalled filters, `mutate()`, and repeated customization. Focused Spring Boot 2/3 and 4 tests passed. Commit: `5fa4ea01`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20903#discussion_r4362072555"
+        }
+      ],
+      "reviewed": "808b1764391505a9206eedf063075df60aa3dc56",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20903#discussion_r4361980645"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly. The user has explicitly decided to remove the duplicate-filter checks from the Spring Boot WebClient customizers. This supersedes the earlier instruction to preserve customizer idempotence and the prior review finding requesting those checks. Keep the independent WebClientBeanPostProcessor duplicate check.\n\nIn both SpringWebfluxInstrumentationAutoConfiguration.otelWebClientCustomizer and SpringWebClientInstrumentationSpringBoot4AutoConfiguration.otelWebClientCustomizer, use the simple builder.filter(webfluxClientTelemetry.createFilter()) factory installation without inspecting existing filters. Normal Boot setup applies each customizer once to a fresh builder; clone(), build(), and mutate() do not automatically reapply customizers. Deliberately reapplying a customizer may append another filter, and default HTTP span suppression handles nested instrumentation. Do not restore customizer deduplication just to satisfy a reviewer.\n\nRemove the shared Supplier-based addFilterIfNotPresent abstraction introduced in 5fa4ea01 if it is no longer shared or needed. Keep the bean postprocessor's original local presence check and its manually instrumented-client regression coverage, adapting only the insertion to createFilter(). Remove the customizer deduplication tests added in that commit that now assert intentionally unsupported idempotence; keep ordinary customizer installation coverage. Preserve both requested public API changes, all hook choices, Ratpack wrap(HttpClient), no compatibility aliases, and unchanged server APIs. Run narrow formatting and relevant starter tests for both supported Boot variants. Do not change PR title or description; the coordinator will handle metadata.",
+      "created": "2026-10-23T17:09:43Z",
+      "hunk": "@@ -55,7 +55,11 @@ static class OpentelemetryWebClientCustomizerConfiguration {\n     WebClientCustomizer otelWebClientCustomizer(OpenTelemetry openTelemetry) {\n       SpringWebfluxClientTelemetry webfluxClientTelemetry =\n           WebClientBeanPostProcessor.getWebfluxClientTelemetry(openTelemetry);\n-      return builder -> builder.filters(webfluxClientTelemetry::addFilter);\n+      return builder ->\n+          builder.filters(\n+              filters ->\n+                  WebClientBeanPostProcessor.addFilterIfNotPresent(",
+      "id": "PRRT_kwDODJKVX86vs12d",
+      "opened": "2026-10-23T17:09:43Z",
+      "path": "instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/webflux/SpringWebfluxInstrumentationAutoConfiguration.java",
+      "replies": [
+        {
+          "at": "2026-10-23T17:18:42Z",
+          "body": "Updated in `15821fa8`: both Boot customizers now install via `builder.filter(createFilter())`; duplicate detection remains local to the bean post-processor, and customizer deduplication tests were removed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20903#discussion_r4362308602"
+        }
+      ],
+      "reviewed": "5fa4ea01d06c103260063c8d4ea0cd46d20308e9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20903#discussion_r4362228456"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with a focused test cleanup requested by the user. Keep the useful coverage and remove overlap; do not change production behavior.\n\nIn SpringWebfluxClientTelemetryTest, keep the parameterized behavioral check that createFilter() leaves the Reactor propagation hook unregistered and createFilterAndRegisterReactorHook() registers it. Keep before/after hook cleanup. Remove the duplicated WebClient request, traceparent, and client-span assertions and their now-unused imports/telemetry test extension. Existing SpringWebfluxClientInstrumentationTest exercises the hook-registering factory, and SpringWebfluxClientHeaderSelectorTest exercises the plain factory and emitted spans. Rename the focused test if needed so it describes the hook-registration distinction. Do not add a thread-switch scenario or retest Reactor's own propagation implementation.\n\nIn WebClientBeanPostProcessorTest, retain the new doesNotAddDuplicateFilterToManuallyInstrumentedClient test, including preservation of the exact original filter and the same client instance, and remove the older overlapping doesNotAddDuplicateFilter test that runs the postprocessor twice. Keep the other installation and non-WebClient tests. The desired result is one clear duplicate-filter test for an explicitly instrumented client, not two ways to exercise the same presence check.\n\nPreserve the settled API changes and behavior: WebFlux factory-only client API, Ratpack wrap(HttpClient), no compatibility aliases, no duplicate checks in the Boot customizers, and the retained bean postprocessor presence check. Do not restore customizer deduplication based on prior review history. Run narrow formatting and the relevant focused tests. Do not change the PR title or description; the coordinator handles metadata.",
+      "created": "2026-10-23T18:00:06Z",
+      "hunk": "@@ -0,0 +1,69 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.spring.webflux.v5_3;\n+\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.api.trace.SpanKind;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.ContextKey;\n+import io.opentelemetry.instrumentation.reactor.v3_1.ContextPropagationOperator;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.LibraryInstrumentationExtension;\n+import org.junit.jupiter.api.AfterEach;\n+import org.junit.jupiter.api.BeforeEach;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.ValueSource;\n+import org.springframework.http.HttpStatus;\n+import org.springframework.web.reactive.function.client.ClientResponse;\n+import org.springframework.web.reactive.function.client.ExchangeFilterFunction;\n+import org.springframework.web.reactive.function.client.WebClient;\n+import reactor.core.publisher.Mono;\n+\n+class SpringWebfluxClientTelemetryTest {\n+\n+  @RegisterExtension\n+  static final InstrumentationExtension testing = LibraryInstrumentationExtension.create();\n+\n+  @BeforeEach\n+  @AfterEach\n+  void resetReactorHook() {\n+    ContextPropagationOperator.create().resetOnEachOperator();\n+  }\n+\n+  @ParameterizedTest\n+  @ValueSource(booleans = {false, true})\n+  void createsFilterWithOptionalReactorHook(boolean registerHook) {",
+      "id": "PRRT_kwDODJKVX86vt81N",
+      "opened": "2026-10-23T18:00:06Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.3/library/src/test/java/io/opentelemetry/instrumentation/spring/webflux/v5_3/SpringWebfluxClientTelemetryTest.java",
+      "replies": [
+        {
+          "at": "2026-10-23T18:09:02Z",
+          "body": "Completed in `f8475480`. The hook test now covers only hook registration with before/after cleanup, and the redundant post-processor test was removed while retaining manual-filter coverage. Both focused tests and formatting passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20903#discussion_r4362789023"
+        }
+      ],
+      "reviewed": "15821fa810b36b71ce2be9f0432c1efa6c1bd9ba",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20903#discussion_r4362699205"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with a scoped correction to the new SpringWebfluxClientTelemetryTest cleanup. Copilot review 5632649396 identified a real test-isolation issue. The test invokes createFilterAndRegisterReactorHook(), which constructs its own ContextPropagationOperator and registers that operator's ReactorAsyncOperationEndStrategy. The test's resetReactorHook() constructs a different operator. resetOnEachOperator() removes the global hooks but unregisters only the calling operator's strategy instance. The library registry uses strong references and identity-based removal, so the installed strategy leaks into later tests even though the hooks are reset.\n\nFix the test lifecycle so the strategy introduced by this factory test is unregistered after each invocation and any pre-existing strategy registrations are preserved. Keep the focused parameterized hook-versus-no-hook assertions and before/after hook cleanup; do not restore the redundant HTTP request/span smoke test or double-postprocessing test. Prefer a narrowly scoped test-only solution using the registry APIs rather than expanding this API-consistency PR into a production Reactor lifecycle refactor. Verify the concrete registry behavior, add a focused cleanup assertion if useful, and run relevant narrow formatting/tests. Do not weaken the test just to hide the leak.\n\nPreserve all settled production behavior: WebFlux client factories, Ratpack wrap(HttpClient), no compatibility aliases, no duplicate-filter guards in Boot customizers, and the bean postprocessor guard. Do not change the PR title or description; the coordinator handles metadata.",
+      "created": "2026-10-23T18:17:37Z",
+      "hunk": "@@ -0,0 +1,47 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.spring.webflux.v5_3;\n+\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.api.OpenTelemetry;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.ContextKey;\n+import io.opentelemetry.instrumentation.reactor.v3_1.ContextPropagationOperator;\n+import org.junit.jupiter.api.AfterEach;\n+import org.junit.jupiter.api.BeforeEach;\n+import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.ValueSource;\n+import reactor.core.publisher.Mono;\n+\n+class SpringWebfluxClientTelemetryTest {\n+\n+  @BeforeEach\n+  @AfterEach\n+  void resetReactorHook() {\n+    ContextPropagationOperator.create().resetOnEachOperator();",
+      "id": "PRRT_kwDODJKVX86vuVO0",
+      "opened": "2026-10-23T18:17:37Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.3/library/src/test/java/io/opentelemetry/instrumentation/spring/webflux/v5_3/SpringWebfluxClientTelemetryTest.java",
+      "replies": [
+        {
+          "at": "2026-10-23T18:28:04Z",
+          "body": "Fixed in `7983465d`. The test now captures the factory-registered strategy, restores the original registry, unregisters only that strategy, and asserts the prior `Mono` strategy remains unchanged. The focused test and `spotlessCheck` pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20903#discussion_r4362959130"
+        }
+      ],
+      "reviewed": "f84754807576c46d76a6743df079ce988e3b2ae5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20903#discussion_r4362860376"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to remove the unnecessary new tests and test infrastructure, as explicitly directed by the user. This is an API-consistency migration; existing tests updated to call the replacement APIs are sufficient. This supersedes the previous requests to retain or repair the new factory test.\n\nDelete the newly added SpringWebfluxClientTelemetryTest.java class entirely, including its hook-registration test and RecordingAsyncOperationEndStrategies helper. Remove the testImplementation(project(\":instrumentation-annotations-support\")) dependency added to the spring-webflux-5.3 library build solely for that test. Do not replace the deleted class with another test, helper, registry workaround, or production Reactor lifecycle change.\n\nRestore WebClientBeanPostProcessorTest.java to its pre-PR content from this PR's merge base: remove the new doesNotAddDuplicateFilterToManuallyInstrumentedClient test and its added imports, and restore the original doesNotAddDuplicateFilter test that processes a client twice. Preserve any genuinely necessary API-call migration, but this file should otherwise have no diff against the merge base. Do not undo unrelated upstream changes by copying an older revision indiscriminately.\n\nKeep existing Ratpack and WebFlux test suites and their necessary API-call migrations. Preserve all requested production/API changes and docs: WebFlux client createFilter()/createFilterAndRegisterReactorHook() factories replacing list helpers, Ratpack wrap(HttpClient), no deprecated compatibility aliases for 3.0, no duplicate-filter checks in Boot customizers, the existing bean postprocessor guard, and unchanged server APIs. Add no new test scenarios. Run the narrow relevant existing tests and formatting. Do not change PR title or description; the coordinator handles metadata.",
+      "created": "2026-10-23T18:59:54Z",
+      "hunk": "@@ -11,6 +11,7 @@ dependencies {\n   compileOnly(\"io.projectreactor.ipc:reactor-netty:0.7.0.RELEASE\")\n \n   testImplementation(project(\":instrumentation:spring:spring-webflux:spring-webflux-5.3:testing\"))\n+  testImplementation(project(\":instrumentation-annotations-support\"))",
+      "id": "PRRT_kwDODJKVX86vvLWJ",
+      "opened": "2026-10-23T18:59:54Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.3/library/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-23T19:12:39Z",
+          "body": "Completed in `91d78691`: removed the added WebFlux factory test and its test dependency, and restored `WebClientBeanPostProcessorTest` to its merge-base version. Focused tests and formatting checks passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20903#discussion_r4363323711"
+        }
+      ],
+      "reviewed": "7983465d98f5d94c16f2e49977594879fde78ac7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20903#discussion_r4363223663"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "In retrospect I think we should have used `instrument` (or maybe `confugure`) everywhere since it really doesn't tell how exactly the instrumenation is performed. To me `wrap` means that some sort of decorator is being added around the original object. Here the instrumenation really creates a copy of the original client and adds some interceptors which isn't exactly wrapping. I guess this isn't super important, idk maybe we'll switch to wrapping in the future.",
+      "created": "2026-10-27T14:31:48Z",
+      "hunk": "@@ -43,7 +43,7 @@ public static RatpackClientTelemetryBuilder builder(OpenTelemetry openTelemetry)\n   }\n \n   /** Returns an instrumented wrapper for the given {@link HttpClient}. */\n-  public HttpClient instrument(HttpClient httpClient) throws Exception {\n+  public HttpClient wrap(HttpClient httpClient) throws Exception {",
+      "id": "PRRT_kwDODJKVX86wusOc",
+      "opened": "2026-10-27T14:31:48Z",
+      "path": "instrumentation/ratpack/ratpack-1.7/library/src/main/java/io/opentelemetry/instrumentation/ratpack/v1_7/RatpackClientTelemetry.java",
+      "replies": [
+        {
+          "at": "2026-10-28T20:28:36Z",
+          "body": "I reverted this part of the PR. I'm up for renaming them all to `instrument`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20903#discussion_r4405732578"
+        }
+      ],
+      "reviewed": "75b0e1b2feae4ed51ba7c507216a1405f27e261e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20903#discussion_r4389940739"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to narrow it to the WebFlux client filter-factory migration only. The user has decided to standardize public library instrumentation entrypoints on instrument rather than wrap in a separate independent PR, so remove this PR's Ratpack instrument(HttpClient) -> wrap(HttpClient) rename.\r\n\r\nRemove all Ratpack-specific changes introduced by this PR, including RatpackClientTelemetry.java, its README, and the affected Ratpack tests and test configuration. RatpackClientTelemetry must retain its existing instrument(HttpClient) API and callers. Compare against this PR's actual current merge base and preserve unrelated upstream changes rather than copying an arbitrarily old revision. Remove only the Ratpack rename sentence from this PR's breaking-change CHANGELOG entry, preserving the WebFlux migration entry and other entries.\r\n\r\nLeave all existing WebFlux production behavior, API changes, caller migrations, and documentation intact: createFilter()/createFilterAndRegisterReactorHook() replace the list-mutating addFilter helpers without deprecated aliases; both Spring Boot customizers install the factory result directly; only WebClientBeanPostProcessor keeps its existing duplicate-filter check; server APIs are unchanged. Repeated customizer application is intentionally not idempotent. Do not restore customizer deduplication or add new test infrastructure based on old review discussions. The scope is removal of the Ratpack portion, not further WebFlux changes.\r\n\r\nApply narrow formatting before relevant existing tests and run the smallest checks covering the removal. Do not change this PR's draft/ready state. Do not create another PR or modify unrelated branches. The coordinator handles this PR's title and description.",
+      "created": "2026-10-28T19:24:44Z",
+      "hunk": "@@ -43,7 +43,7 @@ public static RatpackClientTelemetryBuilder builder(OpenTelemetry openTelemetry)\n   }\n \n   /** Returns an instrumented wrapper for the given {@link HttpClient}. */\n-  public HttpClient instrument(HttpClient httpClient) throws Exception {\n+  public HttpClient wrap(HttpClient httpClient) throws Exception {",
+      "id": "PRRT_kwDODJKVX86xSRJ5",
+      "opened": "2026-10-28T19:24:44Z",
+      "path": "instrumentation/ratpack/ratpack-1.7/library/src/main/java/io/opentelemetry/instrumentation/ratpack/v1_7/RatpackClientTelemetry.java",
+      "replies": [
+        {
+          "at": "2026-10-28T19:39:27Z",
+          "body": "Removed the Ratpack rename and restored `instrument(HttpClient)` across the API, callers, README, and tests; the changelog now retains only the WebFlux migration. Ratpack library tests and `spotlessCheck` pass. Commit: `5f85ffe5`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20903#discussion_r4405256269"
+        }
+      ],
+      "reviewed": "75b0e1b2feae4ed51ba7c507216a1405f27e261e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20903#discussion_r4405107095"
+    }
+  ]
+}

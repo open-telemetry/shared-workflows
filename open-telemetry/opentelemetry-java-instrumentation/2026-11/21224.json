@@ -1,0 +1,55 @@
+{
+  "head": "b0264ebc51324c03efafaa64012c4341cf449738",
+  "merge": "18fbed01dcb943bd65cd7db581425ee457ad81e1",
+  "merged": "2026-11-06T16:34:22Z",
+  "missing_roots": 0,
+  "number": 21224,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] In `testLatestDeps` builds, `orLatest()` selects the HTTP `#+` pin, which is still `1.4.2`, so `pekko2Test` loses HTTP 2.x coverage while retaining Pekko Stream 2.x and the 2.x binding shim. Keep `orLatest(\"2.+\")` for the HTTP dependency to select the existing `2.0.0-M2` pin. Apply the same change to `pekko-http_3` at line 148 for `pekko2Scala3Test`.",
+      "created": "2026-11-06T12:58:35Z",
+      "hunk": "@@ -124,28 +125,28 @@ testing.suites {\n     sources {\n       java.srcDir(\"src/test/java\")\n       resources.srcDir(\"src/test/resources\")\n-      extensions.getByType(org.gradle.api.tasks.ScalaSourceDirectorySet::class.java).srcDir(\"src/test/scala\")\n-      extensions.getByType(org.gradle.api.tasks.ScalaSourceDirectorySet::class.java).srcDir(\"src/pekko2TestShim/scala\")\n+      extensions.getByType(ScalaSourceDirectorySet::class.java).srcDir(\"src/test/scala\")\n+      extensions.getByType(ScalaSourceDirectorySet::class.java).srcDir(\"src/pekko2TestShim/scala\")\n     }\n \n     dependencies {\n-      implementation(\"org.apache.pekko:pekko-http_2.13:${baseVersion(\"2.0.0-M2\").orLatest(\"2.+\")}\")\n-      implementation(\"org.apache.pekko:pekko-stream_2.13:${baseVersion(\"2.0.0-M4\").orLatest(\"2.+\")}\")\n+      implementation(\"org.apache.pekko:pekko-http_2.13:${baseVersion(\"2.0.0-M2\").orLatest()}\")",
+      "id": "PRRT_kwDODJKVX860gzKK",
+      "opened": "2026-11-06T12:58:35Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "d8551788392b9bb42bf5f2a37c6b4c8029c8cf6a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21224#discussion_r4492647141"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "This replaces `PekkoIgnoredTypesConfigurer` `org.apache.pekko.dispatch.Dispatcher$$anon$1` use there is a sublcass of `Mailbox`. Executor configuration has changed so now `Dispatcher$$anon$1` gets wrapped into `PekkoForkJoinTask` which triggers undesired context propagation.",
+      "created": "2026-11-06T14:03:27Z",
+      "hunk": "@@ -0,0 +1,50 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkoactor.v1_0;\n+\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesNoArguments;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+class PekkoMailboxInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"org.apache.pekko.dispatch.Mailbox\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        named(\"run\").and(takesNoArguments()), getClass().getName() + \"$RunAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class RunAdvice {\n+\n+    @Nullable\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static Scope enter() {\n+      // Context is carried by individual envelopes in the queue not the mailbox itself.\n+      return Context.root().makeCurrent();",
+      "id": "PRRT_kwDODJKVX860iLHh",
+      "opened": "2026-11-06T14:03:27Z",
+      "path": "instrumentation/pekko/pekko-actor-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkoactor/v1_0/PekkoMailboxInstrumentation.java",
+      "replies": [],
+      "reviewed": "9d7c9437630d1129296c5e066fc85f03503c5366",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21224#discussion_r4493228347"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "now regular tests test 1.x and `pekko2Test` tests 2 to latest",
+      "created": "2026-11-06T14:04:30Z",
+      "hunk": "@@ -56,8 +56,9 @@ dependencies {\n   library(\"org.apache.pekko:pekko-actor_2.12:1.0.1\")\n   library(\"org.apache.pekko:pekko-actor-typed_2.12:1.0.1\")\n \n-  latestDepTestLibrary(\"org.apache.pekko:pekko-actor_2.13:latest.release\")\n-  latestDepTestLibrary(\"org.apache.pekko:pekko-actor-typed_2.13:latest.release\")\n+  // later versions are tested in pekko2Test suite\n+  latestDepTestLibrary(\"org.apache.pekko:pekko-actor_2.13:1.+\") // documented limitation",
+      "id": "PRRT_kwDODJKVX860iMm5",
+      "opened": "2026-11-06T14:04:30Z",
+      "path": "instrumentation/pekko/pekko-actor-1.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "9d7c9437630d1129296c5e066fc85f03503c5366",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21224#discussion_r4493238284"
+    }
+  ]
+}

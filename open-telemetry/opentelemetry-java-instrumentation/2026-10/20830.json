@@ -1,0 +1,166 @@
+{
+  "head": "7de1b9d663cdd58377ff57e6b71bce48e8c360b8",
+  "merge": "8fd8dea2ad6ca913fffb956fead315c3729ed700",
+  "merged": "2026-10-23T03:33:00Z",
+  "missing_roots": 0,
+  "number": 20830,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Finish the original API-preparation assignment by fixing the CI regressions introduced in this PR. Update #20830 directly, keep it draft against main, and do not create a follow-up PR or modify stabilization PR #20828. Preserve the requested attribute-extraction, generic-variance, opaque-request-wrapper, and servlet api-to-implementation changes. Retaining Ratpack's checked exception is justified by the supported Ratpack 1.7.0 HttpClient.copyWith contract.\n\nThe original task 50b3f74f-837a-44c3-ae6e-ec4c60d61d48 has completed at head cd78c4066430c782568271c3b93a74da7b6632a2, but its changes do not yet pass validation. I downloaded the deterministic fix_ci.py --download-only bundle and inspected representative build/test/smoke/example logs from Actions run 39717080603. They share this concrete failure: :instrumentation:servlet:servlet-3.0:javaagent:compileJava fails in Servlet3Singletons.java lines 33 and 36 because class file io.opentelemetry.instrumentation.servlet.common.javax.JavaxServletAccessor is missing. Servlet3Accessor implements that interface, and the javaagent previously obtained the helper transitively through the library's api dependency. Keep the library's implementation dependency as requested and declare the javaagent's own direct dependency in the appropriate configuration, following repository build patterns. Check other actual internal consumers for the same compile-classpath need; do not undo the consumer-facing compile-classpath cleanup. Representative build failure: https://github.com/open-telemetry/opentelemetry-java-instrumentation/actions/runs/39717080603/job/119622057017 .\n\nThe lint-check job 119622056862 also fails with CHANGELOG.md:302:1 [MD076] Unexpected blank line between list items. Run the repository's Markdown formatter on the changed file rather than hand-editing generated output. Keep the necessary breaking-alpha-API entry concise and under Unreleased.\n\nThe newly added NettyServerHeaderSelectorTest also introduces javax.annotation.Nullable on test parameters. Follow the repository's explicit no-Nullable-in-test-code convention for those new declarations.\n\nValidate the affected servlet javaagent compilation and its dependency wiring, the focused NettyServerHeaderSelectorTest including the Object/Object extractor conversion path, and the scoped library API compilation as feasible. Apply the narrow relevant Spotless task before behavior validation and run the repository's rumdl check --fix for CHANGELOG.md. Verify wrapper getter/nullability behavior remains unchanged. Preserve instrumentation behavior and propagate real failures. Do not broaden this into unrelated fixes, naming changes, or status-customizer work. Report the exact validation and any genuine remaining blocker.",
+      "created": "2026-10-22T03:40:47Z",
+      "hunk": "@@ -5,7 +5,7 @@ plugins {\n dependencies {\n   compileOnly(\"javax.servlet:javax.servlet-api:3.0.1\")\n   implementation(project(\":instrumentation:servlet:servlet-common:library\"))\n-  api(project(\":instrumentation:servlet:servlet-common-javax:library\"))\n+  implementation(project(\":instrumentation:servlet:servlet-common-javax:library\"))",
+      "id": "PRRT_kwDODJKVX86vCdDk",
+      "opened": "2026-10-22T03:40:47Z",
+      "path": "instrumentation/servlet/servlet-3.0/library/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-22T03:59:24Z",
+          "body": "Fixed in d516dc90: the Servlet 3.0 javaagent now directly declares the javax helper, the Netty test no longer annotates parameters nullable, and rumdl fixed the changelog spacing. Servlet javaagent compilation, the focused Netty test, scoped library compilation, and formatting checks pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20830#discussion_r4344406723"
+        }
+      ],
+      "reviewed": "cd78c4066430c782568271c3b93a74da7b6632a2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20830#discussion_r4344319061"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Apply this explicit user correction to #20830 directly: use invariant attribute-extractor signatures consistently across all 19 scoped HTTP telemetry builders. The user confirmed \"Yes, use invariant signatures everywhere.\" This supersedes the original task's generic-variance direction. Keep this PR draft against main, and do not create another PR or modify stabilization PR #20828.\n\nAll public addAttributesExtractor methods in the scoped libraries must accept AttributesExtractor<RequestType, ResponseType>, without ? super on either type argument. In particular, JavaHttpClientTelemetryBuilder must change its existing contravariant signature to AttributesExtractor<HttpRequest, HttpResponse<?>>. Keep the new NettyServerTelemetryBuilder.addAttributesExtractor method, using AttributesExtractor<NettyRequest, HttpResponse>.\n\nUndo the initial task's variance-only widening in the other builders and restore their original invariant signatures. Revert variance-only changes to InstrumenterUtil.convertAttributesExtractor and AttributesExtractorAdapter where they are no longer needed. Preserve necessary adapter/conversion behavior and type safety; do not add raw types or casts to work around mismatches. Remove changes from the diff when they only implemented the now-rejected variance direction.\n\nReplace the Object/Object extractor regression case with appropriately typed NettyRequest/HttpResponse coverage that still verifies server-side custom extraction, default-extractor ordering, and the request-view conversion path. Do not preserve a test that asserts the rejected broad-extractor API. Compile the Java HTTP Client usage tests against its now-invariant signature, and update directly affected callers if needed.\n\nRetain all other requested preparation work: final opaque NettyRequest with non-public construction and unchanged getters/captured nullable remote address, the Servlet library's api-to-implementation dependency change, and direct internal-consumer dependency corrections from the preceding CI-fix attempt. Retain Ratpack's required checked exception. Keep the concise breaking-API changelog entry and prior lint corrections. Do not add naming changes or status customizers.\n\nAcceptance: the 19 builders consistently expose invariant request/response extractor parameters, Java HTTP Client no longer has the contravariant exception, the new Netty server customization works, unnecessary variance-only diff is gone, and the servlet dependency cleanup still compiles its actual consumers. Apply relevant formatting and run focused Netty and Java HTTP Client tests plus affected compilation as feasible. Report exact validation and blockers. Do not change the intended API direction to make old broad-extractor tests pass.",
+      "created": "2026-10-22T04:02:08Z",
+      "hunk": "@@ -84,6 +85,17 @@ public NettyServerTelemetryBuilder setResponseHeaders(IncludeExclude responseHea\n     return this;\n   }\n \n+  /**\n+   * Adds an {@link AttributesExtractor} to extract attributes from requests and responses. Executed\n+   * after all default extractors.\n+   */\n+  @CanIgnoreReturnValue\n+  public NettyServerTelemetryBuilder addAttributesExtractor(\n+      AttributesExtractor<? super NettyRequest, ? super HttpResponse> attributesExtractor) {",
+      "id": "PRRT_kwDODJKVX86vCsCC",
+      "opened": "2026-10-22T04:02:07Z",
+      "path": "instrumentation/netty/netty-4.1/library/src/main/java/io/opentelemetry/instrumentation/netty/v4_1/NettyServerTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-10-22T04:11:59Z",
+          "body": "Updated #20830 to use invariant extractor signatures across the 19 scoped builders and the shared conversion/Netty adapter, with typed Netty conversion coverage. The focused format check, all scoped library/API compilations, and Netty test pass. Commit: `807aba0a`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20830#discussion_r4344465662"
+        }
+      ],
+      "reviewed": "d516dc90c8fd5c4637b042c13fade74aac84a3e1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20830#discussion_r4344418883"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Remove the newly added addsAttributesExtractor() test from NettyServerHeaderSelectorTest in #20830, as explicitly requested by the user. I checked the repository baseline: the scoped HTTP libraries do not normally have dedicated tests for this builder pass-through method; shared Instrumenter tests cover extractor registration. The user asked to revert this additional test if it was not the normal HTTP-library pattern.\n\nIn instrumentation/netty/netty-4.1/library/src/test/java/io/opentelemetry/instrumentation/netty/v4_1/NettyServerHeaderSelectorTest.java, remove only addsAttributesExtractor() and the imports introduced solely for it. Preserve all pre-existing header-selector tests. This test file should disappear from the PR diff. Do not move or recreate the removed test elsewhere.\n\nPreserve every production/API/dependency change, especially the invariant AttributesExtractor<Request, Response> signatures including Java HTTP Client, the new Netty server addAttributesExtractor method, final opaque NettyRequest, and the Servlet dependency changes and internal consumer fix. Keep the PR draft against main, update #20830 directly, and do not create another PR or modify #20828. Apply the narrow relevant formatting and run the remaining existing NettyServerHeaderSelectorTest suite as feasible. Report validation and any genuine blocker.",
+      "created": "2026-10-22T04:15:43Z",
+      "hunk": "@@ -106,6 +111,42 @@ void doesNotCaptureHeadersByDefault() {\n     assertThat(attributes.get(stringArrayKey(\"http.response.header.x-test-response\"))).isNull();\n   }\n \n+  @Test\n+  void addsAttributesExtractor() {",
+      "id": "PRRT_kwDODJKVX86vC1we",
+      "opened": "2026-10-22T04:15:43Z",
+      "path": "instrumentation/netty/netty-4.1/library/src/test/java/io/opentelemetry/instrumentation/netty/v4_1/NettyServerHeaderSelectorTest.java",
+      "replies": [
+        {
+          "at": "2026-10-22T04:22:04Z",
+          "body": "Removed the added Netty extractor test and its test-only imports; the file now matches the branch base, and all existing header-selector tests remain. Spotless and the existing test class pass. Commit: `f8dddff2`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20830#discussion_r4344516912"
+        }
+      ],
+      "reviewed": "807aba0aa698ca0d1ffce36be2ffab50b040083f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20830#discussion_r4344484701"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Neither `Netty41ServerTest` nor `NettyServerHeaderSelectorTest` registers a custom extractor, so existing server tests do not exercise this new hook or its request/response adaptation. Please add a library integration test that registers an extractor through this method, handles an HTTP request, and asserts request-derived `onStart` and response-derived `onEnd` attributes on the exported server span. Use the public `NettyRequest` getters; overriding a default attribute can also verify the documented extractor ordering.",
+      "created": "2026-10-22T04:26:06Z",
+      "hunk": "@@ -84,6 +85,17 @@ public NettyServerTelemetryBuilder setResponseHeaders(IncludeExclude responseHea\n     return this;\n   }\n \n+  /**\n+   * Adds an {@link AttributesExtractor} to extract attributes from requests and responses. Executed\n+   * after all default extractors.\n+   */\n+  @CanIgnoreReturnValue\n+  public NettyServerTelemetryBuilder addAttributesExtractor(\n+      AttributesExtractor<NettyRequest, HttpResponse> attributesExtractor) {\n+    builder.addAttributesExtractor(new AttributesExtractorAdapter(attributesExtractor));",
+      "id": "PRRT_kwDODJKVX86vC9nC",
+      "opened": "2026-10-22T04:26:06Z",
+      "path": "instrumentation/netty/netty-4.1/library/src/main/java/io/opentelemetry/instrumentation/netty/v4_1/NettyServerTelemetryBuilder.java",
+      "replies": [
+        {
+          "at": "2026-10-22T05:51:44Z",
+          "body": "not needed",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20830#discussion_r4344986340"
+        }
+      ],
+      "reviewed": "f8dddff2a686e421f2aa147b4b4f4254fc18fe47",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20830#discussion_r4344536624"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Please also document the Java HTTP Client source-compatibility break here. In the published `opentelemetry-java-http-client` API, the invariant signature rejects previously accepted extractors such as `AttributesExtractor<Object, Object>`. `CONTRIBUTING.md` requires a changelog entry for breaking API changes; the migration is currently described only in the PR description.",
+      "created": "2026-10-22T04:26:06Z",
+      "hunk": "@@ -298,6 +298,7 @@\n \n ### ⚠️ Breaking changes to non-stable APIs\n \n+- Make the Netty 4.1 library's `NettyRequest` final; use it only as an opaque request view.",
+      "id": "PRRT_kwDODJKVX86vC9nS",
+      "opened": "2026-10-22T04:26:06Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "f8dddff2a686e421f2aa147b4b4f4254fc18fe47",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20830#discussion_r4344536654"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Finish the original HTTP API preparation assignment on #20830 directly by fixing the remaining Servlet dependency regression and documenting the source-breaking Java HTTP Client signature change. The preceding test-removal coding session 7761d5c6-5845-4099-bfa5-cc6b433031e3 ended at 2026-10-22T04:22:41Z. Its delivery was verified at f8dddff2a686e421f2aa147b4b4f4254fc18fe47. Do not create another PR or modify stabilization PR #20828. Preserve the current ready-for-review state and base main.\n\nI downloaded the deterministic fix_ci.py 20830 --download-only bundle for Actions run 39721679203. The remaining build/test/smoke/example failures share a missing io.opentelemetry.instrumentation.servlet.common.javax.JavaxServletAccessor on downstream javaagent compile classpaths. Representative build job 119636623458 fails at Tomcat7Singletons.java:21; smoke job 119636623743 fails at Jetty8Singletons.java:33/36 and LibertySingletons.java:28/31. The generic inference errors at those sites are consequences of the missing superclass, not the invariant extractor APIs. Example log: https://github.com/open-telemetry/opentelemetry-java-instrumentation/actions/runs/39721679203/job/119636623743 .\n\nServlet3Accessor extends JavaxServletAccessor. The first correction added an implementation dependency on servlet-common-javax:library to servlet-3.0:javaagent, which fixes that project's compilation but does not expose the superclass to downstream javaagent modules. Jetty 8.0, Tomcat 7.0, and Liberty 20.0 all depend on servlet-3.0:javaagent and use Servlet3Accessor. Fix this compile-classpath wiring comprehensively with the smallest appropriate Gradle change. Consider making the helper an api dependency of the non-published servlet-3.0 javaagent module if that is the correct shared javaagent dependency boundary; alternatively use explicit dependencies in the actual downstream consumers following repository patterns. Keep servlet-3.0:library's helper dependency as implementation so library consumers do not regain the internal helper on their compile classpaths. Do not change production behavior or restore the library api dependency.\n\nThe Java HTTP Client library now narrows addAttributesExtractor from AttributesExtractor<? super HttpRequest, ? super HttpResponse<?>> to AttributesExtractor<HttpRequest, HttpResponse<?>>. This is the explicit user-requested invariant direction, and it is source-breaking for users passing broader extractor types. Add a concise entry under Unreleased / Breaking changes to non-stable APIs covering this change. Keep the existing concise NettyRequest entry. Follow CONTRIBUTING.md and run the repository's Markdown formatter for the changed file.\n\nPreserve all settled preparation work: invariant extractor signatures across the 19 HTTP builders, the new invariant Netty server customization method, final opaque NettyRequest with unchanged accessors and nullable captured remote address, and Ratpack's necessary checked exception. The new addsAttributesExtractor test has been removed at the user's request: do not restore or recreate it, and keep NettyServerHeaderSelectorTest absent from this PR's diff. Do not add naming changes, status customizers, new behavior, or unrelated fixes.\n\nApply narrow relevant formatting, then validate affected compilation for servlet-3.0:javaagent, jetty-8.0:javaagent, tomcat-7.0:javaagent, and liberty-20.0:javaagent together. Verify the Servlet library's public consumer compile/runtime dependency boundary remains as requested. Report exact validation and genuine blockers. Do not alter the invariant API direction to make tests pass.",
+      "created": "2026-10-22T04:29:32Z",
+      "hunk": "@@ -18,6 +18,7 @@ muzzle {\n dependencies {\n   api(project(\":instrumentation:servlet:servlet-common:javaagent\"))\n   api(project(\":instrumentation:servlet:servlet-3.0:library\"))\n+  implementation(project(\":instrumentation:servlet:servlet-common-javax:library\"))",
+      "id": "PRRT_kwDODJKVX86vDAKo",
+      "opened": "2026-10-22T04:29:32Z",
+      "path": "instrumentation/servlet/servlet-3.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-22T04:38:06Z",
+          "body": "Fixed in `9c251387`: Servlet 3.0 javaagent now exposes the javax helper transitively, the library dependency remains implementation-only, and the Java HTTP Client signature break is documented. Servlet, Tomcat, Jetty, and Liberty javaagent compilation passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20830#discussion_r4344597013"
+        }
+      ],
+      "reviewed": "f8dddff2a686e421f2aa147b4b4f4254fc18fe47",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20830#discussion_r4344553544"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The instruction to “update broader extractor types to match” repeats the required type already stated in this entry. CONTRIBUTING.md:15–18 asks changelog entries to omit instructions that merely restate the change. End the entry after the required type.",
+      "created": "2026-10-22T05:20:25Z",
+      "hunk": "@@ -298,6 +298,10 @@\n \n ### ⚠️ Breaking changes to non-stable APIs\n \n+- Make the Netty 4.1 library's `NettyRequest` final; use it only as an opaque request view.\n+- Java HTTP Client's `addAttributesExtractor` now requires\n+  `AttributesExtractor<HttpRequest, HttpResponse<?>>`; update broader extractor\n+  types to match.",
+      "id": "PRRT_kwDODJKVX86vDoRk",
+      "opened": "2026-10-22T05:20:25Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "9c251387c68352a99e583704a9914b0e1de19ea7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20830#discussion_r4344819146"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Make one documentation-only correction to #20830 directly. Latest-head Copilot review 5609597052 identified redundant wording in the Java HTTP Client breaking-alpha changelog entry introduced by the preceding correction. CONTRIBUTING.md requires omitting instructions that merely restate the change. In CHANGELOG.md, end that entry after `AttributesExtractor<HttpRequest, HttpResponse<?>>` with a period, removing only \"; update broader extractor types to match.\" Keep the NettyRequest entry unchanged. Use the repository's Markdown formatter on CHANGELOG.md.\n\nDo not modify any production, build, API, or test files. Preserve the current ready-for-review state and base main, and do not create another PR or change #20828. The earlier review's suggestion to add a Netty extractor integration test conflicts with the user's explicit instruction to remove that extra test: do not restore or recreate it, and do not reply to or resolve review threads. The invariant APIs, final opaque NettyRequest, and Servlet dependency wiring are settled and have green CI at head 9c251387c68352a99e583704a9914b0e1de19ea7. Acceptance is only the concise changelog sentence with all other changes untouched.",
+      "created": "2026-10-22T05:23:08Z",
+      "hunk": "@@ -298,6 +298,10 @@\n \n ### ⚠️ Breaking changes to non-stable APIs\n \n+- Make the Netty 4.1 library's `NettyRequest` final; use it only as an opaque request view.\n+- Java HTTP Client's `addAttributesExtractor` now requires\n+  `AttributesExtractor<HttpRequest, HttpResponse<?>>`; update broader extractor\n+  types to match.",
+      "id": "PRRT_kwDODJKVX86vDqWe",
+      "opened": "2026-10-22T05:23:08Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-10-22T05:26:37Z",
+          "body": "Removed the redundant wording and ran the repository-configured rumdl check. Commit: `b9d17b09`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20830#discussion_r4344851028"
+        }
+      ],
+      "reviewed": "9c251387c68352a99e583704a9914b0e1de19ea7",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20830#discussion_r4344833015"
+    }
+  ]
+}

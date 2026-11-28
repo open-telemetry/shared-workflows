@@ -1,0 +1,55 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "e31bd53bd9af8f0bd4fc481c69b5abed5fa53aa18d0719bc44810acade55abcc",
+  "input_digest": "41fe156da3acde3c7996417b6b9edb7daf1d83e7a14bf33cc7a73debbf987b04",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f549581a8c7f1493256e549b928998788ffdbd92/instrumentation/rmi/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rmi/server/RmiServerAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f549581a8c7f1493256e549b928998788ffdbd92/instrumentation/rmi/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rmi/server/RemoteServerInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1b1b83ebd8ff62c3b09ca3416ea69d583283a426/instrumentation/rmi/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rmi/server/RmiServerAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1b1b83ebd8ff62c3b09ca3416ea69d583283a426/instrumentation/rmi/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rmi/server/RemoteServerInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1b1b83ebd8ff62c3b09ca3416ea69d583283a426/instrumentation/rmi/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rmi/server/RmiServerRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1b1b83ebd8ff62c3b09ca3416ea69d583283a426/instrumentation/rmi/javaagent/src/test/java/rmi/app/Greeter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1b1b83ebd8ff62c3b09ca3416ea69d583283a426/instrumentation/rmi/javaagent/src/test/java/rmi/app/Server.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/fe984ef2c3d128a2fe4fbcf2215356d30328ae7d"
+      ],
+      "id": "PRRT_kwDODJKVX86u6T_g",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/fe984ef2c3d128a2fe4fbcf2215356d30328ae7d/instrumentation/rmi/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rmi/server/RmiServerRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1b1b83ebd8ff62c3b09ca3416ea69d583283a426/instrumentation/rmi/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rmi/server/RmiServerRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/da970453030fc9c0fe1df3ea2be243bdb82c837e"
+      ],
+      "id": "PRRT_kwDODJKVX86vABA-",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/da970453030fc9c0fe1df3ea2be243bdb82c837e/instrumentation/rmi/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rmi/server/RmiServerRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1b1b83ebd8ff62c3b09ca3416ea69d583283a426/instrumentation/rmi/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rmi/server/RmiServerRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f7276cbc413b2a1d1a5813deb321a598eb94e895"
+      ],
+      "id": "PRRT_kwDODJKVX86vAUgF",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86vIckn",
+      "kind": null,
+      "status": "other"
+    }
+  ]
+}

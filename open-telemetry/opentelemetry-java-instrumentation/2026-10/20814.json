@@ -1,0 +1,123 @@
+{
+  "head": "94c3481d0d253f59f87fe77c45d3ce9b5deb4468",
+  "merge": "067061da21430c95fb48b8658ff37998a68f2355",
+  "merged": "2026-10-23T03:58:32Z",
+  "missing_roots": 0,
+  "number": 20814,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing PR #20814 directly to fix Spring RMI preview server method identity and incorporate the latest changes from its existing parent PR #20813. Do not create another PR.\n\nThe added getRpcMethod() in instrumentation/spring/spring-rmi-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rmi/v4_0/server/ServerAttributesGetter.java currently uses the implementation class. ServerInstrumentation.java constructs its ClassAndMethod from rmiExporter.getService().getClass(), so the current fixture emits springrmi.app.SpringRmiGreeter/hello on the client but springrmi.app.SpringRmiGreeterImpl/hello on the server. RPC preview conventions v1.44.0 define rpc.method from the RPC interface perspective. The Java RMI fix in #20813 does not fix this separate Spring RMI server path.\n\nResolve the Spring server's preview identity using the exporter's configured service interface and the RemoteInvocation method name and parameter types. Use the resolved interface method's declaring class so inherited declarations agree with the client; retain sufficient signature information to distinguish overloads. Spring 4.0.0.RELEASE already exposes RemoteExporter.getServiceInterface() and RemoteInvocation.getParameterTypes(). Keep implementation-based legacy rpc.service, legacy rpc.method, and legacy server span names unchanged. Do not replace legacy identity with interface identity. Preview and rpc/dup server rpc.method and span names must use the interface identity, including for failed calls. Preserve current exception/error classification, propagation, EJB behavior, and supported Spring/JDK ranges. Follow the repository's reflection-cache and instrumentation conventions.\n\nUpdate SpringRmiTest.java so the normal Spring RMI fixture expects springrmi.app.SpringRmiGreeter/hello and /exceptional for preview and dual-emission server telemetry instead of SpringRmiGreeterImpl, while asserting unchanged legacy telemetry. Add focused real-invocation regression coverage for inherited interface methods and overloads to verify signature-aware resolution. Keep the existing legacy, preview, and dual-emission tasks wired into check and metadata collection. Run the Spring RMI test, testPreviewSemconv, and testBothSemconv tasks with baseline and latest dependencies on a supported test JDK, and address failures caused by this change.\n\nThe existing PR head is copilot/copilotcomplete-spring-rmi-pr and its base is copilot/complete-rmi-pr. Incorporate the latest parent branch, currently f7276cbc413b2a1d1a5813deb321a598eb94e895, by merging it into the existing Spring PR head, not the other way around. Preserve the Spring head's history, existing stack relationship, PR base, and ready/draft state. Do not rebase, merge either PR on GitHub, or modify unrelated modules.",
+      "created": "2026-10-22T01:22:24Z",
+      "hunk": "@@ -25,4 +25,9 @@ public String getService(ClassAndMethod classAndMethod) {\n   public String getMethod(ClassAndMethod classAndMethod) {\n     return classAndMethod.methodName();\n   }\n+\n+  @Override\n+  public String getRpcMethod(ClassAndMethod classAndMethod) {\n+    return classAndMethod.declaringClass().getName() + \"/\" + classAndMethod.methodName();",
+      "id": "PRRT_kwDODJKVX86vA5Sg",
+      "opened": "2026-10-22T01:22:24Z",
+      "path": "instrumentation/spring/spring-rmi-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rmi/v4_0/server/ServerAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-10-22T01:42:30Z",
+          "body": "Updated and pushed in `2d89906e`. Spring server preview names now resolve from the configured export interface using the invocation's exact parameter types; legacy identity is unchanged. Added inherited-method and overload integration coverage. Default, preview, and `rpc/dup` tests pass. Latest-dependency testing remains blocked because the environment lacks the unrelated Java 27 toolchain required during Gradle configuration.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20814#discussion_r4343746614"
+        }
+      ],
+      "reviewed": "5d88d25cce0ee80e7e84e13ba4103c536db96383",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20814#discussion_r4343646742"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing PR #20814 directly to simplify instrumentation/spring/spring-rmi-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rmi/v4_0/server/SpringRmiServerRequest.java and make it easier to read. Do not create another PR.\r\n\r\nReplace the lazy per-signature ConcurrentHashMap and MethodLookup wrapper with a ClassValue containing a map from MethodSignature to the final RPC method name, built once for each service interface. Enumerate the interface's public methods to discover distinct signatures, and resolve each signature using serviceInterface.getMethod(name, parameterTypes) before forming declaringClass.getName() + \"/\" + method.getName(). Preserve that canonical lookup when inherited declarations or covariant returns overlap instead of relying on getMethods() iteration order. Publish the completed map without subsequent mutation. Keep ClassValue for class-loader-safe caching and keep exact method-name/parameter-type keys, including defensive copying and null parameter arrays meaning no arguments. Missing service interfaces and unresolved signatures must still yield null. The per-request rpcMethod() should just handle a missing service interface and look up the signature in the cached map.\r\n\r\nPreserve all current telemetry and application behavior. In particular, inherited methods and overloads must still use the declaring interface's identity in preview and rpc/dup mode, while legacy implementation-based attributes and span names remain unchanged. Preserve error classification, propagation, EJB behavior, supported dependency/JDK ranges, and the existing stack relationship, PR base, and draft/ready state. Do not change other modules, merge PRs on GitHub, rebase the stack, or expand this readability refactor.\r\n\r\nKeep the implementation smaller and clearer rather than moving the same complexity to extra helper classes. Retain and, where needed for this refactor, extend focused coverage of exact overloads, inherited declarations, canonical duplicate-signature selection, and missing lookups. Apply the module's formatter and run the relevant Spring RMI default, preview, and dual-emission test tasks on a supported test JDK. Address failures caused by this refactor and report any genuine environment blocker.",
+      "created": "2026-10-22T02:44:22Z",
+      "hunk": "@@ -0,0 +1,95 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.spring.rmi.v4_0.server;\n+\n+import io.opentelemetry.instrumentation.api.incubator.semconv.util.ClassAndMethod;\n+import java.lang.reflect.Method;\n+import java.util.Arrays;\n+import java.util.concurrent.ConcurrentHashMap;\n+import java.util.concurrent.ConcurrentMap;\n+import javax.annotation.Nullable;\n+\n+public final class SpringRmiServerRequest {\n+\n+  private static final ClassValue<ConcurrentMap<MethodSignature, MethodLookup>> remoteMethods =",
+      "id": "PRRT_kwDODJKVX86vB0xj",
+      "opened": "2026-10-22T02:44:22Z",
+      "path": "instrumentation/spring/spring-rmi-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rmi/v4_0/server/SpringRmiServerRequest.java",
+      "replies": [
+        {
+          "at": "2026-10-22T03:04:39Z",
+          "body": "Updated and pushed in `f93452c1`. The server now precomputes an immutable per-interface signature-to-RPC-name map; focused tests cover duplicate declarations, overloads, copied parameter arrays, null parameter arrays, and missing lookups. Default, preview, and `rpc/dup` Spring RMI tasks pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20814#discussion_r4344150968"
+        }
+      ],
+      "reviewed": "2d89906e5687aed3896b4826504bec8e6d890094",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20814#discussion_r4344049526"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Naming] Non-blocking: The catch body does not use this exception. Name the parameter `ignored`, as required by the repository's convention for unused catch parameters.",
+      "created": "2026-10-22T03:23:45Z",
+      "hunk": "@@ -0,0 +1,93 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.spring.rmi.v4_0.server;\n+\n+import io.opentelemetry.instrumentation.api.incubator.semconv.util.ClassAndMethod;\n+import java.lang.reflect.Method;\n+import java.util.Arrays;\n+import java.util.Collections;\n+import java.util.HashMap;\n+import java.util.Map;\n+import javax.annotation.Nullable;\n+\n+public final class SpringRmiServerRequest {\n+\n+  private static final ClassValue<Map<MethodSignature, String>> rpcMethods =\n+      new ClassValue<Map<MethodSignature, String>>() {\n+        @Override\n+        protected Map<MethodSignature, String> computeValue(Class<?> serviceInterface) {\n+          Map<MethodSignature, String> methods = new HashMap<>();\n+          for (Method method : serviceInterface.getMethods()) {\n+            MethodSignature signature =\n+                new MethodSignature(method.getName(), method.getParameterTypes());\n+            if (methods.containsKey(signature)) {\n+              continue;\n+            }\n+            String rpcMethod = null;\n+            try {\n+              Method resolvedMethod =\n+                  serviceInterface.getMethod(signature.name, signature.parameterTypes);\n+              rpcMethod =\n+                  resolvedMethod.getDeclaringClass().getName() + \"/\" + resolvedMethod.getName();\n+            } catch (NoSuchMethodException e) {",
+      "id": "PRRT_kwDODJKVX86vCRSN",
+      "opened": "2026-10-22T03:23:46Z",
+      "path": "instrumentation/spring/spring-rmi-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spring/rmi/v4_0/server/SpringRmiServerRequest.java",
+      "replies": [],
+      "reviewed": "f93452c1892f42d814f8267ebea0f056da20530e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20814#discussion_r4344239385"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Why not just unify the legacy and preview behavior? Is there something in the spec that would require us to keep the legacy behaving as is?",
+      "created": "2026-10-22T06:01:10Z",
+      "hunk": "@@ -160,25 +166,128 @@ void clientCallCreatesSpans(TestSource testSource) throws RemoteException {\n                       .hasKind(SpanKind.CLIENT)\n                       .hasParent(trace.getSpan(0))\n                       .hasAttributesSatisfyingExactly(\n-                          equalTo(RPC_SYSTEM, \"spring_rmi\"),\n-                          equalTo(RPC_SERVICE, \"springrmi.app.SpringRmiGreeter\"),\n-                          equalTo(RPC_METHOD, \"hello\")));\n+                          equalTo(RPC_SYSTEM, emitOldRpcSemconv() ? \"spring_rmi\" : null),\n+                          equalTo(RPC_SYSTEM_NAME, emitPreviewRpcSemconv() ? \"spring_rmi\" : null),\n+                          equalTo(\n+                              RPC_SERVICE,\n+                              emitOldRpcSemconv() ? \"springrmi.app.SpringRmiGreeter\" : null),\n+                          equalTo(\n+                              RPC_METHOD,\n+                              emitPreviewRpcSemconv()\n+                                  ? \"springrmi.app.SpringRmiGreeter/hello\"\n+                                  : \"hello\")));\n           if (testSource == TestSource.RMI) {\n             assertions.add(\n                 span ->\n-                    span.hasName(testSource.remoteClassName + \"/hello\")\n+                    span.hasName(\n+                            emitPreviewRpcSemconv()\n+                                ? \"springrmi.app.SpringRmiGreeter/hello\"\n+                                : testSource.remoteClassName + \"/hello\")",
+      "id": "PRRT_kwDODJKVX86vEJgR",
+      "opened": "2026-10-22T06:01:10Z",
+      "path": "instrumentation/spring/spring-rmi-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/rmi/v4_0/SpringRmiTest.java",
+      "replies": [
+        {
+          "at": "2026-10-22T06:21:56Z",
+          "body": "mainly https://github.com/open-telemetry/semantic-conventions/blob/main/docs/rpc/README.md\r\n\r\n> SHOULD NOT change the version of the RPC conventions that they emit by default in their existing major version\r\n\r\n(plus changing span name is breaking telemetry change)\r\n\r\nbut I have a plan, trying to get RPC marked stable in semconv in the next few days so we can flip the switch repo-wide before 3.0",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20814#discussion_r4345166597"
+        },
+        {
+          "at": "2026-10-22T07:56:16Z",
+          "body": "Even if it isn't marked stable I think we could change the span name provided that the spec allows it. If we are eventually going to be using the interface name instead of the implementation class or whatever we are using now might as do the change. One less piece to maintain.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20814#discussion_r4345854680"
+        }
+      ],
+      "reviewed": "a0dfa7b9d23f998e597e6f660b0db0bc933b130d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20814#discussion_r4345040445"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could consider moving this to unit tests",
+      "created": "2026-10-22T07:57:22Z",
+      "hunk": "@@ -0,0 +1,88 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.spring.rmi.v4_0.server;\n+\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.javaagent.testing.common.AgentClassLoaderAccess;\n+import java.lang.reflect.Constructor;\n+import java.lang.reflect.Method;\n+import org.junit.jupiter.api.Test;\n+\n+class SpringRmiServerRequestTest {\n+\n+  public interface FirstService {\n+    String duplicate(String value);\n+\n+    String overloaded(String value);\n+\n+    String noArguments();\n+  }\n+\n+  public interface SecondService {\n+    String duplicate(String value);\n+\n+    String overloaded(Integer value);\n+  }\n+\n+  public interface DuplicateService extends FirstService, SecondService {}\n+\n+  @Test\n+  void resolvesDuplicateDeclarationsWithInterfaceLookup() throws Exception {\n+    Method method = DuplicateService.class.getMethod(\"duplicate\", String.class);\n+\n+    assertThat(rpcMethod(DuplicateService.class, \"duplicate\", String.class))\n+        .isEqualTo(method.getDeclaringClass().getName() + \"/\" + method.getName());\n+  }\n+\n+  @Test\n+  void distinguishesOverloadsAndCopiesParameterTypes() throws Exception {\n+    Class<?>[] parameterTypes = {String.class};\n+    Object request = createRequest(DuplicateService.class, \"overloaded\", parameterTypes);\n+    parameterTypes[0] = Integer.class;\n+\n+    assertThat(rpcMethod(request)).isEqualTo(FirstService.class.getName() + \"/overloaded\");\n+    assertThat(rpcMethod(DuplicateService.class, \"overloaded\", Integer.class))\n+        .isEqualTo(SecondService.class.getName() + \"/overloaded\");\n+  }\n+\n+  @Test\n+  void handlesNullParameterTypesAndMissingLookups() throws Exception {\n+    assertThat(rpcMethod(DuplicateService.class, \"noArguments\", (Class<?>[]) null))\n+        .isEqualTo(FirstService.class.getName() + \"/noArguments\");\n+    assertThat(rpcMethod(DuplicateService.class, \"missing\")).isNull();\n+    assertThat(rpcMethod(DuplicateService.class, \"duplicate\", Integer.class)).isNull();\n+    assertThat(rpcMethod(null, \"missing\", (Class<?>[]) null)).isNull();\n+  }\n+\n+  private static String rpcMethod(\n+      Class<?> serviceInterface, String methodName, Class<?>... parameterTypes) throws Exception {\n+    return rpcMethod(createRequest(serviceInterface, methodName, parameterTypes));\n+  }\n+\n+  private static String rpcMethod(Object request) throws Exception {\n+    Class<?> requestClass = request.getClass();\n+    Method rpcMethod = requestClass.getDeclaredMethod(\"rpcMethod\");\n+    rpcMethod.setAccessible(true);\n+    return (String) rpcMethod.invoke(request);\n+  }\n+\n+  private static Object createRequest(",
+      "id": "PRRT_kwDODJKVX86vGGcn",
+      "opened": "2026-10-22T07:57:22Z",
+      "path": "instrumentation/spring/spring-rmi-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/rmi/v4_0/server/SpringRmiServerRequestTest.java",
+      "replies": [],
+      "reviewed": "a0dfa7b9d23f998e597e6f660b0db0bc933b130d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20814#discussion_r4345863541"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing PR #20814 directly to move SpringRmiServerRequestTest into an agent-free unit-test suite, as suggested in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20814#discussion_r4345863541. Do not create another PR.\n\nMove instrumentation/spring/spring-rmi-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/rmi/v4_0/server/SpringRmiServerRequestTest.java to the matching package under src/unitTests/java in the same module. Register a JvmTestSuite named unitTests in that module's build.gradle.kts, depending on project() and any dependencies needed for direct helper access, and wire it into check. Follow the existing javaagent unit-test-suite conventions documented in .github/agents/knowledge/gradle-conventions.md and used in nearby Spring instrumentation modules. The javaagent-testing convention recognizes suite names ending in unitTests and runs them without installing the agent or filtering production classes off the classpath.\n\nRewrite the test to instantiate SpringRmiServerRequest directly with ClassAndMethod.create(...) and invoke its package-private rpcMethod() directly. Remove AgentClassLoaderAccess, reflective construction, constructor enumeration, and setAccessible(true) plumbing. Keep the real DuplicateService.class.getMethod(...) lookup used to establish the expected canonical declaring-interface identity. Preserve all existing focused coverage of duplicate declarations, exact overloads, defensive parameter-array copying, null parameter arrays, missing methods/signatures, and a missing service interface. Do not widen production visibility or change production behavior.\n\nKeep SpringRmiTest in the agent-enabled integration suite, and preserve its default, preview, and rpc/dup telemetry coverage and existing metadata-collection registrations. The helper unit tests are semconv-mode-independent and do not need additional semconv variants or metadata-collection entries. Do not change legacy or preview telemetry, method-resolution semantics, cache behavior, error handling, propagation, EJB behavior, or supported dependency/JDK ranges.\n\nApply the narrowest relevant formatter and run the unitTests task plus the existing Spring RMI test, testPreviewSemconv, and testBothSemconv tasks on a supported test JDK. Address failures caused by this cleanup and report genuine environment blockers. Preserve the existing PR branch, live base, and ready/draft state; do not rebase, merge any PR on GitHub, or modify unrelated modules. Do not reply to or resolve human-authored review threads.",
+      "created": "2026-10-22T15:05:05Z",
+      "hunk": "@@ -0,0 +1,88 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.spring.rmi.v4_0.server;\n+\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import io.opentelemetry.javaagent.testing.common.AgentClassLoaderAccess;\n+import java.lang.reflect.Constructor;\n+import java.lang.reflect.Method;\n+import org.junit.jupiter.api.Test;\n+\n+class SpringRmiServerRequestTest {\n+\n+  public interface FirstService {\n+    String duplicate(String value);\n+\n+    String overloaded(String value);\n+\n+    String noArguments();\n+  }\n+\n+  public interface SecondService {\n+    String duplicate(String value);\n+\n+    String overloaded(Integer value);\n+  }\n+\n+  public interface DuplicateService extends FirstService, SecondService {}\n+\n+  @Test\n+  void resolvesDuplicateDeclarationsWithInterfaceLookup() throws Exception {\n+    Method method = DuplicateService.class.getMethod(\"duplicate\", String.class);\n+\n+    assertThat(rpcMethod(DuplicateService.class, \"duplicate\", String.class))\n+        .isEqualTo(method.getDeclaringClass().getName() + \"/\" + method.getName());\n+  }\n+\n+  @Test\n+  void distinguishesOverloadsAndCopiesParameterTypes() throws Exception {\n+    Class<?>[] parameterTypes = {String.class};\n+    Object request = createRequest(DuplicateService.class, \"overloaded\", parameterTypes);\n+    parameterTypes[0] = Integer.class;\n+\n+    assertThat(rpcMethod(request)).isEqualTo(FirstService.class.getName() + \"/overloaded\");\n+    assertThat(rpcMethod(DuplicateService.class, \"overloaded\", Integer.class))\n+        .isEqualTo(SecondService.class.getName() + \"/overloaded\");\n+  }\n+\n+  @Test\n+  void handlesNullParameterTypesAndMissingLookups() throws Exception {\n+    assertThat(rpcMethod(DuplicateService.class, \"noArguments\", (Class<?>[]) null))\n+        .isEqualTo(FirstService.class.getName() + \"/noArguments\");\n+    assertThat(rpcMethod(DuplicateService.class, \"missing\")).isNull();\n+    assertThat(rpcMethod(DuplicateService.class, \"duplicate\", Integer.class)).isNull();\n+    assertThat(rpcMethod(null, \"missing\", (Class<?>[]) null)).isNull();\n+  }\n+\n+  private static String rpcMethod(\n+      Class<?> serviceInterface, String methodName, Class<?>... parameterTypes) throws Exception {\n+    return rpcMethod(createRequest(serviceInterface, methodName, parameterTypes));\n+  }\n+\n+  private static String rpcMethod(Object request) throws Exception {\n+    Class<?> requestClass = request.getClass();\n+    Method rpcMethod = requestClass.getDeclaredMethod(\"rpcMethod\");\n+    rpcMethod.setAccessible(true);\n+    return (String) rpcMethod.invoke(request);\n+  }\n+\n+  private static Object createRequest(",
+      "id": "PRRT_kwDODJKVX86vP8DD",
+      "opened": "2026-10-22T15:05:05Z",
+      "path": "instrumentation/spring/spring-rmi-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/rmi/v4_0/server/SpringRmiServerRequestTest.java",
+      "replies": [],
+      "reviewed": "2e6760740593cf09bfb6952fd74ecf8e6966b173",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20814#discussion_r4349987771"
+    }
+  ]
+}

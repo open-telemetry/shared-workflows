@@ -1,0 +1,130 @@
+{
+  "head": "701be3ff87a85eab9e1c428bad2d0baaaceb4a78",
+  "merge": "e5678a00006632924ceaedfa83b0a8c8c6d56bb9",
+  "merged": "2026-10-13T15:10:08Z",
+  "missing_roots": 0,
+  "number": 20542,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Routing every `release/v2.N.x` run to `2.x` makes the later unconditional API-baseline and README updates regress branch state when an older maintained minor publishes a patch after a newer 2.x minor. For example, releasing 2.33.1 after 2.34.0 would change the 2.x baseline and download link back to 2.33.1. Keep synchronizing the changelog, but only update the baseline, generated API diff, and download link when the released version is newer than the version already recorded on `2.x`.",
+      "created": "2026-10-12T17:13:10Z",
+      "hunk": "@@ -227,10 +221,10 @@ jobs:\n \n       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1\n         with:\n-          ref: main\n+          ref: ${{ env.DEVELOPMENT_BRANCH }}",
+      "id": "PRRT_kwDODJKVX86rjkBj",
+      "opened": "2026-10-12T17:13:11Z",
+      "path": ".github/workflows/release.yml",
+      "replies": [
+        {
+          "at": "2026-10-12T17:49:48Z",
+          "body": "Addressed in 061ad9be66b174373ee52cc1e5735a4cf3be4366.\n\nThe selected development checkout now compares the released version numerically with its apidiffBaselineVersion. release.yml gates the Maven wait, Java/Gradle setup, API comparisons/baseline update, and the 2.x README download update on a strictly newer release; changelog synchronization remains unconditional. Regression fixtures prove that 2.33.1 after 2.34.0 leaves the baseline, generated diff, and README unchanged, while 2.34.1 advances them.\n\n<!-- copilot-loop:8ca61e4be141e7d8ab71c6250e4ab05f43edd9d2f3770ab91179ecced46928ae:4250582534:42d9f179fbc943c69ba8ef190adef233 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20542#discussion_r4250864216"
+        }
+      ],
+      "reviewed": "67bbb7579f53f1c9c6cc424e7cae1b25ce0e582a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20542#discussion_r4250582534"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `PRIOR_VERSION` is not always the immediately preceding release: minor releases hard-code patch zero, and major releases select the highest minor but also hard-code patch zero. Since this repository publishes patches such as 2.28.1, the next minor/major release can generate contributors from an older tag and run the API audit against the wrong baseline. Select the highest full version recorded for the preceding minor/major.",
+      "created": "2026-10-12T17:13:11Z",
+      "hunk": "@@ -0,0 +1,107 @@\n+#!/usr/bin/env python3\n+\n+import argparse\n+import re\n+import sys\n+from pathlib import Path\n+\n+REPO_ROOT = Path(__file__).resolve().parents[2]\n+VERSION_PATTERN = r\"(\\d+)\\.(\\d+)\\.(\\d+)\"\n+\n+\n+def development_config(ref: str, version: str) -> dict[str, str]:\n+    if ref not in (\"main\", \"2.x\"):\n+        raise ValueError(\"release preparation must run on main or 2.x\")\n+    match = re.fullmatch(VERSION_PATTERN + r\"-SNAPSHOT\", version)\n+    if match is None:\n+        raise ValueError(f\"expected a minor snapshot version, got {version}\")\n+    major, minor, patch = map(int, match.groups())\n+    if patch != 0 or (ref == \"2.x\" and major != 2):\n+        raise ValueError(f\"version {version} does not match development branch {ref}\")\n+    return {\n+        \"VERSION\": f\"{major}.{minor}.0\",\n+        \"DEVELOPMENT_BRANCH\": ref,\n+        \"RELEASE_BRANCH_NAME\": f\"release/v{major}.{minor}.x\",\n+        \"NEXT_VERSION\": f\"{major}.{minor + 1}.0-SNAPSHOT\",\n+    }\n+\n+\n+def release_config(ref: str, version: str, changelog: str) -> dict[str, str]:\n+    match = re.fullmatch(VERSION_PATTERN, version)\n+    if match is None:\n+        raise ValueError(f\"expected a release version, got {version}\")\n+    major, minor, patch = map(int, match.groups())\n+    if ref != f\"release/v{major}.{minor}.x\":\n+        raise ValueError(f\"version {version} does not match release branch {ref}\")\n+    if patch > 0:\n+        prior_version = f\"{major}.{minor}.{patch - 1}\"\n+    elif minor > 0:\n+        prior_version = f\"{major}.{minor - 1}.0\"\n+    else:\n+        prior_minors = re.findall(\n+            rf\"^## Version {major - 1}\\.(\\d+)\\.\\d+ \", changelog, re.MULTILINE\n+        )\n+        if not prior_minors:\n+            raise ValueError(f\"no previous major release found for {version}\")\n+        prior_version = f\"{major - 1}.{max(map(int, prior_minors))}.0\"",
+      "id": "PRRT_kwDODJKVX86rjkCW",
+      "opened": "2026-10-12T17:13:11Z",
+      "path": ".github/scripts/release-config.py",
+      "replies": [
+        {
+          "at": "2026-10-12T17:50:33Z",
+          "body": "Addressed in 061ad9be66b174373ee52cc1e5735a4cf3be4366.\n\nA shared prior_release_version resolver chooses the numeric maximum full version recorded for the preceding minor or major, including the patch component and without assuming changelog order. Patch releases retain the immediately preceding patch baseline. Tests cover unordered 2.32.10/2.32.9 entries and confirm that the frozen changelog resolves 2.29.0 to 2.28.1.\n\n<!-- copilot-loop:8ca61e4be141e7d8ab71c6250e4ab05f43edd9d2f3770ab91179ecced46928ae:4250582603:a0d73e77f41149a9abee32c8bd87b674 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20542#discussion_r4250869704"
+        }
+      ],
+      "reviewed": "67bbb7579f53f1c9c6cc424e7cae1b25ce0e582a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20542#discussion_r4250582603"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The newly supported 2.x notes path still computes its default range from `v<major>.<previous-minor>.0` in `.github/scripts/draft-release-notes/fetch.py:161-182`. If the preceding minor had a patch release (as many entries in this changelog do), drafting the next 2.x minor includes those already released patch commits again. Make the range resolver select the highest patch of the preceding minor before enabling this workflow for `2.x`.",
+      "created": "2026-10-12T17:13:11Z",
+      "hunk": "@@ -23,6 +23,9 @@ jobs:\n           fetch-depth: 0\n           persist-credentials: false\n \n+      - name: Verify development branch\n+        run: python .github/scripts/release-config.py prepare --ref \"$GITHUB_REF_NAME\" >> \"$GITHUB_ENV\"",
+      "id": "PRRT_kwDODJKVX86rjkCs",
+      "opened": "2026-10-12T17:13:11Z",
+      "path": ".github/workflows/draft-release-notes.yml",
+      "replies": [
+        {
+          "at": "2026-10-12T17:51:22Z",
+          "body": "Addressed in 061ad9be66b174373ee52cc1e5735a4cf3be4366.\n\nDraft-note compute_default_range now uses the same full-version resolver as release configuration. It starts after the highest preceding-minor patch or preceding-major version, preserves HEAD for an initial major with no predecessor, and reports a missing preceding minor explicitly. A local tagged Git-history test verifies that an already released patch commit is absent from the next minor range. These tests are included in the existing release-tooling CI step.\n\n<!-- copilot-loop:8ca61e4be141e7d8ab71c6250e4ab05f43edd9d2f3770ab91179ecced46928ae:4250582646:9f027a5e75414d8cb95c4013a15ef1bb -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20542#discussion_r4250875554"
+        }
+      ],
+      "reviewed": "67bbb7579f53f1c9c6cc424e7cae1b25ce0e582a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20542#discussion_r4250582646"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-12T20:57:47Z",
+      "hunk": "@@ -18,22 +34,29 @@ the second Monday of the month (roughly a few days after the monthly minor relea\n \n ## Preparing a new major or minor release\n \n+Choose the development branch: `main` for the current major, or `maintenance/v<major>.x`\n+for a supported maintenance major.\n+Minor releases must preserve the stable compatibility contracts in [VERSIONING.md](VERSIONING.md).",
+      "id": "PRRT_kwDODJKVX86rnlfB",
+      "opened": "2026-10-12T20:57:47Z",
+      "path": "RELEASING.md",
+      "replies": [],
+      "reviewed": "b64327f194873c9dff84e2695f918932fa51d708",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20542#discussion_r4252260509"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Please implement the separate-job proposal in this PR.\n\nIn `.github/workflows/build-common.yml`, move the release tooling tests out of `repo-checks` into an independent `release-tooling-tests` job alongside it. Use `ubuntu-slim` and its own checkout with `id: checkout` and `persist-credentials: false`. Split the existing commands into two steps:\n\n- `Test release configuration and workflows`: `python3 -m unittest discover -s .github/scripts -p test_release_config.py`\n- `Test release notes`: `python3 -m unittest discover -s .github/scripts/draft-release-notes -p 'test_*.py'`\n\nGive both test steps `if: ${{ !cancelled() && steps.checkout.outcome == 'success' }}` so the second suite still runs if the first fails, without running after cancellation or a failed checkout. Preserve failing job outcomes; do not use `continue-on-error`.\n\nKeep dependency-management and package-name checks in `repo-checks`. Apply the same condition consistently to every check there, including `Extra dependency management enforcement`, so independent checks all run even after another fails. Keep the jobs independent, without a `needs` dependency between them.\n\nKeep this in the shared workflow to preserve PR, push, and daily coverage. No test-file moves or new runner script are needed. Run the relevant test suites and verify the failure-handling behavior.",
+      "created": "2026-10-13T00:57:04Z",
+      "hunk": "@@ -149,6 +149,12 @@ jobs:\n         with:\n           persist-credentials: false\n \n+      - name: Release tooling tests",
+      "id": "PRRT_kwDODJKVX86rq8gM",
+      "opened": "2026-10-13T00:57:03Z",
+      "path": ".github/workflows/build-common.yml",
+      "replies": [
+        {
+          "at": "2026-10-13T01:01:07Z",
+          "body": "Implemented in d3d5847c. Release tooling tests now run in a separate job with checkout-gated steps, and all `repo-checks` checks use the same condition. Both suites pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20542#discussion_r4253716345"
+        }
+      ],
+      "reviewed": "6658ec3a9958dc922756304d9fcd63d8ea69b0e9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20542#discussion_r4253691345"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Alternatively could make latest only when the source branch is `main`",
+      "created": "2026-10-13T06:10:32Z",
+      "hunk": "@@ -90,6 +75,15 @@ jobs:\n           fetch-depth: 0\n           persist-credentials: false\n \n+      - name: Determine whether to mark the release as latest",
+      "id": "PRRT_kwDODJKVX86ruxdr",
+      "opened": "2026-10-13T06:10:32Z",
+      "path": ".github/workflows/release.yml",
+      "replies": [
+        {
+          "at": "2026-10-13T15:10:01Z",
+          "body": "I think it's needed if we release 2.33.0 before we release 3.0",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20542#discussion_r4260412664"
+        }
+      ],
+      "reviewed": "701be3ff87a85eab9e1c428bad2d0baaaceb4a78",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20542#discussion_r4255291876"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "head": "9d9ccdd5f997fb3810f91559c223fcdbd47f2006",
+  "merge": "be455f7ba56d2fdc74ca5f1db7da72d156718c8f",
+  "merged": "2026-10-08T06:18:51Z",
+  "missing_roots": 0,
+  "number": 20424,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] This breaking change also removes the published declarative keys `java.grpc.capture_metadata.client.request` and `java.grpc.capture_metadata.server.request`, but the migration note only covers flat properties. Declarative YAML users therefore have no documented replacement path; list the corresponding `java.grpc.{client,server}.request_metadata.included` keys here as well.",
+      "created": "2026-10-07T05:04:21Z",
+      "hunk": "@@ -4,6 +4,10 @@\n \n ### ⚠️ Breaking changes\n \n+- Remove `otel.instrumentation.grpc.capture-metadata.client.request` and\n+  `otel.instrumentation.grpc.capture-metadata.server.request`.\n+  Use `otel.instrumentation.grpc.client.request-metadata.included` and\n+  `otel.instrumentation.grpc.server.request-metadata.included`.",
+      "id": "PRRT_kwDODJKVX86pwz1E",
+      "opened": "2026-10-07T05:04:22Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-10-07T20:53:40Z",
+          "body": "Addressed in e5f345635f7f0e2fb805a83bd665bc94aa2459fc.\n\nAnalysis: Valid: docs/instrumentation-list.yaml at the frozen SHA still lists the old declarative names, and the changelog only covered flat properties.\n\nUpsides: Complete migration guidance for declarative users.\n\nDownsides: None significant.\n\n<!-- copilot-loop:c060dc7e3ad8294a30b3f353d396dbe45267431191aa782a306f3ce21c5f08e6:4203239763:d2947aa2026c4b5db0aed3da70ce1165 -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20424#discussion_r4211873753"
+        }
+      ],
+      "reviewed": "2f5a09705dfe5553c7c5cb6aec913a9617557dbf",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20424#discussion_r4203239763"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could add a `Migrating to 3.0` subheading like in oshi https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20420",
+      "created": "2026-10-07T06:23:00Z",
+      "hunk": "@@ -8,5 +8,17 @@\n | `otel.instrumentation.grpc.client.request-metadata.excluded` | String  |         | A comma-separated list of ASCII request metadata key patterns to exclude from client spans. Excluded patterns take precedence over included patterns. Matching is case-insensitive. `?` matches one character and `*` matches zero or more characters. If included is not configured, all non-excluded ASCII metadata is captured, which may expose sensitive information. |\n | `otel.instrumentation.grpc.server.request-metadata.included` | String  |         | A comma-separated list of ASCII request metadata key patterns to capture on server spans. Matching is case-insensitive. `?` matches one character and `*` matches zero or more characters.                                                                                                                                                                                 |\n | `otel.instrumentation.grpc.server.request-metadata.excluded` | String  |         | A comma-separated list of ASCII request metadata key patterns to exclude from server spans. Excluded patterns take precedence over included patterns. Matching is case-insensitive. `?` matches one character and `*` matches zero or more characters. If included is not configured, all non-excluded ASCII metadata is captured, which may expose sensitive information. |\n-| `otel.instrumentation.grpc.capture-metadata.client.request`  | String  |         | Deprecated: use `otel.instrumentation.grpc.client.request-metadata.included` instead. A comma-separated list of request metadata keys to capture on client spans. It does not support glob patterns: an entry containing `*` or `?` is ignored with a warning, and every other entry is matched as a literal metadata key.                                                 |\n-| `otel.instrumentation.grpc.capture-metadata.server.request`  | String  |         | Deprecated: use `otel.instrumentation.grpc.server.request-metadata.included` instead. A comma-separated list of request metadata keys to capture on server spans. It does not support glob patterns: an entry containing `*` or `?` is ignored with a warning, and every other entry is matched as a literal metadata key.                                                 |\n+\n+The deprecated `otel.instrumentation.grpc.capture-metadata.client.request` and",
+      "id": "PRRT_kwDODJKVX86pyCDM",
+      "opened": "2026-10-07T06:23:00Z",
+      "path": "instrumentation/grpc-1.6/README.md",
+      "replies": [],
+      "reviewed": "2f5a09705dfe5553c7c5cb6aec913a9617557dbf",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20424#discussion_r4203740665"
+    }
+  ]
+}

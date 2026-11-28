@@ -1,0 +1,130 @@
+{
+  "head": "14376e310e8ac88b7ab06524199afb2e4e2cd07e",
+  "merge": "371eb36a5258cfef7d80328755d5ef65251c2145",
+  "merged": "2026-11-05T17:32:24Z",
+  "missing_roots": 0,
+  "number": 679,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "The reasoning exception is stated twice. Maybe:\n\n```suggestion\n  monotonic counter broken down by [`gen_ai.token.modality`](/docs/registry/attributes/gen-ai.md),\n  except `gen_ai.client.inference.usage.reasoning.output_tokens`.\n```",
+      "created": "2026-11-04T19:56:40Z",
+      "hunk": "@@ -32,7 +32,10 @@ Two families of token instruments are defined:\n - **Usage** (`gen_ai.client.inference.usage.*` counters) are the primary instruments\n   for measuring token consumption. They track how many tokens were spent over time, spending rate,\n   and serve as a proxy for cost approximation. Each token category is a separate\n-  monotonic counter broken down by [`gen_ai.token.modality`](/docs/registry/attributes/gen-ai.md).\n+  monotonic counter. [`gen_ai.token.modality`](/docs/registry/attributes/gen-ai.md)\n+  applies to the usage counters, with reasoning as the exception.\n+  `gen_ai.client.inference.usage.reasoning.output_tokens` records the reasoning\n+  total without a modality breakdown.",
+      "id": "PRRT_kwDOSUeMrM6zxuC2",
+      "opened": "2026-11-04T19:59:19Z",
+      "path": "docs/gen-ai/gen-ai-token-metrics.md",
+      "replies": [
+        {
+          "at": "2026-11-05T16:51:50Z",
+          "body": "Done.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/679#discussion_r4483348718"
+        }
+      ],
+      "reviewed": "e5ef282cf111ebc2822cd61a587abc93d1c27378",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/679#discussion_r4472597646"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "This section is about `unknown`; the reasoning exception could be a short aside instead of reworking the whole paragraph:\n\n```suggestion\nThe counters aggregate cleanly because each token lands in one modality bucket,\nand `gen_ai.token.modality` is required on all of them except\n`gen_ai.client.inference.usage.reasoning.output_tokens`, where modality has no\nuseful split. When a provider reports no breakdown, instrumentation still has to\nput tokens somewhere. Without `unknown`, both options fail: omitting the\nattribute breaks sums across different providers, and guessing `text` invents\ndata.\n```",
+      "created": "2026-11-04T19:56:40Z",
+      "hunk": "@@ -73,11 +73,16 @@ zero when usage is missing.\n Summing a counter across `gen_ai.token.modality` must equal the known total, even\n for providers that report no modality breakdown.\n \n-The counters aggregate cleanly because each token lands in one modality bucket,\n-and `gen_ai.token.modality` is required on all of them. When a provider reports\n-no breakdown, instrumentation still has to put tokens somewhere. Without\n-`unknown`, both options fail: omitting the attribute breaks sums across\n-different providers, and guessing `text` invents data.\n+`gen_ai.token.modality` applies to the usage counters, with reasoning as the\n+exception. On every usage counter except\n+`gen_ai.client.inference.usage.reasoning.output_tokens`, each token lands in\n+one modality bucket and the attribute is required. That reasoning counter\n+records its total without the attribute. Reasoning usage has no useful modality\n+split, so the total stays comparable across providers. When a provider reports\n+no breakdown on a counter that carries modality, instrumentation still has to\n+put tokens somewhere. Without `unknown`, both options fail: omitting the\n+attribute breaks sums across different providers, and guessing `text` invents\n+data.",
+      "id": "PRRT_kwDOSUeMrM6zxuDE",
+      "opened": "2026-11-04T19:59:19Z",
+      "path": "docs/gen-ai/non-normative/token-metrics-design.md",
+      "replies": [
+        {
+          "at": "2026-11-05T16:51:54Z",
+          "body": "Done.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/679#discussion_r4483349787"
+        }
+      ],
+      "reviewed": "e5ef282cf111ebc2822cd61a587abc93d1c27378",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/679#discussion_r4472597671"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: now that the PR number is known, CONTRIBUTING.md asks for `679.breaking.md`.",
+      "created": "2026-11-04T19:56:40Z",
+      "hunk": "@@ -0,0 +1 @@\n+Remove `gen_ai.token.modality` from `gen_ai.client.inference.usage.reasoning.output_tokens`. Record the reasoning token count without a modality breakdown.",
+      "id": "PRRT_kwDOSUeMrM6zxuDK",
+      "opened": "2026-11-04T19:59:19Z",
+      "path": "changelog.d/679.breaking.md",
+      "replies": [
+        {
+          "at": "2026-11-04T20:21:05Z",
+          "body": "Renamed it in [67e410f](https://github.com/open-telemetry/semantic-conventions-genai/commit/67e410f654d5bc8bff8ca5026fdbe76f5477d9b4).",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/679#discussion_r4472854875"
+        }
+      ],
+      "reviewed": "e5ef282cf111ebc2822cd61a587abc93d1c27378",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/679#discussion_r4472597683"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: the last sentence restates the code below.\n\n```suggestion\n    goes to the `unknown` modality: the API gives no evidence that it is text. Cached\n    and cache-written tokens carry no modality breakdown.\n```",
+      "created": "2026-11-04T19:56:40Z",
+      "hunk": "@@ -135,8 +135,9 @@ def record_inference_usage(usage, metric_attributes):\n     \"\"\"Record the usage instruments from the same `gen_ai.usage.*` values the span carries.\n \n     OpenAI only breaks usage down by audio tokens, so the rest of the input and output\n-    goes to the `unknown` modality: the API gives no evidence that it is text. Cached,\n-    cache-written, and reasoning tokens carry no modality breakdown at all.\n+    goes to the `unknown` modality: the API gives no evidence that it is text. Cached\n+    and cache-written tokens carry no modality breakdown. The reasoning counter\n+    records its total without a modality attribute.",
+      "id": "PRRT_kwDOSUeMrM6zxuDS",
+      "opened": "2026-11-04T19:59:19Z",
+      "path": "reference/scenarios/openai/scenario.py",
+      "replies": [],
+      "reviewed": "e5ef282cf111ebc2822cd61a587abc93d1c27378",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/679#discussion_r4472597695"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "The last sentence repeats the one before it. Folding the exception into the existing sentence reads better:\n\n```suggestion\n- **Counters** (`gen_ai.client.inference.usage.*`) measure cumulative token consumption over time for cost and spend tracking. Except for the reasoning counter, they safely carry breakdowns like modality where each token bucket increments independently.\n```",
+      "created": "2026-11-05T16:58:05Z",
+      "hunk": "@@ -6,7 +6,7 @@ This document explains the design of the token instruments in\n ## TL;DR\n \n - **Histograms** (`gen_ai.client.inference.operation.*`) measure per-operation token size distributions. It is invalid to record more than one observation per operation that a histogram represents, so breakdowns like modality cannot go on the histogram without corrupting percentiles.\n-- **Counters** (`gen_ai.client.inference.usage.*`) measure cumulative token consumption over time for cost and spend tracking. They safely carry breakdowns like modality where each token bucket increments independently.\n+- **Counters** (`gen_ai.client.inference.usage.*`) measure cumulative token consumption over time for cost and spend tracking. They safely carry breakdowns like modality where each token bucket increments independently. Modality applies to the usage counters, with reasoning as the exception.",
+      "id": "PRRT_kwDOSUeMrM60LJ38",
+      "opened": "2026-11-05T16:59:45Z",
+      "path": "docs/gen-ai/non-normative/token-metrics-design.md",
+      "replies": [
+        {
+          "at": "2026-11-05T17:14:15Z",
+          "body": "Done.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/679#discussion_r4483598396"
+        }
+      ],
+      "reviewed": "9e9a8bff6e665f19c4933417a691a29d69b5e6bd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/679#discussion_r4483419765"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "This paragraph still argues that omitting the attribute breaks sums across providers, but the reasoning counter now omits it. \"No useful split\" doesn't say why that's fine here. Suggest stating the reason from #591:\n\n```suggestion\nThe counters aggregate cleanly because each token lands in one modality bucket,\nand `gen_ai.token.modality` is required on all of them except\n`gen_ai.client.inference.usage.reasoning.output_tokens`. Providers report\nreasoning tokens without a modality breakdown and bill them as text or general\noutput tokens, so that counter has nothing to split. When a provider reports no\nbreakdown for the other counters, instrumentation still has to put tokens\nsomewhere. Without `unknown`, both options fail: omitting the attribute breaks\nsums across different providers, and guessing `text` invents data.\n```",
+      "created": "2026-11-05T16:58:06Z",
+      "hunk": "@@ -74,10 +74,12 @@ Summing a counter across `gen_ai.token.modality` must equal the known total, eve\n for providers that report no modality breakdown.\n \n The counters aggregate cleanly because each token lands in one modality bucket,\n-and `gen_ai.token.modality` is required on all of them. When a provider reports\n-no breakdown, instrumentation still has to put tokens somewhere. Without\n-`unknown`, both options fail: omitting the attribute breaks sums across\n-different providers, and guessing `text` invents data.\n+and `gen_ai.token.modality` is required on all of them except\n+`gen_ai.client.inference.usage.reasoning.output_tokens`, where modality has no\n+useful split. When a provider reports no breakdown, instrumentation still has to\n+put tokens somewhere. Without `unknown`, both options fail: omitting the\n+attribute breaks sums across different providers, and guessing `text` invents\n+data.",
+      "id": "PRRT_kwDOSUeMrM60LJ4P",
+      "opened": "2026-11-05T16:59:45Z",
+      "path": "docs/gen-ai/non-normative/token-metrics-design.md",
+      "replies": [
+        {
+          "at": "2026-11-05T17:14:19Z",
+          "body": "Done.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/679#discussion_r4483598980"
+        }
+      ],
+      "reviewed": "9e9a8bff6e665f19c4933417a691a29d69b5e6bd",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/679#discussion_r4483419790"
+    }
+  ]
+}

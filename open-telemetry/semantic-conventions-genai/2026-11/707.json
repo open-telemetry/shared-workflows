@@ -1,0 +1,204 @@
+{
+  "head": "3a51e360b94eec688a08958fb3372831ed5ddbc6",
+  "merge": "63df37263927c3d80da4668ad1541698751de7cd",
+  "merged": "2026-11-21T18:48:59Z",
+  "missing_roots": 0,
+  "number": 707,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "An A2A agent can run on a named GenAI service without exposing that provider to the client, so this condition still requires a value the instrumentation cannot supply. Require the hosting provider to be known to the instrumentation, apply the same wording in `model/gen-ai/metrics.yaml:112`, and regenerate the documentation.",
+      "created": "2026-11-15T04:41:39Z",
+      "hunk": "@@ -820,7 +822,8 @@ spans:\n       - ref_group: attributes.gen_ai.usage.breakdown\n       - ref_group: attributes.gen_ai.address_and_port\n       - ref: gen_ai.provider.name\n-        requirement_level: required\n+        requirement_level:\n+          conditionally_required: If the agent is hosted by a named GenAI provider or service.",
+      "id": "PRRT_kwDOSUeMrM63mRrF",
+      "opened": "2026-11-15T04:41:40Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-11-15T04:47:47Z",
+          "body": "Changed in 061038ce. The condition on the span and on the metric is now \"If the provider hosting the agent is known to the instrumentation\", and the docs are regenerated.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/707#discussion_r4577059769"
+        }
+      ],
+      "reviewed": "a0ac8ce0929a6f0d5117bfc34e4e2cab1015620f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/707#discussion_r4577045327"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "None of the reference scenarios demonstrates the newly allowed provider-absent case: the four client invoke-agent scenarios all set `gen_ai.provider.name`. Please add a real remote-agent framework scenario, such as Agent Framework's A2A agent, that invokes an endpoint without a known provider and emits both the client span and duration metric without this attribute. The current provider-hosted examples only exercise the unchanged required branch.",
+      "created": "2026-11-15T04:41:40Z",
+      "hunk": "@@ -820,7 +822,8 @@ spans:\n       - ref_group: attributes.gen_ai.usage.breakdown\n       - ref_group: attributes.gen_ai.address_and_port\n       - ref: gen_ai.provider.name\n-        requirement_level: required\n+        requirement_level:\n+          conditionally_required: If the agent is hosted by a named GenAI provider or service.",
+      "id": "PRRT_kwDOSUeMrM63mRrS",
+      "opened": "2026-11-15T04:41:40Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-11-15T04:47:49Z",
+          "body": "Not added in this PR yet. Agent Framework's native telemetry would not show the provider-absent case: `A2AAgent` sets `AGENT_PROVIDER_NAME = \"A2A\"` ([`_agent.py` L295](https://github.com/microsoft/agent-framework/blob/92838b60498395142cb8b74693353163e95a0faf/python/packages/a2a/agent_framework_a2a/_agent.py#L295)), and the `agent-framework` scenario here turns that native telemetry on rather than wrapping the library. A scenario for this case would need hand-written instrumentation around the `A2AAgent` call.\n\nI would like a maintainer's call on which library should cover a remote A2A agent before adding it. Until then, the PR description has the prototype run on `main` and on this branch.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/707#discussion_r4577059829"
+        },
+        {
+          "at": "2026-11-21T18:47:31Z",
+          "body": "I think it's ok not to add",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/707#discussion_r4654370442"
+        }
+      ],
+      "reviewed": "a0ac8ce0929a6f0d5117bfc34e4e2cab1015620f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/707#discussion_r4577045347"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The non-streaming reference in `reference/scenarios/openai-assistants/scenario.py:135–257` wraps run creation, application tool execution, submission, polling, and message retrieval in one client span. This does not demonstrate a single SDK invocation that library instrumentation can time. Refactor the scenario to wrap a specific SDK invocation and record its duration at that boundary.",
+      "created": "2026-11-15T04:41:40Z",
+      "hunk": "@@ -820,7 +822,8 @@ spans:\n       - ref_group: attributes.gen_ai.usage.breakdown\n       - ref_group: attributes.gen_ai.address_and_port\n       - ref: gen_ai.provider.name\n-        requirement_level: required\n+        requirement_level:\n+          conditionally_required: If the agent is hosted by a named GenAI provider or service.",
+      "id": "PRRT_kwDOSUeMrM63mRrd",
+      "opened": "2026-11-15T04:41:40Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-11-15T04:47:51Z",
+          "body": "Leaving this out of the PR. It does not touch `reference/scenarios/openai-assistants/scenario.py`, and the span boundary there is independent of the provider requirement. It can go in a separate issue.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/707#discussion_r4577059906"
+        }
+      ],
+      "reviewed": "a0ac8ce0929a6f0d5117bfc34e4e2cab1015620f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/707#discussion_r4577045365"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "This sentence repeats the attribute definition, but doesn't tell instrumentations what to do when the provider isn't known - which is the case this PR is about (e.g. Agent Framework sets `\"A2A\"` today). What do you think about making it actionable?\n\n```suggestion\n      When the provider hosting the agent is not known, for example for a\n      self-hosted A2A endpoint, `gen_ai.provider.name` SHOULD NOT be set to\n      a protocol or framework name such as `a2a`.\n```",
+      "created": "2026-11-18T18:45:51Z",
+      "hunk": "@@ -812,6 +812,8 @@ spans:\n       AWS Bedrock Agents, Gemini Enterprise Agent Platform, Azure AI Foundry Agent\n       Service, or an A2A endpoint.\n \n+      `gen_ai.provider.name` identifies the provider hosting the agent.",
+      "id": "PRRT_kwDOSUeMrM65I26b",
+      "opened": "2026-11-18T19:47:17Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-11-20T07:51:58Z",
+          "body": "Changed. It now reads: \"Instrumentation SHOULD NOT set it to a protocol or framework name, such as `a2a`, or to the platform that runs a self-hosted agent.\" That combines your suggestion with trask's on the same line.\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/707#discussion_r4639852712"
+        }
+      ],
+      "reviewed": "061038ceb6e73696be2a42ebd27579d88d8ec446",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/707#discussion_r4619097862"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "\"Provider hosting the agent\" can be read as the platform that runs the agent. A self-hosted A2A agent on Cloud Run or Azure Container Apps could then get `gcp.gen_ai` or an `azure.*` value, which is the same mislabeled provider value this PR is trying to avoid. Suggest naming the GenAI agent service and ruling out protocol and infrastructure names:\n\n```suggestion\n      `gen_ai.provider.name` identifies the GenAI provider of the agent service,\n      for example `openai` or `aws.bedrock`. Instrumentation SHOULD NOT set it\n      to a protocol name, such as `a2a`, or to the platform that runs a\n      self-hosted agent.\n```",
+      "created": "2026-11-19T19:07:27Z",
+      "hunk": "@@ -812,6 +812,8 @@ spans:\n       AWS Bedrock Agents, Gemini Enterprise Agent Platform, Azure AI Foundry Agent\n       Service, or an A2A endpoint.\n \n+      `gen_ai.provider.name` identifies the provider hosting the agent.",
+      "id": "PRRT_kwDOSUeMrM65qj5c",
+      "opened": "2026-11-19T19:09:57Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-11-20T07:52:00Z",
+          "body": "Applied, with \"or framework\" added from lmolkova's suggestion on the same line.\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/707#discussion_r4639852986"
+        }
+      ],
+      "reviewed": "061038ceb6e73696be2a42ebd27579d88d8ec446",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/707#discussion_r4633693265"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Matching wording for the condition, so it names the GenAI provider and not the platform that runs the agent:\n\n```suggestion\n          conditionally_required: If the GenAI provider of the agent service is known to the instrumentation.\n```",
+      "created": "2026-11-19T19:07:28Z",
+      "hunk": "@@ -820,7 +822,8 @@ spans:\n       - ref_group: attributes.gen_ai.usage.breakdown\n       - ref_group: attributes.gen_ai.address_and_port\n       - ref: gen_ai.provider.name\n-        requirement_level: required\n+        requirement_level:\n+          conditionally_required: If the provider hosting the agent is known to the instrumentation.",
+      "id": "PRRT_kwDOSUeMrM65qj5w",
+      "opened": "2026-11-19T19:09:57Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-11-20T07:52:02Z",
+          "body": "Applied.\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/707#discussion_r4639853254"
+        }
+      ],
+      "reviewed": "061038ceb6e73696be2a42ebd27579d88d8ec446",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/707#discussion_r4633693300"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Same wording as the span:\n\n```suggestion\n          conditionally_required: If the GenAI provider of the agent service is known to the instrumentation.\n```",
+      "created": "2026-11-19T19:07:28Z",
+      "hunk": "@@ -108,7 +108,8 @@ metrics:\n       - ref_group: attributes.gen_ai.error\n       - ref_group: attributes.gen_ai.invoked_agent.internal.common\n       - ref: gen_ai.provider.name\n-        requirement_level: required\n+        requirement_level:\n+          conditionally_required: If the provider hosting the agent is known to the instrumentation.",
+      "id": "PRRT_kwDOSUeMrM65qj5z",
+      "opened": "2026-11-19T19:09:57Z",
+      "path": "model/gen-ai/metrics.yaml",
+      "replies": [
+        {
+          "at": "2026-11-20T07:52:04Z",
+          "body": "Applied. The changelog fragment uses the same wording now.\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/707#discussion_r4639853537"
+        }
+      ],
+      "reviewed": "061038ceb6e73696be2a42ebd27579d88d8ec446",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/707#discussion_r4633693305"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The warning against using a protocol, framework, or self-hosting platform as the provider applies only to the span. This metric can be reported without a span, so an agent framework instrumenting an A2A call has no equivalent guidance for the histogram and can still label it with `a2a`, splitting provider-based latency aggregates. Please apply the same provider-selection guidance to this metric and regenerate the docs.",
+      "created": "2026-11-20T07:58:28Z",
+      "hunk": "@@ -111,7 +111,8 @@ metrics:\n       - ref_group: attributes.gen_ai.error\n       - ref_group: attributes.gen_ai.invoked_agent\n       - ref: gen_ai.provider.name\n-        requirement_level: required\n+        requirement_level:\n+          conditionally_required: If the GenAI provider of the agent service is known to the instrumentation.",
+      "id": "PRRT_kwDOSUeMrM654508",
+      "opened": "2026-11-20T07:58:29Z",
+      "path": "model/gen-ai/metrics.yaml",
+      "replies": [
+        {
+          "at": "2026-11-20T08:03:41Z",
+          "body": "Added the same guidance to the metric note.\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/707#discussion_r4639947856"
+        }
+      ],
+      "reviewed": "34ce91bc50b408aefa9f90892951cdb1268c6788",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/707#discussion_r4639903245"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "The `gen_ai.provider.name` definition already covers this, and the clause makes managed runtimes that run customer-deployed code ambiguous, such as Bedrock AgentCore `InvokeAgentRuntime`.\n\n(Same in `metrics.yaml`)\n\n```suggestion\n      to a protocol or framework name, such as `a2a`.\n```",
+      "created": "2026-11-20T18:33:32Z",
+      "hunk": "@@ -689,6 +689,11 @@ spans:\n       AWS Bedrock Agents, Gemini Enterprise Agent Platform, Azure AI Foundry Agent\n       Service, or an A2A endpoint.\n \n+      `gen_ai.provider.name` identifies the GenAI provider of the agent service,\n+      for example `openai` or `aws.bedrock`. Instrumentation SHOULD NOT set it\n+      to a protocol or framework name, such as `a2a`, or to the platform that\n+      runs a self-hosted agent.",
+      "id": "PRRT_kwDOSUeMrM66Hv0Y",
+      "opened": "2026-11-20T18:37:39Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-11-21T02:43:53Z",
+          "body": "Thanks for the review! Applied: the span note and the metric note now end at \"such as `a2a`.\", and the docs are regenerated.\n",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/707#discussion_r4650117435"
+        }
+      ],
+      "reviewed": "f06438aea0f67b9e7057f495485429aeff0fc382",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/707#discussion_r4646249669"
+    }
+  ]
+}

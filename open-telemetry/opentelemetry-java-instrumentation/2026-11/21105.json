@@ -1,0 +1,244 @@
+{
+  "head": "6e435e2219c3fd24fa734afb05d305b9535359d7",
+  "merge": "61f6efba0d4413704e7f0aa447beb5c716119d5d",
+  "merged": "2026-11-01T16:15:14Z",
+  "missing_roots": 0,
+  "number": 21105,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Please remove this generated-file hunk from the PR. `.github/instructions/instrumentation-list.instructions.md:7–8` reserves updates to this file for the nightly metadata workflow. The parser and Muzzle fixes already supply the corrected coordinates to that workflow, so these entries should be regenerated there rather than included here.",
+      "created": "2026-10-31T18:36:25Z",
+      "hunk": "@@ -16250,10 +16250,10 @@ libraries:\n     name: io.opentelemetry.play-mvc-2.6\n   has_javaagent: true\n   javaagent_target_versions:\n-  - com.typesafe.play:play_$scalaVersion:[2.6.0,)\n+  - com.typesafe.play:play_2.11:[2.6.0,)",
+      "id": "PRRT_kwDODJKVX86yThvp",
+      "opened": "2026-10-31T18:36:25Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [
+        {
+          "at": "2026-10-31T18:52:34Z",
+          "body": "Removed the generated catalog changes in 5e7a4ca. The parser and Muzzle fixes remain, and the nightly metadata workflow will regenerate the catalog.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21105#discussion_r4432898538"
+        }
+      ],
+      "reviewed": "4d53d22e9fb878891d46622c7f1aade48216184e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21105#discussion_r4432848884"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with one scoped correction from its completed Copilot review. Remove the changes to docs/instrumentation-list.yaml from the PR, restoring that generated file to the PR base version. Keep the GradleParser coordinate interpolation, its regression test, and the Play Scala 3 Muzzle range [3.0.0,) unchanged.\n\nThe verified review finding is https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21105#discussion_r4432848884. .github/instructions/instrumentation-list.instructions.md explicitly says not to edit docs/instrumentation-list.yaml; .github/workflows/metadata-update.yml generates it nightly. This corrects the initial assignment's request to include generated output: the source fixes should supply the corrected coordinates to that existing workflow instead.\n\nAcceptance criteria: docs/instrumentation-list.yaml no longer appears in this PR's diff, the three source/test/build files retain the requested fixes, and the directly affected existing parser tests remain valid. Do not change the metadata workflow, supported Play 2.x versions, Payara, Log4j, or unrelated files. Run the narrow existing validation covering any code changes made.",
+      "created": "2026-10-31T18:40:39Z",
+      "hunk": "@@ -16250,10 +16250,10 @@ libraries:\n     name: io.opentelemetry.play-mvc-2.6\n   has_javaagent: true\n   javaagent_target_versions:\n-  - com.typesafe.play:play_$scalaVersion:[2.6.0,)\n+  - com.typesafe.play:play_2.11:[2.6.0,)",
+      "id": "PRRT_kwDODJKVX86yTjnu",
+      "opened": "2026-10-31T18:40:39Z",
+      "path": "docs/instrumentation-list.yaml",
+      "replies": [],
+      "reviewed": "4d53d22e9fb878891d46622c7f1aade48216184e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21105#discussion_r4432860871"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the user's requested revision: use versions.set(\"(,)\") for the org.playframework:play_3 Muzzle pass instead of versions.set(\"[3.0.0,)\"). After discussing the redundant explicit floor for this new artifact coordinate, the user said: \"I would lean toward it here - let's do that\".\n\nChange only that Scala 3 pass in instrumentation/play/play-mvc/play-mvc-2.6/javaagent/build.gradle.kts, retaining assertInverse.set(true). In the new interpolated-coordinate regression in instrumentation-docs/src/test/java/io/opentelemetry/instrumentation/docs/parsers/GradleParserTest.java, align the literal Play 3 fixture and its expected target with (,) and org.playframework:play_3:(,). Preserve the Scala 2 directives, existing version constants, coordinate-interpolation implementation, and the other regression expectations.\n\nDo not edit docs/instrumentation-list.yaml or the metadata workflow; the existing nightly workflow owns the generated catalog. Keep the work in this same PR, with no unrelated changes to Payara, Log4j, or other instrumentation. Run the narrow existing parser validation and affected Muzzle validation appropriate to this change. Acceptance requires the live PR's Scala 3 range and regression expectation to use (,), with assertInverse preserved and the existing interpolation fix intact.",
+      "created": "2026-10-31T19:15:01Z",
+      "hunk": "@@ -27,7 +27,7 @@ muzzle {\n   pass {\n     group.set(\"org.playframework\")\n     module.set(\"play_3\")\n-    versions.set(\"[$playVersion,)\")\n+    versions.set(\"[3.0.0,)\")",
+      "id": "PRRT_kwDODJKVX86yT1lD",
+      "opened": "2026-10-31T19:15:01Z",
+      "path": "instrumentation/play/play-mvc/play-mvc-2.6/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-31T19:22:14Z",
+          "body": "Updated and pushed in `482e54f0`: the Play 3 Muzzle pass and parser expectation now use `(,)`, with `assertInverse.set(true)` and all Scala 2 directives unchanged. The focused parser test and Play Muzzle validation passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21105#discussion_r4433002021"
+        }
+      ],
+      "reviewed": "5e7a4ca074f7e28593f87b641d641ec4a0e28b44",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21105#discussion_r4432978176"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the user's requested replacement approach: use literal Muzzle group, module, and version fields and remove metadata-parser interpolation. This supersedes the coordinate-interpolation implementation currently in this PR. The user explicitly requested this revision with /cloud after discussing inlining the remaining Muzzle fields and simplifying the parser.\n\nIn instrumentation/play/play-mvc/play-mvc-2.6/javaagent/build.gradle.kts, make the Scala 2 coordinate and ranges literal: play_2.11 and [2.6.0,) for all three Scala 2 passes. Preserve the org.playframework:play_3 range (,) already in this PR. In instrumentation/zio/zio-2.0/javaagent/build.gradle.kts, inline [2.0.0,) in all three passes. In instrumentation/zio/zio-http-3.0/javaagent/build.gradle.kts, inline [3.0.0,) in all three passes. These are ten remaining interpolated fields across three builds on the current PR head. Check for any additional production Muzzle group/module/versions interpolation requiring the same treatment. Preserve every existing assertInverse, skip entry, supported range, and dependency declaration. Keep version and Scala constants still used by dependency declarations; do not remove unrelated constants in gRPC, Ktor, or other builds.\n\nIn instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/GradleParser.java, remove interpolate(), extractVariables(), variablePattern, and the now-unneeded variable-map parameters/imports. Construct the dependency summary directly from literal group, module, and versionRange values. Add small, clear fail-fast validation that rejects variable references or other nonliteral arguments in those fields of nonignored external-artifact pass blocks, instead of emitting unresolved coordinates or silently dropping such a block. Cover both $name and ${name} interpolation and direct variable arguments without introducing a Kotlin evaluator or general parser redesign. Preserve coreJdk handling, instrumentation-docs:ignore behavior, library handling, and unrelated parsing behavior.\n\nUpdate instrumentation-docs/src/test/java/io/opentelemetry/instrumentation/docs/parsers/GradleParserTest.java: replace the existing ZIO variable fixture with literals and replace the newly added interpolation regression with literal Play coordinate/range coverage. Add focused rejection coverage for nonliteral/interpolated group, module, and versions fields, including an ignored pass that must not cause rejection. Document the literal-only Muzzle field convention in the appropriate existing contributor documentation, making clear that constants in dependency declarations are still allowed.\n\nDo not edit docs/instrumentation-list.yaml or the metadata workflow; the nightly workflow owns generated catalog updates. Keep the work in this same PR and avoid unrelated changes. Run the narrow existing formatter and parser validation and the affected existing Muzzle validation appropriate to this change. Acceptance requires no interpolation helper or variable extraction in GradleParser, literal production Muzzle fields, explicit rejection of unsupported nonliteral fields, preserved ignored/core-JDK behavior, and generated targets including com.typesafe.play:play_2.11:[2.6.0,) and org.playframework:play_3:(,).",
+      "created": "2026-10-31T19:50:27Z",
+      "hunk": "@@ -101,7 +101,12 @@ private static DependencyInfo parseMuzzle(\n       String versionRange = extractValue(passBlock, \"versions\\\\.set\\\\(\\\"([^\\\"]+)\\\"\\\\)\");\n \n       if (group != null && module != null && versionRange != null) {\n-        String summary = group + \":\" + module + \":\" + interpolate(versionRange, variables);\n+        String summary =\n+            interpolate(group, variables)",
+      "id": "PRRT_kwDODJKVX86yUFVM",
+      "opened": "2026-10-31T19:50:27Z",
+      "path": "instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/GradleParser.java",
+      "replies": [
+        {
+          "at": "2026-10-31T20:04:27Z",
+          "body": "Updated and pushed in `02bdc14d`: Muzzle coordinates are now literal, the parser rejects nonliteral fields while honoring ignored passes, and the parser/build/docs updates are included. Focused parser, formatter, and all three affected Muzzle validations passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21105#discussion_r4433123393"
+        }
+      ],
+      "reviewed": "482e54f0cb505cbc958117c56094d098fab1c1ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21105#discussion_r4433079062"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the test simplification the user requested via /cloud. Limit coding changes to instrumentation-docs/src/test/java/io/opentelemetry/instrumentation/docs/parsers/GradleParserTest.java. Preserve the production parser, literal Muzzle fields, dependency constants, ranges, documentation, and generated-catalog policy.\n\nCombine testExtractMuzzleVersions_PlayCoordinates and testExtractMuzzleVersions_MultiplePassBlocks into one concise multiple-pass test with just two literal Play passes: com.typesafe.play:play_2.11:[2.6.0,) and org.playframework:play_3:(,). Keep the exact two expected coordinates inline in containsExactlyInAnyOrder. Remove the redundant Play Scala 2 variants, ZIO fixture, and fixture-only plugin boilerplate.\n\nReduce testRejectsNonLiteralMuzzleFields from the nine-case cross-product to three representative assignments: group.set(playGroup), module.set(\"$playModule\"), and versions.set(\"${versionRange}\"). Keep assertions that these throw IllegalArgumentException with the literal-string error. Inline the single-use parseMuzzlePass helper call directly in the assertion lambda and remove that helper; do not introduce a replacement test abstraction or case generator.\n\nFold testDocsIgnoreSkipsNonLiteralMuzzlePass into the existing testDocsIgnoreSkipsPassBlock. Use a nonliteral group, module, and versions in its ignored middle pass, retaining ${name} interpolation there and a valid pass after it. Preserve the assertion for the two valid surrounding ranges so this still verifies ignored fields do not cause rejection and that an interpolation closing brace does not truncate the parser's block matching. Remove the separate redundant ignored-nonliteral test. Preserve the separate ignored core-JDK and marker-above-pass tests.\n\nReplace separate size and stream().findFirst() assertions in this file with containsExactly(...) on info.versions(), preserving minimum-Java-version assertions and the distinct core-JDK, conditional-Java, marker-placement, literal-field and rejection coverage. Keep the cleanup small and readable. Run the narrow existing formatter and GradleParserTest validation; do not change production behavior, build files, or docs. Acceptance requires fewer duplicated fixtures and no single-use parseMuzzlePass helper while all the distinct behavior above remains covered.",
+      "created": "2026-10-31T20:31:15Z",
+      "hunk": "@@ -31,6 +33,89 @@ void testExtractMuzzleVersions_SinglePassBlock() {\n         .isEqualTo(\"org.elasticsearch.client:rest:[5.0,6.4)\");\n   }\n \n+  @Test\n+  void testExtractMuzzleVersions_PlayCoordinates() {",
+      "id": "PRRT_kwDODJKVX86yUW8B",
+      "opened": "2026-10-31T20:31:15Z",
+      "path": "instrumentation-docs/src/test/java/io/opentelemetry/instrumentation/docs/parsers/GradleParserTest.java",
+      "replies": [
+        {
+          "at": "2026-10-31T20:37:20Z",
+          "body": "Updated in `d1a34007`: consolidated the Play fixture, reduced nonliteral rejection coverage to three representative cases, folded ignored-pass coverage into the existing test, and simplified the version assertions. The focused formatter and `GradleParserTest` passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21105#discussion_r4433210950"
+        }
+      ],
+      "reviewed": "02bdc14dd445c66928d81da898073139286c7655",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21105#discussion_r4433195125"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the user's requested small simplification of instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/GradleParser.java. Make only these two behavior-preserving cleanups: move the regex matching currently performed by extractValue() into its sole caller extractLiteralValue(), then delete the now-unused extractValue() helper and its Javadoc; replace the temporary summary variable in parseMuzzle() with a direct results.add(group + \":\" + module + \":\" + versionRange) call.\n\nKeep the literal-string validation, rejection of $name and ${name} expressions, interpolation-aware muzzlePassBlockPattern, current regex semantics, explicit exception and message, null result for absent fields, and all ignored-pass, core-JDK, minimum-Java and instrumentation-type behavior unchanged. Do not broaden this into a parser redesign or change existing tests, build declarations, ranges, dependency constants, documentation, or generated metadata. The prior test simplification is already delivered and should remain intact.\n\nRun the narrow existing formatter and GradleParserTest validation. Acceptance requires no extractValue() helper, no temporary summary variable, the same literal-field and ignored-block behavior, and no unrelated changes. Keep this work in the current PR.",
+      "created": "2026-10-31T21:02:07Z",
+      "hunk": "@@ -145,35 +139,20 @@ private static boolean isInExcludedRange(int position, List<int[]> ranges) {\n     return false;\n   }\n \n-  /**\n-   * Extracts variables from the given Gradle file content.\n-   *\n-   * @param gradleFileContents Contents of a Gradle build file as a String\n-   * @return A map of variable names to their values\n-   */\n-  private static Map<String, String> extractVariables(String gradleFileContents) {\n-    Map<String, String> variables = new HashMap<>();\n-    Matcher variableMatcher = variablePattern.matcher(gradleFileContents);\n-\n-    while (variableMatcher.find()) {\n-      variables.put(variableMatcher.group(1), variableMatcher.group(2));\n+  @Nullable\n+  private static String extractLiteralValue(String text, String property) {",
+      "id": "PRRT_kwDODJKVX86yUkGp",
+      "opened": "2026-10-31T21:02:07Z",
+      "path": "instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/GradleParser.java",
+      "replies": [
+        {
+          "at": "2026-10-31T21:07:34Z",
+          "body": "Applied the two requested behavior-preserving cleanups in `b2d397a2`. The formatter and focused `GradleParserTest` passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21105#discussion_r4433304308"
+        }
+      ],
+      "reviewed": "d1a34007a0c072bcef33b8c2d61998a067705f9b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21105#discussion_r4433280582"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the user's requested naming-only revision in instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/GradleParser.java: rename extractLiteralValue() to extractValue() and update its three call sites for group, module, and versions. The former generic extractValue helper is already gone, so there is no naming conflict.\n\nKeep the method body, literal-string validation, exception and message, regex patterns, missing-field behavior, ignored-pass handling, and all other parser behavior unchanged. Do not reintroduce the old generic regex helper, interpolation, or variable extraction. Change only this Java file; preserve tests, build declarations, dependency constants, version ranges, documentation, and generated metadata. Run the narrow existing formatter and GradleParserTest validation. Acceptance requires the method and all three call sites to use extractValue, with no remaining extractLiteralValue reference and no unrelated changes.",
+      "created": "2026-10-31T21:25:09Z",
+      "hunk": "@@ -145,52 +138,20 @@ private static boolean isInExcludedRange(int position, List<int[]> ranges) {\n     return false;\n   }\n \n-  /**\n-   * Extracts variables from the given Gradle file content.\n-   *\n-   * @param gradleFileContents Contents of a Gradle build file as a String\n-   * @return A map of variable names to their values\n-   */\n-  private static Map<String, String> extractVariables(String gradleFileContents) {\n-    Map<String, String> variables = new HashMap<>();\n-    Matcher variableMatcher = variablePattern.matcher(gradleFileContents);\n-\n-    while (variableMatcher.find()) {\n-      variables.put(variableMatcher.group(1), variableMatcher.group(2));\n-    }\n-\n-    return variables;\n-  }\n-\n-  /**\n-   * Interpolates variables in the given text using the provided variable map.\n-   *\n-   * @param text Text to interpolate\n-   * @param variables Map of variable names to their values\n-   * @return Interpolated text\n-   */\n-  private static String interpolate(String text, Map<String, String> variables) {\n-    for (Map.Entry<String, String> entry : variables.entrySet()) {\n-      text = text.replace(\"$\" + entry.getKey(), entry.getValue());\n-    }\n-    return text;\n-  }\n-\n-  /**\n-   * Utility method to extract the first captured group from matching the given regex.\n-   *\n-   * @param text Text to search\n-   * @param regex Regex with a capturing group\n-   * @return The first captured group, or null if not found\n-   */\n   @Nullable\n-  private static String extractValue(String text, String regex) {\n-    Pattern pattern = Pattern.compile(regex);\n+  private static String extractLiteralValue(String text, String property) {",
+      "id": "PRRT_kwDODJKVX86yUvnv",
+      "opened": "2026-10-31T21:25:08Z",
+      "path": "instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/GradleParser.java",
+      "replies": [
+        {
+          "at": "2026-10-31T21:29:57Z",
+          "body": "Renamed the helper and all three call sites in `f98f91c5`. Focused formatting and `GradleParserTest` passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21105#discussion_r4433367536"
+        }
+      ],
+      "reviewed": "b2d397a2acb1f8532ad760f9fa3a9343576fca80",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21105#discussion_r4433354744"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the user's explicit test-removal decision. In instrumentation-docs/src/test/java/io/opentelemetry/instrumentation/docs/parsers/GradleParserTest.java, delete testRejectsNonLiteralMuzzleFields in its entirety, including all three rejection assertions, and remove the now-unused assertThatThrownBy static import. Do not add replacement rejection tests or reintroduce this test under another name.\n\nThe user said: \"testRejectsNonLiteralMuzzleFields - No, I want to remove this. We wouldn't have had this if we never supported it to begin with\". This supersedes the earlier request to retain rejection test coverage. Keep all other tests, including literal multiple-pass coverage, ignored-pass handling, core-JDK and minimum-Java checks, unchanged. Keep production literal validation and the renamed extractValue method unchanged. Change only this test file; preserve build declarations, dependency constants, ranges, documentation and generated metadata.\n\nRun the narrow existing formatter and remaining GradleParserTest validation. Acceptance requires the named test and unused import to be absent, with no replacement negative test and no unrelated changes. Keep the work in the current PR.",
+      "created": "2026-10-31T21:46:08Z",
+      "hunk": "@@ -26,9 +27,59 @@ void testExtractMuzzleVersions_SinglePassBlock() {\n             }\"\"\";\n     DependencyInfo info =\n         GradleParser.parseGradleFile(gradleBuildFileContent, InstrumentationType.JAVAAGENT);\n-    assertThat(info.versions().size()).isEqualTo(1);\n-    assertThat(info.versions().stream().findFirst().get())\n-        .isEqualTo(\"org.elasticsearch.client:rest:[5.0,6.4)\");\n+    assertThat(info.versions()).containsExactly(\"org.elasticsearch.client:rest:[5.0,6.4)\");\n+  }\n+\n+  @Test\n+  void testExtractMuzzleVersions_PlayCoordinates() {\n+    String gradleBuildFileContent =\n+        \"\"\"\n+            muzzle {\n+              pass {\n+                group.set(\"com.typesafe.play\")\n+                module.set(\"play_2.11\")\n+                versions.set(\"[2.6.0,)\")\n+                assertInverse.set(true)\n+              }\n+              pass {\n+                group.set(\"org.playframework\")\n+                module.set(\"play_3\")\n+                versions.set(\"(,)\")\n+                assertInverse.set(true)\n+              }\n+            }\"\"\";\n+\n+    DependencyInfo info =\n+        GradleParser.parseGradleFile(gradleBuildFileContent, InstrumentationType.JAVAAGENT);\n+    assertThat(info.versions())\n+        .containsExactlyInAnyOrder(\n+            \"com.typesafe.play:play_2.11:[2.6.0,)\", \"org.playframework:play_3:(,)\");\n+  }\n+\n+  @Test\n+  void testRejectsNonLiteralMuzzleFields() {",
+      "id": "PRRT_kwDODJKVX86yU4JB",
+      "opened": "2026-10-31T21:46:08Z",
+      "path": "instrumentation-docs/src/test/java/io/opentelemetry/instrumentation/docs/parsers/GradleParserTest.java",
+      "replies": [
+        {
+          "at": "2026-10-31T21:51:10Z",
+          "body": "Removed the test and unused import in `998c69c0`, with no replacement tests or other changes. Focused formatting and all eight remaining `GradleParserTest` tests passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21105#discussion_r4433426099"
+        }
+      ],
+      "reviewed": "f98f91c55f6ad8ba9dfddd46406a2fff4e5bd1b1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21105#discussion_r4433410037"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The new nonliteral rejection behavior is not exercised by `GradleParserTest`: its only variable/interpolation examples are inside an ignored block, so they bypass this validation. Removing this guard would still leave the tests passing while allowing unresolved interpolations into the catalog. Please add rejection tests for a variable reference and `$name`/`${name}` interpolation in non-ignored fields, asserting `IllegalArgumentException`.",
+      "created": "2026-10-31T22:00:35Z",
+      "hunk": "@@ -145,52 +138,20 @@ private static boolean isInExcludedRange(int position, List<int[]> ranges) {\n     return false;\n   }\n \n-  /**\n-   * Extracts variables from the given Gradle file content.\n-   *\n-   * @param gradleFileContents Contents of a Gradle build file as a String\n-   * @return A map of variable names to their values\n-   */\n-  private static Map<String, String> extractVariables(String gradleFileContents) {\n-    Map<String, String> variables = new HashMap<>();\n-    Matcher variableMatcher = variablePattern.matcher(gradleFileContents);\n-\n-    while (variableMatcher.find()) {\n-      variables.put(variableMatcher.group(1), variableMatcher.group(2));\n-    }\n-\n-    return variables;\n-  }\n-\n-  /**\n-   * Interpolates variables in the given text using the provided variable map.\n-   *\n-   * @param text Text to interpolate\n-   * @param variables Map of variable names to their values\n-   * @return Interpolated text\n-   */\n-  private static String interpolate(String text, Map<String, String> variables) {\n-    for (Map.Entry<String, String> entry : variables.entrySet()) {\n-      text = text.replace(\"$\" + entry.getKey(), entry.getValue());\n-    }\n-    return text;\n-  }\n-\n-  /**\n-   * Utility method to extract the first captured group from matching the given regex.\n-   *\n-   * @param text Text to search\n-   * @param regex Regex with a capturing group\n-   * @return The first captured group, or null if not found\n-   */\n   @Nullable\n-  private static String extractValue(String text, String regex) {\n-    Pattern pattern = Pattern.compile(regex);\n+  private static String extractValue(String text, String property) {\n+    Pattern pattern = Pattern.compile(Pattern.quote(property) + \"\\\\.set\\\\((\\\"[^\\\"]*\\\"|[^)]*)\\\\)\");\n     Matcher matcher = pattern.matcher(text);\n-    if (matcher.find()) {\n-      return matcher.group(1);\n+    if (!matcher.find()) {\n+      return null;\n     }\n-    return null;\n+\n+    matcher = stringLiteralPattern.matcher(matcher.group(1).trim());\n+    if (!matcher.matches() || matcher.group(1).contains(\"$\")) {\n+      throw new IllegalArgumentException(\n+          \"Muzzle \" + property + \".set(...) must use a literal string\");",
+      "id": "PRRT_kwDODJKVX86yU-vV",
+      "opened": "2026-10-31T22:00:35Z",
+      "path": "instrumentation-docs/src/main/java/io/opentelemetry/instrumentation/docs/parsers/GradleParser.java",
+      "replies": [
+        {
+          "at": "2026-10-31T22:02:50Z",
+          "body": "I intentionally removed these rejection tests. Muzzle metadata fields are required to be literal strings, and the production guard remains unchanged. I'm keeping tests for the unsupported variable and interpolation forms out of this PR.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21105#discussion_r4433458278"
+        }
+      ],
+      "reviewed": "998c69c090619db208ad87518b0a246617f11516",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21105#discussion_r4433452158"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to make the multiple-pass test change easier to review in the original location. The user asked to align testExtractMuzzleVersions_MultiplePassBlocks and testExtractMuzzleVersions_PlayCoordinates in the same location and make them more similar so the diff reads as an update, then invoked /cloud for the proposed approach.\n\nIn instrumentation-docs/src/test/java/io/opentelemetry/instrumentation/docs/parsers/GradleParserTest.java, remove the separate testExtractMuzzleVersions_PlayCoordinates test. Restore testExtractMuzzleVersions_MultiplePassBlocks at its original position at the end of the class, after testDocsIgnoreAbovePassBlockIsNotHonored. Use the original base-branch three-pass ZIO fixture and containsExactlyInAnyOrder assertion with dev.zio:zio_2.12, dev.zio:zio_2.13, and dev.zio:zio_3. Keep the original test name, plugin fixture, formatting structure, assertion values, and all three assertInverse entries. The only fixture changes from the original test should be replacing the three versions.set(\"[$zioVersion,)\") expressions with versions.set(\"[2.0.0,)\") and deleting the unused zioVersion and scalaVersion declarations. Do not introduce another fixture or helper.\n\nChange only this test file and keep all its other tests unchanged. Preserve the user's prior decision to remove testRejectsNonLiteralMuzzleFields; do not restore that test or add replacement rejection coverage. Leave production validation, build declarations, ranges, documentation, and generated metadata unchanged. Run the narrow existing formatter and GradleParserTest validation. Acceptance is one in-place multiple-pass ZIO test with literal ranges, no PlayCoordinates test, and a base-to-head diff showing the original test edited rather than removed and replaced elsewhere. Keep the work in this PR.",
+      "created": "2026-10-31T22:21:01Z",
+      "hunk": "@@ -26,9 +26,33 @@ void testExtractMuzzleVersions_SinglePassBlock() {\n             }\"\"\";\n     DependencyInfo info =\n         GradleParser.parseGradleFile(gradleBuildFileContent, InstrumentationType.JAVAAGENT);\n-    assertThat(info.versions().size()).isEqualTo(1);\n-    assertThat(info.versions().stream().findFirst().get())\n-        .isEqualTo(\"org.elasticsearch.client:rest:[5.0,6.4)\");\n+    assertThat(info.versions()).containsExactly(\"org.elasticsearch.client:rest:[5.0,6.4)\");\n+  }\n+\n+  @Test\n+  void testExtractMuzzleVersions_PlayCoordinates() {",
+      "id": "PRRT_kwDODJKVX86yVG9P",
+      "opened": "2026-10-31T22:21:01Z",
+      "path": "instrumentation-docs/src/test/java/io/opentelemetry/instrumentation/docs/parsers/GradleParserTest.java",
+      "replies": [
+        {
+          "at": "2026-10-31T22:26:41Z",
+          "body": "Updated in `76b09be2`: restored the three-pass ZIO fixture at the end of the class with literal `[2.0.0,)` ranges, removed the unused version constants, and removed the separate Play-coordinate test. Focused formatting and `GradleParserTest` passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21105#discussion_r4433524020"
+        }
+      ],
+      "reviewed": "998c69c090619db208ad87518b0a246617f11516",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21105#discussion_r4433505013"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n                name.set(\"Pre-2.6 network instrumentation\")\n                group.set(\"com.couchbase.client\")\n                module.set(\"java-client\")\n                versions.set(\"[2,2.6)\")\n                assertInverse.set(true)\n```",
+      "created": "2026-10-31T22:45:53Z",
+      "hunk": "@@ -106,11 +101,9 @@ void testDocsIgnoreSkipsPassBlock() {\n               }\n               pass {\n                 // instrumentation-docs:ignore - verification only\n-                name.set(\"Pre-2.6 network instrumentation\")\n-                group.set(\"com.couchbase.client\")\n-                module.set(\"java-client\")\n-                versions.set(\"[2,2.6)\")\n-                assertInverse.set(true)\n+                group.set(playGroup)\n+                module.set(\"play_${name}\")\n+                versions.set(\"${versionRange}\")",
+      "id": "PRRT_kwDODJKVX86yVSBd",
+      "opened": "2026-10-31T22:45:53Z",
+      "path": "instrumentation-docs/src/test/java/io/opentelemetry/instrumentation/docs/parsers/GradleParserTest.java",
+      "replies": [],
+      "reviewed": "76b09be2ca03009229a51c80659f0ff9ce3bda0f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21105#discussion_r4433576999"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-31T22:46:25Z",
+      "hunk": "@@ -137,6 +137,10 @@ muzzle {\n   name, independently of its public enablement names. It also applies to inverse checks. An unknown\n   class name fails the check.\n \n+The instrumentation documentation generator reads Muzzle `group`, `module`, and `versions` values\n+from non-ignored `pass` blocks as literal strings. Keep those fields literal rather than using\n+variables or Kotlin string interpolation; constants remain appropriate in dependency declarations.\n+",
+      "id": "PRRT_kwDODJKVX86yVSMj",
+      "opened": "2026-10-31T22:46:25Z",
+      "path": "docs/contributing/muzzle.md",
+      "replies": [],
+      "reviewed": "67aff4ae779e90ff7f619eaa5e6c0f604745e720",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21105#discussion_r4433578217"
+    }
+  ]
+}

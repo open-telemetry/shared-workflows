@@ -1,0 +1,52 @@
+{
+  "head": "48d8b0ae73b880a43ac60cf14e3120fab34932c8",
+  "merge": "b17de97bda1796493bb1c6f83eda86eeb6610b60",
+  "merged": "2026-10-26T06:41:34Z",
+  "missing_roots": 0,
+  "number": 20917,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly: in ResourceProviderRegistrationTest.resourceProvidersMergeWithConfiguredService, replace the assertion that matches the text \"Attempting to merge Resources with different schemaUrls\" with an assertion that no INFO-or-higher JUL log records were emitted by Resource during auto-configuration. Keep capture scoped to Resource.class, allow lower-level records, and use the existing LogCapturer API and repository assertion patterns. Do not depend on log message wording. Preserve the parameterized coverage for both service-name configuration forms and the existing schema and retained-attribute assertions. Make only this focused test change, preserving all production behavior and the PR state. Run the narrowest applicable spotlessApply directly before focused ResourceProviderRegistrationTest validation, without running spotlessCheck first. Do not create another PR.",
+      "created": "2026-10-23T22:36:36Z",
+      "hunk": "@@ -5,14 +5,64 @@\n \n package io.opentelemetry.instrumentation.resources;\n \n+import static io.opentelemetry.semconv.ServiceAttributes.SERVICE_NAME;\n import static org.assertj.core.api.Assertions.assertThat;\n \n+import io.github.netmikey.logunit.api.LogCapturer;\n+import io.opentelemetry.sdk.OpenTelemetrySdk;\n+import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdk;\n import io.opentelemetry.sdk.autoconfigure.spi.ResourceProvider;\n+import io.opentelemetry.sdk.resources.Resource;\n+import io.opentelemetry.semconv.SchemaUrls;\n+import java.util.HashMap;\n+import java.util.Map;\n import java.util.ServiceLoader;\n+import java.util.concurrent.atomic.AtomicReference;\n import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.CsvSource;\n \n class ResourceProviderRegistrationTest {\n \n+  @RegisterExtension LogCapturer logs = LogCapturer.create().captureForType(Resource.class);\n+\n+  @ParameterizedTest\n+  @CsvSource({\n+    \"otel.service.name, configured-service\",\n+    \"otel.resource.attributes, service.name=configured-service\"\n+  })\n+  void resourceProvidersMergeWithConfiguredService(String property, String value) {\n+    Map<String, String> properties = new HashMap<>();\n+    properties.put(property, value);\n+    properties.put(\"otel.traces.exporter\", \"none\");\n+    properties.put(\"otel.metrics.exporter\", \"none\");\n+    properties.put(\"otel.logs.exporter\", \"none\");\n+    AtomicReference<Resource> configuredResource = new AtomicReference<>();\n+\n+    try (OpenTelemetrySdk sdk =\n+        AutoConfiguredOpenTelemetrySdk.builder()\n+            .addPropertiesSupplier(() -> properties)\n+            .addResourceCustomizer(\n+                (resource, config) -> {\n+                  configuredResource.set(resource);\n+                  return resource;\n+                })\n+            .build()\n+            .getOpenTelemetrySdk()) {\n+      Resource resource = configuredResource.get();\n+      assertThat(resource.getAttribute(SERVICE_NAME)).isEqualTo(\"configured-service\");\n+      assertThat(resource.getSchemaUrl()).isEqualTo(SchemaUrls.V1_40_0);\n+      assertThat(resource.getAttributes().asMap())\n+          .containsAllEntriesOf(HostResource.get().getAttributes().asMap())\n+          .containsAllEntriesOf(OsResource.get().getAttributes().asMap())\n+          .containsAllEntriesOf(ProcessResource.create().getAttributes().asMap())\n+          .containsAllEntriesOf(ProcessRuntimeResource.get().getAttributes().asMap());\n+    }\n+\n+    logs.assertDoesNotContain(\"Attempting to merge Resources with different schemaUrls\");",
+      "id": "PRRT_kwDODJKVX86vyz6N",
+      "opened": "2026-10-23T22:36:36Z",
+      "path": "instrumentation/resources/library/src/test/java/io/opentelemetry/instrumentation/resources/ResourceProviderRegistrationTest.java",
+      "replies": [
+        {
+          "at": "2026-10-23T22:44:27Z",
+          "body": "Updated in 020fcb3c. The test now captures `Resource` logs at TRACE and asserts no INFO-or-higher events, without matching log message text; both parameterized cases and existing resource assertions remain. `spotlessApply` and the focused test passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20917#discussion_r4364832789"
+        }
+      ],
+      "reviewed": "79b8da4e82200984d1be2779a045e00ec76425c6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20917#discussion_r4364792368"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to simplify the ResourceProviderRegistrationTest logging assertion, using the exact approach already used in PR #20915. Change the LogCapturer declaration to LogCapturer.create().captureForType(Resource.class, Level.INFO) instead of Level.TRACE, and replace the event-level predicate assertion with assertThat(logs.getEvents()).isEmpty(). The intent remains no INFO-or-higher Resource logs, allowing lower-level logs without capturing them. Keep the existing org.slf4j.event.Level import. Preserve both parameterized service configuration cases, schema and retained-attribute assertions, all production code, and the current PR state. Make no unrelated changes and do not update PR #20915. Run the narrowest applicable spotlessApply directly before focused ResourceProviderRegistrationTest validation, not spotlessCheck first. Update this PR rather than creating another PR.",
+      "created": "2026-10-23T22:59:59Z",
+      "hunk": "@@ -5,14 +5,67 @@\n \n package io.opentelemetry.instrumentation.resources;\n \n+import static io.opentelemetry.semconv.ServiceAttributes.SERVICE_NAME;\n import static org.assertj.core.api.Assertions.assertThat;\n \n+import io.github.netmikey.logunit.api.LogCapturer;\n+import io.opentelemetry.sdk.OpenTelemetrySdk;\n+import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdk;\n import io.opentelemetry.sdk.autoconfigure.spi.ResourceProvider;\n+import io.opentelemetry.sdk.resources.Resource;\n+import io.opentelemetry.semconv.SchemaUrls;\n+import java.util.HashMap;\n+import java.util.Map;\n import java.util.ServiceLoader;\n+import java.util.concurrent.atomic.AtomicReference;\n import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.CsvSource;\n+import org.slf4j.event.Level;\n \n class ResourceProviderRegistrationTest {\n \n+  @RegisterExtension\n+  LogCapturer logs = LogCapturer.create().captureForType(Resource.class, Level.TRACE);",
+      "id": "PRRT_kwDODJKVX86vzFi3",
+      "opened": "2026-10-23T22:59:58Z",
+      "path": "instrumentation/resources/library/src/test/java/io/opentelemetry/instrumentation/resources/ResourceProviderRegistrationTest.java",
+      "replies": [
+        {
+          "at": "2026-10-23T23:07:38Z",
+          "body": "Updated in 48d8b0ae. The test captures Resource logs at INFO and asserts the captured events are empty.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20917#discussion_r4364955060"
+        }
+      ],
+      "reviewed": "020fcb3ca437dd661078f2ef47599b6530968fa5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20917#discussion_r4364912697"
+    }
+  ]
+}

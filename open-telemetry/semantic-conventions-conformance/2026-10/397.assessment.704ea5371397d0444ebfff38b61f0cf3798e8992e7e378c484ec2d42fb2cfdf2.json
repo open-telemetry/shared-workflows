@@ -1,0 +1,23 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "cc47af6e1bb990d61a5be44150117a85489b6a008664a4ca1ec7d42a0853e03e",
+  "input_digest": "704ea5371397d0444ebfff38b61f0cf3798e8992e7e378c484ec2d42fb2cfdf2",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/99cc9f9f165df1f53971e76323ce4a03b3348665/tools/gen-ai/mock-server/src/genai_mock_server/google_genai.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/99cc9f9f165df1f53971e76323ce4a03b3348665/scenarios/gen-ai/python/google-genai/opentelemetry-google-genai/data.json",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/c3ee2bee7083b0937a63e968c096de0219053c4d/tools/gen-ai/mock-server/src/genai_mock_server/google_genai.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/c3ee2bee7083b0937a63e968c096de0219053c4d/scenarios/gen-ai/python/google-genai/opentelemetry-google-genai/data.json",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/788fa501a743c04fcdcdef3261c9970df994a2fb"
+      ],
+      "id": "PRRT_kwDOTuzK5c6waGlX",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

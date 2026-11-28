@@ -1,0 +1,35 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "7234871207ced62853040842c993f674da1462f2295d0c5ed9c381bea3af1ab1",
+  "input_digest": "f8709b79e110c20996d8c083a4705ff1cc97aebd320cf4b893a9c81647fa4899",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/539a85ad43fd1bc5b6856df37086da8015717850/instrumentation/pulsar/pulsar-2.8/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e1f1ae5da9c4db24b90610f26f04d413cfe5669b/instrumentation/pulsar/pulsar-2.8/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/c5b6f671d774dbd4830deaea3b2a9997af2edbfb"
+      ],
+      "id": "PRRT_kwDODJKVX86rP1Kx",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b745fc7c82eed59583eb47a5caed1a3d1127b1f9/instrumentation/pulsar/pulsar-2.8/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b745fc7c82eed59583eb47a5caed1a3d1127b1f9/instrumentation/pulsar/pulsar-2.8/javaagent/src/version5Test/java/io/opentelemetry/javaagent/instrumentation/pulsar/v2_8/PulsarClientV5Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e1f1ae5da9c4db24b90610f26f04d413cfe5669b/instrumentation/pulsar/pulsar-2.8/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e1f1ae5da9c4db24b90610f26f04d413cfe5669b/instrumentation/pulsar/pulsar-2.8/javaagent/src/version5Test/java/io/opentelemetry/javaagent/instrumentation/pulsar/v2_8/PulsarClientV5Test.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/da855574e07afcad14ae84c525b8ad831a6db251"
+      ],
+      "id": "PRRT_kwDODJKVX86rQgs1",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

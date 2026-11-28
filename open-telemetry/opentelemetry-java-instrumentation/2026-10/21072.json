@@ -1,0 +1,166 @@
+{
+  "head": "b4129d7603abe49a7455ab13ff81bbae96effe6e",
+  "merge": "b72e33737b6e30690e7ba2ff4014856f6914f2c3",
+  "merged": "2026-10-30T07:33:00Z",
+  "missing_roots": 0,
+  "number": 21072,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The renamed attributes are still exported under the 1.43.0 schema: `MessagingSchemaUrls.SCHEMA_URL` remains `SchemaUrls.V1_43_0`, and the Kafka, RabbitMQ, RocketMQ and Lambda instrumenters use it for both spans and metrics. That convention defines `messaging.system`, not `messaging.system.name`, so the emitted shape no longer matches the advertised schema, which schema-aware consumers rely on for translation. Please align the shared schema URL and its assertions with the convention version adopted by this rename.",
+      "created": "2026-10-29T17:29:43Z",
+      "hunk": "@@ -61,8 +61,8 @@ public final class MessagingAttributesExtractor<REQUEST, RESPONSE>\n       AttributeKey.stringKey(\"messaging.operation.name\");\n   private static final AttributeKey<String> MESSAGING_OPERATION_TYPE =\n       AttributeKey.stringKey(\"messaging.operation.type\");\n-  private static final AttributeKey<String> MESSAGING_SYSTEM =\n-      AttributeKey.stringKey(\"messaging.system\");\n+  private static final AttributeKey<String> MESSAGING_SYSTEM_NAME =\n+      AttributeKey.stringKey(\"messaging.system.name\");",
+      "id": "PRRT_kwDODJKVX86xrJxl",
+      "opened": "2026-10-29T17:29:43Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-10-29T17:35:49Z",
+          "body": "Keeping the existing schema URL for now, as requested. No published schema includes these renames yet; #21075 tracks aligning it before 3.0 and is assigned to the v3.0.0 milestone. Leaving this finding open because the schema update is deferred, not fixed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21072#discussion_r4415771372"
+        }
+      ],
+      "reviewed": "ef3c97d3ce379c0563ef449a7c7eac25057bb885",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21072#discussion_r4415707566"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly. Restore the exact comment `// copied from MessagingIncubatingAttributes.MessagingSystemIncubatingValues` above the AWS_SQS constants in all eight AWS SDK getter files where this PR removes it: SqsAttributesGetter.java, SqsCreateRequestAttributesGetter.java, SqsProcessRequestAttributesGetter.java, and SqsReceiveRequestAttributesGetter.java in each of instrumentation/aws-sdk/aws-sdk-1.11/library and instrumentation/aws-sdk/aws-sdk-2.2/library. The user explicitly wants to keep these comments because they will be true once the next semantic conventions release is made. Keep the new `aws.sqs` values and all other behavior unchanged. Acceptance criterion: the final PR diff no longer deletes any of these eight comments, and this attempt changes only those comments. Do not expand this assignment to schema URL changes or other existing feedback. Run relevant validation appropriate to a comment-only change.",
+      "created": "2026-10-29T17:55:39Z",
+      "hunk": "@@ -17,8 +17,7 @@\n \n class SqsAttributesGetter implements MessagingAttributesGetter<Request<?>, Response<?>> {\n \n-  // copied from MessagingIncubatingAttributes.MessagingSystemIncubatingValues\n-  private static final String AWS_SQS = \"aws_sqs\";\n+  private static final String AWS_SQS = \"aws.sqs\";",
+      "id": "PRRT_kwDODJKVX86xry7l",
+      "opened": "2026-10-29T17:55:39Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/SqsAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-10-29T17:59:37Z",
+          "body": "Restored the exact comment above all eight AWS_SQS constants, with the `aws.sqs` values unchanged. Commit: `07d76f89`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21072#discussion_r4416022025"
+        }
+      ],
+      "reviewed": "ef3c97d3ce379c0563ef449a7c7eac25057bb885",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21072#discussion_r4415982179"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the approved test-only cleanup. Remove the 12 newly added historical-absence checks listed below, which merely assert that pre-rename attribute names disappeared.\n\nRemove `.doesNotContain(stringKey(\"messaging.system\"))` from instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingMetricsAdviceTest.java and `.doesNotContain(\"messaging.kafka.cluster.id\")` from instrumentation/kafka/kafka-clients/kafka-clients-0.11/testing/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/AbstractOpenTelemetryMetricsReporterTest.java.\n\nRemove one `equalTo(stringKey(\"messaging.system\"), null)` from each of instrumentation/aws-lambda/aws-lambda-events-2.2/testing/src/main/java/io/opentelemetry/instrumentation/awslambdaevents/v2_2/AbstractAwsLambdaSqsEventHandlerTest.java, instrumentation/aws-sdk/aws-sdk-1.11/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/AbstractSqsTracingTest.java, instrumentation/aws-sdk/aws-sdk-2.2/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/AbstractAws2SqsTracingTest.java, and instrumentation/spring/spring-cloud-aws-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/cloud/aws/v3_0/AwsSqsTest.java.\n\nRemove the three newly added null assertions for `messaging.system`, `messaging.rabbitmq.destination.routing_key`, and `messaging.rabbitmq.message.delivery_tag` from instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitMqTest.java. Remove the three newly added null assertions for `messaging.system`, `messaging.rocketmq.namespace`, and `messaging.rocketmq.message.tag` from instrumentation/rocketmq/rocketmq-client-4.8/library/src/test/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/RocketMqInstrumenterFactoryTest.java.\n\nPreserve all positive assertions for renamed attributes, the new metrics-advice coverage, RocketMQ experimental-attribute coverage, and legitimate null assertions testing supported behavior such as capture flags being disabled. Remove only imports made unused by this cleanup. No production changes, schema URL changes, or unrelated test cleanup. Keep the previously restored SQS source comments intact. Acceptance criteria: all 12 identified historical-absence checks are removed across these eight files, the supported-behavior coverage remains, and no unrelated behavior changes. Run the narrow affected spotlessApply tasks directly before relevant focused validation; do not run spotlessCheck first. Run focused affected tests, including appropriate concrete subclasses for inherited tests. The coordinator will handle GitHub viewed-file state after delivery.",
+      "created": "2026-10-29T18:32:15Z",
+      "hunk": "@@ -102,7 +100,8 @@ void sameSource() {\n                             .hasKind(SpanKind.CONSUMER)\n                             .hasParentSpanId(trace.getSpan(0).getSpanId())\n                             .hasAttributesSatisfyingExactly(\n-                                equalTo(MESSAGING_SYSTEM, AWS_SQS),\n+                                equalTo(stringKey(\"messaging.system.name\"), \"aws.sqs\"),\n+                                equalTo(stringKey(\"messaging.system\"), null),",
+      "id": "PRRT_kwDODJKVX86xss7m",
+      "opened": "2026-10-29T18:32:15Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-events-2.2/testing/src/main/java/io/opentelemetry/instrumentation/awslambdaevents/v2_2/AbstractAwsLambdaSqsEventHandlerTest.java",
+      "replies": [
+        {
+          "at": "2026-10-29T18:47:52Z",
+          "body": "Removed the 12 requested historical-absence checks and kept the renamed-attribute and supported-behavior coverage intact. Commit: `0fc3eee8`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21072#discussion_r4416533197"
+        }
+      ],
+      "reviewed": "07d76f895c99c4651feeab809c1a4e04813160b4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21072#discussion_r4416371459"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n  void capturesProducerMessageTagOnlyWhenEnabled(boolean captureExperimentalSpanAttributes) {\n```",
+      "created": "2026-10-29T18:58:21Z",
+      "hunk": "@@ -35,19 +34,26 @@\n import org.apache.rocketmq.common.message.MessageExt;\n import org.junit.jupiter.api.Test;\n import org.junit.jupiter.api.extension.RegisterExtension;\n+import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.ValueSource;\n \n class RocketMqInstrumenterFactoryTest {\n \n   @RegisterExtension\n   private static final InstrumentationExtension testing = LibraryInstrumentationExtension.create();\n \n-  @Test\n-  void usesEmptyProducerNamespaceByDefault() {\n+  @ParameterizedTest\n+  @ValueSource(booleans = {false, true})\n+  void emitsRenamedProducerAttributes(boolean captureExperimentalSpanAttributes) {",
+      "id": "PRRT_kwDODJKVX86xtU-2",
+      "opened": "2026-10-29T18:58:20Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-4.8/library/src/test/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/RocketMqInstrumenterFactoryTest.java",
+      "replies": [],
+      "reviewed": "0fc3eee8a421810ef96fddb110aa3130319a3c2c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21072#discussion_r4416637630"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to also rename the eight remaining repository-defined experimental messaging attributes, removing the `messaging.` prefix while preserving the rest of each name.\n\nApply these exact mappings: `messaging.kafka.bootstrap.servers` -> `kafka.bootstrap.servers`; `messaging.pulsar.message.type` -> `pulsar.message.type`; `messaging.rabbitmq.vhost.name` -> `rabbitmq.vhost.name`; `messaging.rabbitmq.cluster.name` -> `rabbitmq.cluster.name`; `messaging.rocketmq.broker_address` -> `rocketmq.broker_address`; `messaging.rocketmq.send_result` -> `rocketmq.send_result`; `messaging.rocketmq.queue_id` -> `rocketmq.queue_id`; `messaging.rocketmq.queue_offset` -> `rocketmq.queue_offset`.\n\nThe definitions are in KafkaProducerExperimentalAttributesExtractor.java in kafka-clients-common-0.11/library, ExperimentalProducerAttributesExtractor.java in pulsar-2.8/javaagent, RabbitConnectionAttributesExtractor.java in rabbitmq-2.7/javaagent, and RocketMqConsumerExperimentalAttributeExtractor.java and RocketMqProducerExperimentalAttributeExtractor.java in rocketmq-client-4.8/library. Trace and update all affected production uses, constant identifiers, tests, module metadata, hand-maintained settings tables, and relevant configuration examples across dependent instrumentations, including Spring and reactor integrations. Preserve suffix spelling, attribute types and values, supported behavior, existing capture flags, and defaults. Use positive assertions for the renamed attributes and preserve legitimate feature-flag absence checks; do not add historical-absence assertions for the removed names.\n\nThe user explicitly says `docs/instrumentation-list.yaml` is updated nightly: do not edit or regenerate that catalog in this attempt. Preserve historical changelog entries. Extend the existing Unreleased breaking-change entry concisely only as needed for this additional user-visible scope; do not create migration notes in READMEs. The existing schema URL alignment is explicitly deferred to #21075: leave it unchanged. Preserve all earlier requested changes, including the SQS source comments and removal of the 12 historical-absence checks. Do not expand into unrelated work.\n\nAcceptance criteria: all eight mappings are implemented consistently in active production code, tests, metadata, and hand-maintained user references, with no remaining active emissions of these eight old keys, and no unrelated behavior changes. Run narrow affected spotlessApply tasks directly before focused validation, never spotlessCheck first. Run focused affected tests covering the existing default and experimental-attribute modes. Keep docs/instrumentation-list.yaml unchanged.",
+      "created": "2026-10-29T19:11:20Z",
+      "hunk": "@@ -18,8 +18,8 @@ final class RocketMqConsumerExperimentalAttributeExtractor\n     implements AttributesExtractor<RocketMqConsumerRequest, ConsumeMessageContext> {\n \n   // copied from MessagingIncubatingAttributes\n-  private static final AttributeKey<String> MESSAGING_ROCKETMQ_MESSAGE_TAG =\n-      AttributeKey.stringKey(\"messaging.rocketmq.message.tag\");\n+  private static final AttributeKey<String> ROCKETMQ_MESSAGE_TAG =\n+      AttributeKey.stringKey(\"rocketmq.message.tag\");",
+      "id": "PRRT_kwDODJKVX86xtp-b",
+      "opened": "2026-10-29T19:11:20Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-4.8/library/src/main/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/RocketMqConsumerExperimentalAttributeExtractor.java",
+      "replies": [
+        {
+          "at": "2026-10-29T19:27:07Z",
+          "body": "Renamed all eight requested attributes, updated dependent tests and metadata/docs, and preserved existing flags and defaults. Commit: `523f8829`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21072#discussion_r4416943417"
+        }
+      ],
+      "reviewed": "e3cb5f2ee0b10792fe055ad63417f65d35a8dccc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21072#discussion_r4416777414"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The PR description says implementation-specific attributes outside its rename table retain their names, but the extractors also rename `messaging.kafka.bootstrap.servers`, `messaging.pulsar.message.type`, RabbitMQ vhost/cluster attributes, and RocketMQ broker/result/queue attributes, as this changelog entry acknowledges. Users following that migration table would leave queries and filters targeting keys that are no longer emitted. Please expand the PR's migration table and remove the retention statement to match these additional renames, or preserve those keys if the stated scope is intended.",
+      "created": "2026-10-29T19:36:48Z",
+      "hunk": "@@ -4,6 +4,11 @@\n \n ### ⚠️ Breaking changes\n \n+- Rename `messaging.system` to `messaging.system.name` (`aws_sqs` becomes `aws.sqs`) and adopt\n+  the system-specific attribute renames from\n+  [semantic-conventions #4250](https://github.com/open-telemetry/semantic-conventions/pull/4250).\n+  Experimental messaging attributes also lose the `messaging.` prefix (for example,\n+  `messaging.kafka.bootstrap.servers` becomes `kafka.bootstrap.servers`).",
+      "id": "PRRT_kwDODJKVX86xuQyT",
+      "opened": "2026-10-29T19:36:48Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-10-29T19:37:53Z",
+          "body": "The PR description now lists all eight additional renames and no longer says implementation-specific attributes retain their names. The table covers all 21 attribute renames.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21072#discussion_r4417054023"
+        }
+      ],
+      "reviewed": "523f8829f571acf141cac762322c3838fce52e9c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21072#discussion_r4417039691"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot revert this file",
+      "created": "2026-10-29T21:29:13Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX86xwuK_",
+      "opened": "2026-10-29T21:29:13Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/messaging/MessagingMetricsAdviceTest.java",
+      "replies": [
+        {
+          "at": "2026-10-29T21:35:43Z",
+          "body": "Reverted the file to its pre-PR contents. Commit: `e9a7b8db`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21072#discussion_r4418149685"
+        }
+      ],
+      "reviewed": "523f8829f571acf141cac762322c3838fce52e9c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21072#discussion_r4418094590"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "`kafka.bootstrap.servers` might not be the best sample since I think the idea was to get rid of it and instead use it to fill `server.address`",
+      "created": "2026-10-30T06:25:28Z",
+      "hunk": "@@ -4,6 +4,11 @@\n \n ### ⚠️ Breaking changes\n \n+- Rename `messaging.system` to `messaging.system.name` (`aws_sqs` becomes `aws.sqs`) and adopt\n+  the system-specific attribute renames from\n+  [semantic-conventions #4250](https://github.com/open-telemetry/semantic-conventions/pull/4250).\n+  Experimental messaging attributes also lose the `messaging.` prefix (for example,\n+  `messaging.kafka.bootstrap.servers` becomes `kafka.bootstrap.servers`).",
+      "id": "PRRT_kwDODJKVX86x3dYW",
+      "opened": "2026-10-30T06:25:28Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "b4129d7603abe49a7455ab13ff81bbae96effe6e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21072#discussion_r4421005276"
+    }
+  ]
+}

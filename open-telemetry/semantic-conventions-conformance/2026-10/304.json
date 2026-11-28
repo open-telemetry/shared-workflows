@@ -1,0 +1,61 @@
+{
+  "head": "cabd37045bdaecd19b9077c84f20a84e8f562c13",
+  "merge": "be3e50f7d89018bc617c68f1bb86d0e70b2122fc",
+  "merged": "2026-10-14T22:45:06Z",
+  "missing_roots": 0,
+  "number": 304,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Regenerate `scenarios/http/js/package-lock.json` after this bump. Its embedded manifest for `@otel-conformance/scenario-sdk` still requests `@opentelemetry/sdk-node` 0.221.0, and the lockfile no longer contains any `node_modules/@opentelemetry/sdk-node` package. Because scenario setup runs `npm ci` from that lockfile, the shared SDK dependency is currently stale/missing and the scenarios cannot reliably load the newly declared 0.223.0 package.",
+      "created": "2026-10-12T00:11:03Z",
+      "hunk": "@@ -13,6 +13,6 @@\n   },\n   \"dependencies\": {\n     \"@otel-conformance/scenario-support\": \"file:../scenario-support\",\n-    \"@opentelemetry/sdk-node\": \"0.222.0\"\n+    \"@opentelemetry/sdk-node\": \"0.223.0\"",
+      "id": "PRRT_kwDOTuzK5c6rS7sL",
+      "opened": "2026-10-12T00:11:03Z",
+      "path": "tools/js/scenario-sdk/package.json",
+      "replies": [
+        {
+          "at": "2026-10-14T20:06:09Z",
+          "body": "Fixed in 0b4a95e4. The regenerated workspace lockfile now snapshots `@opentelemetry/sdk-node` at `0.223.0` and includes its complete dependency graph. Relock now discards cached copied `file:` package snapshots before invoking npm, so it reads the current local manifests instead of retaining stale dependencies. HTTP JavaScript scenarios and all other checks pass on the current head, 4f9eff3b.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/304#discussion_r4275675763"
+        }
+      ],
+      "reviewed": "c47b7a22d6acde0c3de65520f615245e6724dd82",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/304#discussion_r4243816789"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "If npm exits with an error or cannot start, `refresh_local_packages` has already removed the copied-package entries from the lockfile. Nothing restores them, so a previously complete lockfile is left missing required packages and subsequent `npm ci` runs can fail. Preserve the original bytes and restore them whenever regeneration does not succeed. Add regression coverage for both a nonzero exit and a subprocess exception.",
+      "created": "2026-10-14T20:20:10Z",
+      "hunk": "@@ -107,13 +111,37 @@ def relock_command() -> list[str]:\n     ]\n \n \n+def refresh_local_packages(project: Path) -> None:\n+    \"\"\"Discard copied file-package snapshots so npm reads their manifests.\"\"\"\n+    path = project / BUILD_MARKER\n+    lock = json.loads(path.read_text(encoding=\"utf-8\"))\n+    packages = lock.get(\"packages\", {})\n+    copied = [\n+        name\n+        for name, package in packages.items()\n+        if package.get(\"resolved\", \"\").startswith(\"file:\")\n+        and not package.get(\"link\")\n+    ]\n+    if copied:\n+        for name in copied:\n+            del packages[name]\n+        path.write_text(\n+            json.dumps(lock, indent=2) + \"\\n\",\n+            encoding=\"utf-8\",\n+            newline=\"\\n\",\n+        )\n+\n+\n def relock(root: Path | None = None) -> int:\n     \"\"\"Relock every project, stopping at the first that fails.\"\"\"\n     root = root or repository_root()\n     for project in lock_projects(root):\n         name = project.relative_to(root).as_posix()\n         print(f\"relocking {name}\", flush=True)\n-        status = subprocess.call(relock_command(), cwd=project)  # noqa: S603\n+        refresh_local_packages(project)\n+        status = subprocess.call(  # noqa: S603\n+            relock_command(), cwd=project, creationflags=CREATION_FLAGS\n+        )",
+      "id": "PRRT_kwDOTuzK5c6sgNVU",
+      "opened": "2026-10-14T20:20:11Z",
+      "path": "tools/js/src/otel_conformance_js/__init__.py",
+      "replies": [],
+      "reviewed": "4f9eff3b5e3aed74f9f2fde6ff89c64f68a04e58",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/304#discussion_r4275822873"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These regenerated entries replace public npm tarball URLs with the relocking environment's Azure Artifacts mirror. `npm ci` follows the locked URLs, so installations now require access to that additional host even when the configured registry is `registry.npmjs.org`. Networks that allow only the public npm registry will fail to install this dependency graph. Regenerate the affected entries against `https://registry.npmjs.org/`, retaining public-registry integrity metadata rather than the SHA-1 values introduced for several unchanged packages.",
+      "created": "2026-10-14T20:20:10Z",
+      "hunk": "@@ -58,9 +58,9 @@\n       }\n     },\n     \"node_modules/@grpc/grpc-js\": {\n-      \"version\": \"1.14.4\",\n-      \"resolved\": \"https://registry.npmjs.org/@grpc/grpc-js/-/grpc-js-1.14.4.tgz\",\n-      \"integrity\": \"sha512-k9Dj3DV/itK9D06Y8f190Qgop7/Ui+D0njFV3LHMPwPT75DpXLQohE9Wmz0QElrJnzsjB7KPWiKJbOl7IPDArQ==\",\n+      \"version\": \"1.14.5\",\n+      \"resolved\": \"https://ms-feed-25.pkgs.visualstudio.com/1es-public/_packaging/npm-public/npm/registry/@grpc/grpc-js/-/grpc-js-1.14.5.tgz\",",
+      "id": "PRRT_kwDOTuzK5c6sgNWA",
+      "opened": "2026-10-14T20:20:11Z",
+      "path": "scenarios/http/js/package-lock.json",
+      "replies": [],
+      "reviewed": "4f9eff3b5e3aed74f9f2fde6ff89c64f68a04e58",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/304#discussion_r4275822958"
+    }
+  ]
+}

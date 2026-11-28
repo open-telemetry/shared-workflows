@@ -1,0 +1,151 @@
+{
+  "head": "a0e57c5f3d26453503bd57f28927d297b44f909f",
+  "merge": "f224bbe830b3b5934f4bdc4082b8e69bf85dce2f",
+  "merged": "2026-11-04T21:30:37Z",
+  "missing_roots": 0,
+  "number": 163,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "chatgpt-codex-connector"
+      },
+      "body": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Render request bodies with a replacement callback**\n\nWhen a contract request body contains JavaScript replacement tokens such as `$&`, passing it directly as the replacement string causes `String.replace` to expand those tokens instead of inserting the body literally. The mock server's `renderResponseBody` deliberately uses a callback to avoid this, so this XMLHttpRequest workload—and the mirrored Fetch workload—will compare against different JSON and falsely reject a valid response; use the same literal rendering approach here.\n\nUseful? React with 👍 / 👎.",
+      "created": "2026-09-03T06:44:36Z",
+      "hunk": "@@ -0,0 +1,52 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+\"use strict\";\n+\n+const {\n+  isJsonEqual,\n+} = require(\"@otel-conformance/http-test-client/json-equal\");\n+\n+/** Sends the shared exchanges with browser XMLHttpRequest, without telemetry setup. */\n+\n+function request(baseUrl, exchange) {\n+  return new Promise((resolve, reject) => {\n+    const xhr = new XMLHttpRequest();\n+    xhr.open(exchange.method, `${baseUrl}${exchange.path}`);\n+    if (exchange.body !== null) {\n+      xhr.setRequestHeader(\"content-type\", \"application/json\");\n+    }\n+    xhr.addEventListener(\"load\", () =>\n+      resolve({ body: xhr.responseText, status: xhr.status }),\n+    );\n+    xhr.addEventListener(\"error\", () =>\n+      reject(new Error(`${exchange.method} ${exchange.path} failed`)),\n+    );\n+    xhr.send(exchange.body);\n+  });\n+}\n+\n+async function drive(baseUrl, exchanges) {\n+  for (const exchange of exchanges) {\n+    if (exchange.readiness) {\n+      continue;\n+    }\n+    const response = await request(baseUrl, exchange);\n+    if (response.status !== exchange.status) {\n+      throw new Error(\n+        `${exchange.method} ${exchange.path} answered ${response.status}, expected ${exchange.status}`,\n+      );\n+    }\n+    const expected = exchange.responseBody.replace(\n+      \"${requestBody}\",\n+      exchange.body ?? \"{}\",\n+    );",
+      "id": "PRRT_kwDOTuzK5c6ezexq",
+      "opened": "2026-09-03T06:44:36Z",
+      "path": "scenarios/http/js/xml-http-request/scenarios/client.js",
+      "replies": [
+        {
+          "at": "2026-09-03T12:56:09Z",
+          "body": "Fixed in `294b310`. The XMLHttpRequest workload now uses a replacement callback so request bodies are inserted literally. I applied the same correction to the mirrored Fetch workload in `7c63349` to keep both implementations consistent.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/163#discussion_r3924745916"
+        }
+      ],
+      "reviewed": "95bd51a9f16fc2cb34b2fdb7650350039dbcdf0a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/163#discussion_r3921813821"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The lockfile resolves `sdk-trace-web`'s exact `core` and `sdk-trace-base` requirements of 2.10.0 to 2.12.0; the browser runner likewise requires `@grpc/grpc-js` 1.14.4 but resolves to 1.14.5. These missing nested resolutions cause `npm ci` to reject the dependency tree, blocking CI and setup for both existing and new HTTP JavaScript scenarios. Regenerate the workspace lockfile from the current manifests to include the required versions.",
+      "created": "2026-11-02T03:36:17Z",
+      "hunk": "@@ -651,6 +1291,22 @@\n         \"@opentelemetry/api\": \">=1.0.0 <1.10.0\"\n       }\n     },\n+    \"node_modules/@opentelemetry/sdk-trace-web\": {\n+      \"version\": \"2.10.0\",\n+      \"resolved\": \"https://registry.npmjs.org/@opentelemetry/sdk-trace-web/-/sdk-trace-web-2.10.0.tgz\",\n+      \"integrity\": \"sha512-6WqXdWSlBH0GNjDhv1gg6SLVtMtIBVhLaWqd1hiKSXS8meXXP13sVPQoYFHz1uVo0feUTUCdP9vMS54KflisAw==\",\n+      \"license\": \"Apache-2.0\",\n+      \"dependencies\": {\n+        \"@opentelemetry/core\": \"2.10.0\",\n+        \"@opentelemetry/sdk-trace-base\": \"2.10.0\"",
+      "id": "PRRT_kwDOTuzK5c6yhp8x",
+      "opened": "2026-11-02T03:36:18Z",
+      "path": "scenarios/http/js/package-lock.json",
+      "replies": [],
+      "reviewed": "204c41b93a3e668ec8977b36a4ccb45d504d96e1",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/163#discussion_r4438703735"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Only `load` and `error` settle the promise. On `abort` or `timeout` it never settles, and the run fails only via Playwright's 30s `waitForFunction` timeout without saying which request stalled. Consider rejecting on `abort` and `timeout` too (or using `loadend` with a status check).",
+      "created": "2026-11-02T03:47:23Z",
+      "hunk": "@@ -0,0 +1,52 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+\"use strict\";\n+\n+const {\n+  isJsonEqual,\n+} = require(\"@otel-conformance/http-test-client/json-equal\");\n+\n+/** Sends the shared exchanges with browser XMLHttpRequest, without telemetry setup. */\n+\n+function request(baseUrl, exchange) {\n+  return new Promise((resolve, reject) => {\n+    const xhr = new XMLHttpRequest();\n+    xhr.open(exchange.method, `${baseUrl}${exchange.path}`);\n+    if (exchange.body !== null) {\n+      xhr.setRequestHeader(\"content-type\", \"application/json\");\n+    }\n+    xhr.addEventListener(\"load\", () =>\n+      resolve({ body: xhr.responseText, status: xhr.status }),\n+    );\n+    xhr.addEventListener(\"error\", () =>",
+      "id": "PRRT_kwDOTuzK5c6yhw02",
+      "opened": "2026-11-02T03:50:35Z",
+      "path": "scenarios/http/js/xml-http-request/scenarios/client.js",
+      "replies": [
+        {
+          "at": "2026-11-04T05:44:21Z",
+          "body": "Addressed in cce31f1. Added abort and timeout handlers that reject immediately with the request method and path, ending in `aborted` or `timed out`. Focused tests cover load, error, abort, and timeout; all four pass locally.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/163#discussion_r4464063584"
+        }
+      ],
+      "reviewed": "204c41b93a3e668ec8977b36a4ccb45d504d96e1",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/163#discussion_r4438747668"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "These pins (`0.221.0` / `2.10.0`) trail the rest of the JS workspace, which is on `0.223.0` / `2.12.0` (e.g. `http/opentelemetry-http`, `tools/js/scenario-sdk`). Should this (and Fetch) test the latest release? Aligning the versions would likely also clear up the nested-resolution mismatches in the lockfile.",
+      "created": "2026-11-02T03:47:23Z",
+      "hunk": "@@ -0,0 +1,16 @@\n+{\n+  \"name\": \"@otel-conformance/xml-http-request-opentelemetry-xml-http-request\",\n+  \"version\": \"0.1.0\",\n+  \"private\": true,\n+  \"description\": \"Browser XMLHttpRequest measured through @opentelemetry/instrumentation-xml-http-request.\",\n+  \"license\": \"Apache-2.0\",\n+  \"dependencies\": {\n+    \"@opentelemetry/exporter-trace-otlp-proto\": \"0.221.0\",\n+    \"@opentelemetry/instrumentation\": \"0.221.0\",\n+    \"@opentelemetry/instrumentation-xml-http-request\": \"0.221.0\",",
+      "id": "PRRT_kwDOTuzK5c6yhw0w",
+      "opened": "2026-11-02T03:50:35Z",
+      "path": "scenarios/http/js/xml-http-request/opentelemetry-xml-http-request/package.json",
+      "replies": [
+        {
+          "at": "2026-11-04T05:44:15Z",
+          "body": "Addressed in cce31f1. XHR now matches Fetch and the current JS workspace: instrumentation/exporter 0.300.0 and tracing SDK 3.0.0, with the common tracing dependencies owned by the shared browser runner. Regenerated the affected lockfiles; clean installation and dependency-tree checks pass.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/163#discussion_r4464062983"
+        }
+      ],
+      "reviewed": "204c41b93a3e668ec8977b36a4ccb45d504d96e1",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/163#discussion_r4438747661"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`trackingExporter` and the provider setup here are a copy of Fetch's `browser.js`, and `test/client.test.js` is identical to the Fetch test apart from the test name (including the ~100-line protobuf decoder). Could the shared pieces move into `tools/js/browser-runner` so a third browser client doesn't add a third copy?",
+      "created": "2026-11-02T03:47:23Z",
+      "hunk": "@@ -0,0 +1,87 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+\"use strict\";\n+\n+const {\n+  OTLPTraceExporter,\n+} = require(\"@opentelemetry/exporter-trace-otlp-proto\");\n+const { registerInstrumentations } = require(\"@opentelemetry/instrumentation\");\n+const {\n+  XMLHttpRequestInstrumentation,\n+} = require(\"@opentelemetry/instrumentation-xml-http-request\");\n+const {\n+  SimpleSpanProcessor,\n+  WebTracerProvider,\n+} = require(\"@opentelemetry/sdk-trace-web\");\n+const { drive } = require(\"@otel-conformance/xml-http-request-scenarios\");\n+\n+/** Resolves once exactly `expected` XMLHttpRequest spans have reached the exporter. */\n+function trackingExporter(exporter, expected) {",
+      "id": "PRRT_kwDOTuzK5c6yhw0z",
+      "opened": "2026-11-02T03:50:35Z",
+      "path": "scenarios/http/js/xml-http-request/opentelemetry-xml-http-request/browser.js",
+      "replies": [
+        {
+          "at": "2026-11-04T05:44:18Z",
+          "body": "Addressed in cce31f1. The exporter tracking and provider setup now live in `tools/js/browser-runner/tracing.js`, and both Fetch and XHR use `runWithTracing`. Their decoded-span tests share `assertSelectedHttpClientSpan` in `browser-runner/testing.js`, including the protobuf decoder and test servers. Both browser integrations pass.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/163#discussion_r4464063261"
+        }
+      ],
+      "reviewed": "204c41b93a3e668ec8977b36a4ccb45d504d96e1",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/163#discussion_r4438747664"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Once `complete` resolves at the expected count, subsequent `reject()` calls have no effect. With the single-span exports produced by `SimpleSpanProcessor`, an expected count of 1 followed by two successful exports still passes `waitForExpectedSpans()` and allows the run to succeed. Retain overcount/error state independently of the completion promise and validate it after the provider flush, so reaching the expected count does not disable validation of subsequent exports.",
+      "created": "2026-11-04T18:33:02Z",
+      "hunk": "@@ -0,0 +1,78 @@\n+// Copyright The OpenTelemetry Authors\n+// SPDX-License-Identifier: Apache-2.0\n+\n+\"use strict\";\n+\n+const {\n+  OTLPTraceExporter,\n+} = require(\"@opentelemetry/exporter-trace-otlp-proto\");\n+const { registerInstrumentations } = require(\"@opentelemetry/instrumentation\");\n+const {\n+  SimpleSpanProcessor,\n+  TracerProvider,\n+} = require(\"@opentelemetry/sdk-trace\");\n+const { exportUrl, within } = require(\"./page\");\n+\n+const SPANS_TIMEOUT_MILLIS = 20_000;\n+\n+/**\n+ * Counts the spans the exporter has handed on. Browser instrumentations can\n+ * finish spans after the workload returns, once resource timing arrives.\n+ */\n+function trackingExporter(exporter, expected) {\n+  let exported = 0;\n+  let resolve;\n+  let reject;\n+  const complete = new Promise((onResolve, onReject) => {\n+    resolve = onResolve;\n+    reject = onReject;\n+  });\n+  return {\n+    export(spans, callback) {\n+      exporter.export(spans, (result) => {\n+        callback(result);\n+        if (result.code !== 0) {\n+          reject(result.error || new Error(\"OTLP export failed\"));\n+          return;\n+        }\n+        exported += spans.length;\n+        if (exported === expected) {\n+          resolve();\n+        } else if (exported > expected) {\n+          reject(new Error(`exported ${exported} spans, expected ${expected}`));",
+      "id": "PRRT_kwDOTuzK5c6zveh2",
+      "opened": "2026-11-04T18:33:03Z",
+      "path": "tools/js/browser-runner/tracing.js",
+      "replies": [
+        {
+          "at": "2026-11-04T20:01:15Z",
+          "body": "Fixed in [d0d8d9e](https://github.com/open-telemetry/semantic-conventions-conformance/commit/d0d8d9eff9d70d434f83965a2e011a792c531402).\n\nThe tracker now retains export errors separately from the completion promise. After `provider.forceFlush()`, `runWithTracing` checks that retained error and the final exported span count before returning, so reaching the expected count no longer disables validation of later exports.\n\nAdded regression tests using the real tracing provider and `SimpleSpanProcessor`, with controlled exports during flushing. They cover exactly the expected count, two additional successful exports after that count, a late export failure, and a failure before the expected count. The two late-export cases failed before the fix; all four now pass.\n\nMerged current main to resolve the conflicts after #162 landed. All 58 JavaScript tests and formatting passed on Node 26.13.0. Full report-only Fetch and XHR conformance runs each completed all five contract cases and reproduced the committed coverage and findings.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/163#discussion_r4472646499"
+        }
+      ],
+      "reviewed": "cce31f150b5550e65380f004b692fceb4ff807f8",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/163#discussion_r4471641196"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The copied browser-runner entry in `scenarios/http/js/package-lock.json:1083-1091` still lists only `esbuild` and `playwright-core`, omitting these three new dependencies. This leaves the committed dependency graph out of sync with the package manifest and will be rewritten by the repository's relock path. Run `otel-conformance-js relock` to refresh the copied `file:` package metadata and commit the corrected HTTP workspace lockfile.",
+      "created": "2026-11-04T21:06:22Z",
+      "hunk": "@@ -7,16 +7,23 @@\n   \"main\": \"index.js\",\n   \"exports\": {\n     \".\": \"./index.js\",\n-    \"./page\": \"./page.js\"\n+    \"./page\": \"./page.js\",\n+    \"./tracing\": \"./tracing.js\",\n+    \"./testing\": \"./testing.js\"\n   },\n   \"files\": [\n     \"index.js\",\n-    \"page.js\"\n+    \"page.js\",\n+    \"tracing.js\",\n+    \"testing.js\"\n   ],\n   \"scripts\": {\n     \"test\": \"node --test test/*.test.js\"\n   },\n   \"dependencies\": {\n+    \"@opentelemetry/exporter-trace-otlp-proto\": \"0.300.0\",\n+    \"@opentelemetry/instrumentation\": \"0.300.0\",\n+    \"@opentelemetry/sdk-trace\": \"3.0.0\",",
+      "id": "PRRT_kwDOTuzK5c6zzbt5",
+      "opened": "2026-11-04T21:06:23Z",
+      "path": "tools/js/browser-runner/package.json",
+      "replies": [
+        {
+          "at": "2026-11-04T21:15:34Z",
+          "body": "a0e57c5f3d26453503bd57f28927d297b44f909f",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/163#discussion_r4473428171"
+        }
+      ],
+      "reviewed": "d0d8d9eff9d70d434f83965a2e011a792c531402",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/163#discussion_r4473335394"
+    }
+  ]
+}

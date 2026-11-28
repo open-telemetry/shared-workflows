@@ -1,0 +1,46 @@
+{
+  "head": "2a5a392015de1446f4dc286863b89795fb855787",
+  "merge": "d8e300bf243bd0273561116eda5bb15309ba48bf",
+  "merged": "2026-10-15T08:17:29Z",
+  "missing_roots": 0,
+  "number": 20596,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Please make `convertMessage` and `convertMessageData` return `@Nullable Value<?>`, returning `null` when the top-level body map has no fields (`return body.isEmpty() ? null : Value.of(body);`). Replace this comparison with `if (body != null)` and keep `event.emit()` unconditional.\n\n`Value.empty()` is an explicit empty value, not an unset body, and the SDK stores it as supplied. Keep the guard instead of passing `null` to `setBody`, since the API does not promise null support. Update affected callers and tests to preserve missing bodies for empty messages and populated bodies for content or metadata.",
+      "created": "2026-10-14T18:01:28Z",
+      "hunk": "@@ -907,7 +907,11 @@ private static void recordRequestMessageEvents(\n           continue;\n       }\n       // Requests don't have index or stop reason.\n-      event.setBody(convertMessage(message, -1, null, captureMessageContent)).emit();\n+      Value<?> body = convertMessage(message, -1, null, captureMessageContent);\n+      if (!body.equals(Value.empty())) {",
+      "id": "PRRT_kwDODJKVX86sc2hV",
+      "opened": "2026-10-14T18:01:28Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/BedrockRuntimeImpl.java",
+      "replies": [
+        {
+          "at": "2026-10-14T18:11:15Z",
+          "body": "Addressed in 06329a6c. Both converters now return `@Nullable Value<?>`, using `null` for an empty top-level map. All affected callers guard `setBody` and emit unconditionally. Bedrock library/javaagent tests passed (61 passed, 2 skipped), including empty messages and retained tool metadata; formatting passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20596#discussion_r4274512397"
+        }
+      ],
+      "reviewed": "02de5b1d133c59c36b0d43a53da112fd420d81ca",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20596#discussion_r4274412617"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n  remain, instead of emitting an empty object.\n```",
+      "created": "2026-10-14T18:31:59Z",
+      "hunk": "@@ -4,6 +4,9 @@\n \n ### ⚠️ Breaking changes\n \n+- GenAI message events from AWS Bedrock Runtime and OpenAI leave the body unset when no fields\n+  remain, instead of emitting an empty object. Consumers should handle an absent body, for example\n+  when message content capture is disabled.",
+      "id": "PRRT_kwDODJKVX86sdnEk",
+      "opened": "2026-10-14T18:31:59Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "06329a6cc0f1006807a624ae06d34e0b0a07bd06",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20596#discussion_r4274728991"
+    }
+  ]
+}

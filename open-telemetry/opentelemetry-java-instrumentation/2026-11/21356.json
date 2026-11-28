@@ -1,0 +1,147 @@
+{
+  "head": "530b77dddf43fc66839c32e320ce18ca199d0517",
+  "merge": "df98e37bfa1ca5fba4b27f5f8ddd6f816a2185da",
+  "merged": "2026-11-19T19:21:51Z",
+  "missing_roots": 0,
+  "number": 21356,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Simplify the Kafka metadata fix in this PR. Update `open-telemetry/opentelemetry-java-instrumentation:copilot/fix-kafka-consumer-metric-metadata-collection` directly, without opening another PR as a workaround. Keep the platform-assigned branch. Do not rename or replace it, and keep any follow-up branch GitHub assigns.\n\nIn `AbstractOpenTelemetryMetricsReporterTest.observeMetrics()`, replace the separate wait for `kafka.consumer.fetch_latency_avg` and `kafka.consumer.records_lag` with a metadata-aware wait that runs the existing post-consumption metric assertions. Both names are already in the expected metric set, so checking them separately duplicates coverage. Wait for the complete existing set and preserve the cluster ID and consistent point-attribute checks. Make sure a consumer data point carries a nonempty `kafka.cluster.id` before collection, rather than relying on a producer point to show the ID. Avoid a second raw `testing().metrics()` assertion pass, arbitrary metric names as readiness checks, and extra sleeps. Use the existing test helpers where possible. If the helpers cannot express a scope-wide list assertion, use the smallest test-only change needed to run it and preserve the existing collection behavior. Keep the javaagent and library meter scopes correct.\n\nKeep this test-only. Do not change runtime code, enablement, or the generated catalog. Leave automated PR #21333 untouched. Apply the narrow Spotless formatter, exercise the registered Kafka javaagent `testMetrics` task with `-PcollectMetadata=true` and the shared test in the Kafka 2.6 library, and verify in the collected metadata that the consumer fetch latency, partition lag, and cluster ID are still present. Report any validation you cannot run.",
+      "created": "2026-11-19T17:45:11Z",
+      "hunk": "@@ -271,6 +272,26 @@ void observeMetrics() {\n     produceRecords();\n     consumeRecords();\n \n+    testing()\n+        .waitAndAssertMetrics(",
+      "id": "PRRT_kwDODJKVX865oZui",
+      "opened": "2026-11-19T17:45:11Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-0.11/testing/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/AbstractOpenTelemetryMetricsReporterTest.java",
+      "replies": [
+        {
+          "at": "2026-11-19T18:00:31Z",
+          "body": "Updated in 095b8a76. The scope-wide wait now retries the complete expected set and existing cluster-ID/attribute checks, including a nonempty ID on a consumer fetch-latency point. The javaagent `testMetrics` task (with metadata and latest dependencies enabled) and Kafka 2.6 library `testRegression` passed; both collected metadata files include the fetch-latency and records-lag metrics with the `kafka.cluster.id` attribute.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21356#discussion_r4632932574"
+        }
+      ],
+      "reviewed": "c743b400d2011003ab43fe71956e43b4f40b643a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21356#discussion_r4632754504"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Remove the new shared `waitAndAssertMetricsForInstrumentation` API from this PR. Update `open-telemetry/opentelemetry-java-instrumentation:copilot/fix-kafka-consumer-metric-metadata-collection` directly, not a separate PR. Keep the platform-assigned branch without renaming or replacing it; retain any platform-assigned follow-up branch if GitHub creates one.\n\nUse the existing `waitAndAssertMetrics(instrumentationName, metricName, assertion)` overload in a loop over `expectedMetricNames` in `AbstractOpenTelemetryMetricsReporterTest.observeMetrics()`. Put the metric point, nonempty cluster-ID, and consistent attribute-key checks into the existing helper's callback, with an explicit nonempty assertion so absent metrics or empty points cannot pass vacuously. This waits for the full expected set and records metadata using an established API. Do not retain special readiness checks for fetch latency or partition lag: those names are already expected. Preserve coverage for Kafka metrics and the correct javaagent/library meter scopes. Keep the change local to the Kafka test and remove this PR's additions to `InstrumentationTestRunner` and `InstrumentationExtension`. Do not add a replacement shared API, weaken existing checks, or add sleeps.\n\nKeep runtime code, configuration, generated catalog files, and automated PR #21333 untouched. Apply narrow Spotless formatting and validate the javaagent Metrics suite with metadata collection and the shared test's Kafka 2.6 library execution. Confirm the collected consumer metadata still contains fetch latency, partition lag, and `kafka.cluster.id`. Report any blocked validation.",
+      "created": "2026-11-19T18:07:23Z",
+      "hunk": "@@ -422,44 +423,65 @@ void observeMetrics() {\n                 \"kafka.producer.byte_total\",\n                 \"kafka.producer.compression_rate\"));\n \n-    List<MetricData> metrics = testing().metrics();\n-    Set<String> metricNames = metrics.stream().map(MetricData::getName).collect(toSet());\n-    assertThat(metricNames).containsAll(expectedMetricNames);\n-\n-    // After a real produce/consume cycle the broker fires onUpdate() on each reporter; all\n-    // metric points must carry the resulting cluster id.\n-    assertThat(\n-            metrics.stream()\n-                .filter(metric -> metric.getName().startsWith(\"kafka.\"))\n-                .flatMap(m -> m.getData().getPoints().stream())\n-                .allMatch(\n-                    p -> {\n-                      String id = p.getAttributes().get(stringKey(\"kafka.cluster.id\"));\n-                      return id != null && !id.isEmpty();\n-                    }))\n-        .isTrue();\n-\n-    // All data points for a given metric must carry the same set of attribute keys\n-    assertThat(metrics.stream().filter(metric -> metric.getName().startsWith(\"kafka.\")))\n-        .allSatisfy(\n-            metricData -> {\n-              Set<String> expectedKeys =\n-                  metricData.getData().getPoints().stream()\n-                      .findFirst()\n-                      .map(\n-                          point ->\n-                              point.getAttributes().asMap().keySet().stream()\n-                                  .map(AttributeKey::getKey)\n-                                  .collect(toSet()))\n-                      .orElse(emptySet());\n-              assertThat(metricData.getData().getPoints())\n-                  .extracting(PointData::getAttributes)\n-                  .extracting(\n-                      attributes ->\n-                          attributes.asMap().keySet().stream()\n-                              .map(AttributeKey::getKey)\n-                              .collect(toSet()))\n-                  .allSatisfy(attributeKeys -> assertThat(attributeKeys).isEqualTo(expectedKeys));\n+    testing()\n+        .waitAndAssertMetricsForInstrumentation(",
+      "id": "PRRT_kwDODJKVX865o_GW",
+      "opened": "2026-11-19T18:07:22Z",
+      "path": "instrumentation/kafka/kafka-clients/kafka-clients-0.11/testing/src/main/java/io/opentelemetry/instrumentation/kafkaclients/common/v0_11/internal/AbstractOpenTelemetryMetricsReporterTest.java",
+      "replies": [
+        {
+          "at": "2026-11-19T18:19:37Z",
+          "body": "Updated in `$(git rev-parse --short HEAD)`: the shared wait API is removed, and the Kafka test now loops over the expected metric names using the existing per-metric wait helper with nonempty metric/point, cluster-ID, and attribute-key assertions. Both requested Gradle executions passed, and collected metadata contains the fetch-latency, records-lag, and cluster-ID attributes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21356#discussion_r4633144257"
+        },
+        {
+          "at": "2026-11-19T18:19:45Z",
+          "body": "Updated in `$(git rev-parse --short HEAD)`: the shared wait API is removed, and the Kafka test now loops over the expected metric names using the existing per-metric wait helper with nonempty metric/point, cluster-ID, and attribute-key assertions. Both requested Gradle executions passed, and collected metadata contains the fetch-latency, records-lag, and cluster-ID attributes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21356#discussion_r4633145743"
+        },
+        {
+          "at": "2026-11-19T18:19:53Z",
+          "body": "Updated in `$(git rev-parse --short HEAD)`: the shared wait API is removed, and the Kafka test now loops over the expected metric names using the existing per-metric wait helper with nonempty metric/point, cluster-ID, and attribute-key assertions. Both requested Gradle executions passed, and collected metadata contains the fetch-latency, records-lag, and cluster-ID attributes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21356#discussion_r4633147177"
+        },
+        {
+          "at": "2026-11-19T18:19:59Z",
+          "body": "Updated in `$(git rev-parse --short HEAD)`: the shared wait API is removed, and the Kafka test now loops over the expected metric names using the existing per-metric wait helper with nonempty metric/point, cluster-ID, and attribute-key assertions. Both requested Gradle executions passed, and collected metadata contains the fetch-latency, records-lag, and cluster-ID attributes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21356#discussion_r4633148357"
+        },
+        {
+          "at": "2026-11-19T18:20:06Z",
+          "body": "Updated in `$(git rev-parse --short HEAD)`: the shared wait API is removed, and the Kafka test now loops over the expected metric names using the existing per-metric wait helper with nonempty metric/point, cluster-ID, and attribute-key assertions. Both requested Gradle executions passed, and collected metadata contains the fetch-latency, records-lag, and cluster-ID attributes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21356#discussion_r4633149510"
+        },
+        {
+          "at": "2026-11-19T18:20:15Z",
+          "body": "Updated in `$(git rev-parse --short HEAD)`: the shared wait API is removed, and the Kafka test now loops over the expected metric names using the existing per-metric wait helper with nonempty metric/point, cluster-ID, and attribute-key assertions. Both requested Gradle executions passed, and collected metadata contains the fetch-latency, records-lag, and cluster-ID attributes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21356#discussion_r4633151066"
+        },
+        {
+          "at": "2026-11-19T18:20:23Z",
+          "body": "Updated in `$(git rev-parse --short HEAD)`: the shared wait API is removed, and the Kafka test now loops over the expected metric names using the existing per-metric wait helper with nonempty metric/point, cluster-ID, and attribute-key assertions. Both requested Gradle executions passed, and collected metadata contains the fetch-latency, records-lag, and cluster-ID attributes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21356#discussion_r4633152508"
+        },
+        {
+          "at": "2026-11-19T18:20:30Z",
+          "body": "Updated in `$(git rev-parse --short HEAD)`: the shared wait API is removed, and the Kafka test now loops over the expected metric names using the existing per-metric wait helper with nonempty metric/point, cluster-ID, and attribute-key assertions. Both requested Gradle executions passed, and collected metadata contains the fetch-latency, records-lag, and cluster-ID attributes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21356#discussion_r4633153687"
+        },
+        {
+          "at": "2026-11-19T18:20:37Z",
+          "body": "Updated in `$(git rev-parse --short HEAD)`: the shared wait API is removed, and the Kafka test now loops over the expected metric names using the existing per-metric wait helper with nonempty metric/point, cluster-ID, and attribute-key assertions. Both requested Gradle executions passed, and collected metadata contains the fetch-latency, records-lag, and cluster-ID attributes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21356#discussion_r4633154911"
+        },
+        {
+          "at": "2026-11-19T18:20:43Z",
+          "body": "Updated in `$(git rev-parse --short HEAD)`: the shared wait API is removed, and the Kafka test now loops over the expected metric names using the existing per-metric wait helper with nonempty metric/point, cluster-ID, and attribute-key assertions. Both requested Gradle executions passed, and collected metadata contains the fetch-latency, records-lag, and cluster-ID attributes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21356#discussion_r4633156072"
+        },
+        {
+          "at": "2026-11-19T18:20:50Z",
+          "body": "Updated in `$(git rev-parse --short HEAD)`: the shared wait API is removed, and the Kafka test now loops over the expected metric names using the existing per-metric wait helper with nonempty metric/point, cluster-ID, and attribute-key assertions. Both requested Gradle executions passed, and collected metadata contains the fetch-latency, records-lag, and cluster-ID attributes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21356#discussion_r4633157176"
+        },
+        {
+          "at": "2026-11-19T18:21:00Z",
+          "body": "Updated in `$(git rev-parse --short HEAD)`: the shared wait API is removed, and the Kafka test now loops over the expected metric names using the existing per-metric wait helper with nonempty metric/point, cluster-ID, and attribute-key assertions. Both requested Gradle executions passed, and collected metadata contains the fetch-latency, records-lag, and cluster-ID attributes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21356#discussion_r4633159083"
+        },
+        {
+          "at": "2026-11-19T18:21:12Z",
+          "body": "Updated in `$(git rev-parse --short HEAD)`: the shared wait API is removed, and the Kafka test now loops over the expected metric names using the existing per-metric wait helper with nonempty metric/point, cluster-ID, and attribute-key assertions. Both requested Gradle executions passed, and collected metadata contains the fetch-latency, records-lag, and cluster-ID attributes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21356#discussion_r4633161233"
+        },
+        {
+          "at": "2026-11-19T18:21:24Z",
+          "body": "Updated in `$(git rev-parse --short HEAD)`: the shared wait API is removed, and the Kafka test now loops over the expected metric names using the existing per-metric wait helper with nonempty metric/point, cluster-ID, and attribute-key assertions. Both requested Gradle executions passed, and collected metadata contains the fetch-latency, records-lag, and cluster-ID attributes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21356#discussion_r4633163321"
+        },
+        {
+          "at": "2026-11-19T18:21:32Z",
+          "body": "Updated in `$(git rev-parse --short HEAD)`: the shared wait API is removed, and the Kafka test now loops over the expected metric names using the existing per-metric wait helper with nonempty metric/point, cluster-ID, and attribute-key assertions. Both requested Gradle executions passed, and collected metadata contains the fetch-latency, records-lag, and cluster-ID attributes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21356#discussion_r4633164777"
+        },
+        {
+          "at": "2026-11-19T18:21:40Z",
+          "body": "Updated in `$(git rev-parse --short HEAD)`: the shared wait API is removed, and the Kafka test now loops over the expected metric names using the existing per-metric wait helper with nonempty metric/point, cluster-ID, and attribute-key assertions. Both requested Gradle executions passed, and collected metadata contains the fetch-latency, records-lag, and cluster-ID attributes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21356#discussion_r4633166098"
+        },
+        {
+          "at": "2026-11-19T18:21:50Z",
+          "body": "Updated in `$(git rev-parse --short HEAD)`: the shared wait API is removed, and the Kafka test now loops over the expected metric names using the existing per-metric wait helper with nonempty metric/point, cluster-ID, and attribute-key assertions. Both requested Gradle executions passed, and collected metadata contains the fetch-latency, records-lag, and cluster-ID attributes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21356#discussion_r4633167909"
+        },
+        {
+          "at": "2026-11-19T18:21:58Z",
+          "body": "Updated in `$(git rev-parse --short HEAD)`: the shared wait API is removed, and the Kafka test now loops over the expected metric names using the existing per-metric wait helper with nonempty metric/point, cluster-ID, and attribute-key assertions. Both requested Gradle executions passed, and collected metadata contains the fetch-latency, records-lag, and cluster-ID attributes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21356#discussion_r4633169141"
+        },
+        {
+          "at": "2026-11-19T18:22:04Z",
+          "body": "Updated in `$(git rev-parse --short HEAD)`: the shared wait API is removed, and the Kafka test now loops over the expected metric names using the existing per-metric wait helper with nonempty metric/point, cluster-ID, and attribute-key assertions. Both requested Gradle executions passed, and collected metadata contains the fetch-latency, records-lag, and cluster-ID attributes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21356#discussion_r4633170301"
+        },
+        {
+          "at": "2026-11-19T18:22:12Z",
+          "body": "Updated in `$(git rev-parse --short HEAD)`: the shared wait API is removed, and the Kafka test now loops over the expected metric names using the existing per-metric wait helper with nonempty metric/point, cluster-ID, and attribute-key assertions. Both requested Gradle executions passed, and collected metadata contains the fetch-latency, records-lag, and cluster-ID attributes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21356#discussion_r4633171492"
+        }
+      ],
+      "reviewed": "095b8a76387abf856e1836b0c3c22707618eac00",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21356#discussion_r4633008781"
+    }
+  ]
+}

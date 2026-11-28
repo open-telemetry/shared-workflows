@@ -1,0 +1,31 @@
+{
+  "head": "deaad69bd99846ce638657cc44eb5641c7ceef02",
+  "merge": "cc929a0421502b7ccbb44fc70f5f4ad54d9644f4",
+  "merged": "2026-11-03T21:56:22Z",
+  "missing_roots": 0,
+  "number": 429,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: redundant - if the patch step is skipped, `exists` is never set.\n\n```suggestion\n        if: ${{ !cancelled() && steps.data-patch.outputs.exists == 'true' }}\n```",
+      "created": "2026-11-03T06:16:57Z",
+      "hunk": "@@ -728,7 +731,7 @@ jobs:\n           fi\n \n       - name: Upload the generated data patch\n-        if: ${{ !cancelled() && steps.data-patch.outputs.exists == 'true' }}\n+        if: ${{ !cancelled() && steps.run-scenarios.outcome == 'success' && steps.data-patch.outputs.exists == 'true' }}",
+      "id": "PRRT_kwDOTuzK5c6zACb-",
+      "opened": "2026-11-03T06:42:36Z",
+      "path": ".github/workflows/runner.yml",
+      "replies": [
+        {
+          "at": "2026-11-03T17:04:08Z",
+          "body": "d85bec43be6272dfd3009c2acdced1a7fde265db",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/429#discussion_r4457942311"
+        }
+      ],
+      "reviewed": "1c9dec00db10ca139243ab0118b94cd6a00222c1",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/429#discussion_r4451488652"
+    }
+  ]
+}

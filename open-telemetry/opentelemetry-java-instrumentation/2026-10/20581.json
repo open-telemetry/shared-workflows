@@ -1,0 +1,52 @@
+{
+  "head": "2c9b1d89a7673cef295c91a4e022d9da364b7328",
+  "merge": "5732a241d3c56bcfbf10d21d4010cc19f765e513",
+  "merged": "2026-10-14T06:04:18Z",
+  "missing_roots": 0,
+  "number": 20581,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot remove this file",
+      "created": "2026-10-13T18:27:03Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX86sANJM",
+      "opened": "2026-10-13T18:27:03Z",
+      "path": "gradle-plugins/src/test/java/io/opentelemetry/javaagent/muzzle/MuzzleResolutionDiagnosticsTest.java",
+      "replies": [
+        {
+          "at": "2026-10-13T18:31:41Z",
+          "body": "Removed in 2c9b1d89, along with the now-unused TestKit dependency. Remaining plugin tests pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20581#discussion_r4262511433"
+        }
+      ],
+      "reviewed": "67c6e3212ac0eaafcdce140a6496cd0852d17399",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20581#discussion_r4262464385"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The stated regression coverage is not present in this change: the existing Gradle-plugin tests only exercise `AcceptableVersions` and `MuzzleDirective`, so neither the new diagnostic path nor configuration-cache reuse is verified. Please add a functional test with a lenient resolution failure that checks diagnostics appear only for a failing `assertPass`, the original Muzzle failure remains the task failure, and a second `--configuration-cache` run reuses the cache.",
+      "created": "2026-10-13T18:37:13Z",
+      "hunk": "@@ -380,13 +380,20 @@ fun addMuzzleTask(muzzleDirective: MuzzleDirective, versionArtifact: Artifact?,\n     // add more mismatches. For assertPass a missing transitive can cause a\n     // false muzzle failure but never a false pass; such versions should be\n     // skipped in the module's build.gradle.kts when found.\n-    val configFiles = config.incoming.artifactView { lenient(true) }.files\n+    val artifactView = config.incoming.artifactView { lenient(true) }\n+    val configFiles = artifactView.files\n     val muzzleShadowJarFile = shadowModule.flatMap { it.archiveFile }\n     val muzzleToolingShadowJarFile = shadowMuzzleTooling.flatMap { it.archiveFile }\n     val muzzleBootstrapShadowJarFile = shadowMuzzleBootstrap.flatMap { it.archiveFile }\n     val excludedNames = muzzleDirective.excludedInstrumentationNames.get()\n     val excludedModules = muzzleDirective.excludedInstrumentationModules.get()\n     val shouldAssertPass = muzzleDirective.assertPass.get()\n+    // Snapshot diagnostics as text: resolution objects cannot be captured by configuration cache.\n+    val resolutionFailures = if (shouldAssertPass) {\n+      artifactView.artifacts.failures.map { it.stackTraceToString() }\n+    } else {\n+      emptyList()\n+    }",
+      "id": "PRRT_kwDODJKVX86sAcsq",
+      "opened": "2026-10-13T18:37:14Z",
+      "path": "gradle-plugins/src/main/kotlin/io.opentelemetry.instrumentation.muzzle-check.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-14T01:19:35Z",
+          "body": "PR description updated. No code change.\n\nThe missing functional coverage is real, but adding it back would undo the explicit \"as requested\" removal in frozen head 2c9b1d89a7673cef295c91a4e022d9da364b7328, which removed six diagnostic/cache tests and their TestKit dependency. Independent implementation evidence supports retaining the code: muzzle-check.gradle.kts:383-396 retains lenient resolution and captures only stack-trace strings for assertPass; lines 415-428 log those strings only after validation throws, then rethrow the same exception. MuzzleGradlePluginUtil.kt:87-96 still decides validation success/failure. Correct the stale description rather than inventing a requirement to restore deliberately removed tests. The existing three unit tests passed; no claim of diagnostic-path or cache-reuse validation is made.\n\n<!-- copilot-loop:dd990a4f20db2a3bbf3a855ce47c2979115c8e9d2a313a4565ee3983128e11e1:4262565748:2be5e0ee741742bf8c520b20113c5c2d -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20581#discussion_r4265785806"
+        }
+      ],
+      "reviewed": "2c9b1d89a7673cef295c91a4e022d9da364b7328",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20581#discussion_r4262565748"
+    }
+  ]
+}

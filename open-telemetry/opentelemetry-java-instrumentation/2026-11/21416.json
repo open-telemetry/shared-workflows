@@ -1,0 +1,31 @@
+{
+  "head": "a5597ed8416e4649c6cfd2ecfa042dac6831c3b1",
+  "merge": "5c76e5bfa08fb84d39521e4b182d4e16ae6a107f",
+  "merged": "2026-11-22T16:33:36Z",
+  "missing_roots": 0,
+  "number": 21416,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with a narrow cleanup. In `testing/testing-common/src/main/java/io/opentelemetry/instrumentation/testing/junit/MessagingMetricsAssertions.java`, restore the original `verifyHistogram` implementation from this PR's merge base: assert count `1` for every histogram point, extract the attributes, and use `containsExactlyInAnyOrder(attributes)`. Remove the added empty-case branch and the loop that builds per-point consumers. The old assertion preserves the empty expectation's behavior without special handling, so don't add a type check or replace it with another fluent variant.\n\nDelete the newly added `testing/testing-common/src/test/java/io/opentelemetry/instrumentation/testing/junit/MessagingMetricsAssertionsTest.java` fixture from this PR and remove imports made unused by these two changes. Keep the fluent `verifyCounter` assertion and the existing module test conversions unchanged. Run the focused `testing-common` validation that covers the helper. Keep the existing draft PR and don't create another PR.",
+      "created": "2026-11-21T23:04:39Z",
+      "hunk": "@@ -50,19 +54,20 @@ public static void assertNoMetric(\n   }\n \n   private static void verifyCounter(MetricData metric, long value, Attributes attributes) {\n-    assertThat(metric.getLongSumData().getPoints())\n-        .singleElement()\n-        .satisfies(point -> {\n-          assertThat(point.getValue()).isEqualTo(value);\n-          assertThat(point.getAttributes()).isEqualTo(attributes);\n-        });\n+    assertThat(metric)\n+        .hasLongSumPointsSatisfying(point -> point.hasValue(value).hasAttributes(attributes));\n   }\n \n   private static void verifyHistogram(MetricData metric, Attributes... attributes) {\n-    assertThat(metric.getHistogramData().getPoints())\n-        .allSatisfy(point -> assertThat(point.getCount()).isEqualTo(1))\n-        .extracting(point -> point.getAttributes())\n-        .containsExactlyInAnyOrder(attributes);\n+    if (attributes.length == 0) {",
+      "id": "PRRT_kwDODJKVX866dcgm",
+      "opened": "2026-11-21T23:04:39Z",
+      "path": "testing/testing-common/src/main/java/io/opentelemetry/instrumentation/testing/junit/MessagingMetricsAssertions.java",
+      "replies": [
+        {
+          "at": "2026-11-21T23:11:39Z",
+          "body": "Restored the merge-base histogram assertion, removed the fixture, and retained the fluent counter assertion. `:testing:testing-common:test` passes. Commit: `a5597ed8`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21416#discussion_r4655479716"
+        }
+      ],
+      "reviewed": "267424f5f2c5c0389b25475f90ea7602a0286a30",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21416#discussion_r4655456090"
+    }
+  ]
+}

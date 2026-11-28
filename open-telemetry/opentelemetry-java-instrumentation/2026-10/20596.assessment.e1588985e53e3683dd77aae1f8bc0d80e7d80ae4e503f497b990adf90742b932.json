@@ -1,0 +1,33 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "31acc9f7a2e79179b515fb1a0b6b0dff30011d2133479e906ad828de842509d3",
+  "input_digest": "e1588985e53e3683dd77aae1f8bc0d80e7d80ae4e503f497b990adf90742b932",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02de5b1d133c59c36b0d43a53da112fd420d81ca/instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/BedrockRuntimeImpl.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d8e300bf243bd0273561116eda5bb15309ba48bf/instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/BedrockRuntimeImpl.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/06329a6cc0f1006807a624ae06d34e0b0a07bd06"
+      ],
+      "id": "PRRT_kwDODJKVX86sc2hV",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/06329a6cc0f1006807a624ae06d34e0b0a07bd06/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d8e300bf243bd0273561116eda5bb15309ba48bf/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/930bdef29d28ad0fa8b46853079203c1991c0957"
+      ],
+      "id": "PRRT_kwDODJKVX86sdnEk",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

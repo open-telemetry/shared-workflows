@@ -1,0 +1,139 @@
+{
+  "head": "d51a086a39d548ba4c17c3754d0d084e3b8cdd25",
+  "merge": "b4d96d3f8d20d3d2e1aa038cc1f69bc030bd247a",
+  "merged": "2026-11-25T23:12:08Z",
+  "missing_roots": 0,
+  "number": 1133,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This explicitly publishes the private `_AnyValueMapping` implementation in the user-facing API reference, making an internal base class appear to be supported API. Please remove this option and document the mapping behavior on the public content models instead; the base class should remain an implementation detail.",
+      "created": "2026-11-24T19:37:01Z",
+      "hunk": "@@ -13,6 +13,7 @@ OpenTelemetry Python - GenAI Util\n \n .. automodule:: opentelemetry.util.genai.types\n     :members:\n+    :private-members: _AnyValueMapping",
+      "id": "PRRT_kwDOSbspP867jfHO",
+      "opened": "2026-11-24T19:37:01Z",
+      "path": "docs/instrumentation/util.rst",
+      "replies": [],
+      "reviewed": "0aaa3966bbdafef14a6eff3d1a8d541cc093868b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1133#discussion_r4685485409"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Every `__getitem__` rebuilds `_present_fields()` via `fields()`, so the SDK's `items()` walk is quadratic per model, on the hot path this PR is optimizing. A direct check keeps it O(1):\n\n```suggestion\n    def __getitem__(self, key: str) -> AnyValue:\n        if key not in self.__dataclass_fields__:\n            raise KeyError(key)\n        value = getattr(self, key)\n        if value is None and key not in self._KEEP_NONE:\n            raise KeyError(key)\n```",
+      "created": "2026-11-24T23:09:55Z",
+      "hunk": "@@ -34,6 +38,71 @@ class ContentCapturingMode(Enum):\n     SPAN_AND_EVENT = 3\n \n \n+def _convert_generic_parts(\n+    parts: Sequence[MessagePart],\n+) -> Sequence[AnyValue]:\n+    if not any(isinstance(part, GenericPart) for part in parts):\n+        return cast(Sequence[AnyValue], parts)\n+\n+    from opentelemetry.util.genai.utils import (  # pylint: disable=import-outside-toplevel\n+        object_to_any_value,\n+    )\n+\n+    # Generic extensions can use Mapping method names as data fields.\n+    converted_parts: list[AnyValue] = []\n+    for part in parts:\n+        if isinstance(part, GenericPart):\n+            converted = object_to_any_value(part)\n+            if converted is not None:\n+                converted_parts.append(converted)\n+        else:\n+            converted_parts.append(part)\n+    return converted_parts\n+\n+\n+class _AnyValueMapping(Mapping[str, AnyValue]):\n+    __dataclass_fields__: ClassVar[dict[str, Field[object]]]\n+    _SANITIZE: ClassVar[frozenset[str]] = frozenset()\n+    _KEEP_NONE: ClassVar[frozenset[str]] = frozenset()\n+\n+    def __getitem__(self, key: str) -> AnyValue:\n+        if key not in self._present_fields():\n+            raise KeyError(key)\n+        value = getattr(self, key)",
+      "id": "PRRT_kwDOSbspP867oxq5",
+      "opened": "2026-11-24T23:35:47Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/types.py",
+      "replies": [
+        {
+          "at": "2026-11-25T17:05:15Z",
+          "body": "Addressed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1133#discussion_r4698195763"
+        }
+      ],
+      "reviewed": "63e2ce2ae400cb2dac06a861cc11681545e14bd2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1133#discussion_r4687797597"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: the base class special-cases `InputMessage`/`OutputMessage`, and the `any(...)` pre-check duplicates the one `_convert_generic_parts` already does. Maybe override `__getitem__` in a small base for the two message types, so `_AnyValueMapping` only knows about `_SANITIZE`/`_KEEP_NONE`:\n\n```python\nclass _MessageMapping(_AnyValueMapping):\n    def __getitem__(self, key: str) -> AnyValue:\n        if key == \"parts\":\n            return _convert_generic_parts(self.parts)\n        return super().__getitem__(key)\n```\n",
+      "created": "2026-11-24T23:09:55Z",
+      "hunk": "@@ -34,6 +38,71 @@ class ContentCapturingMode(Enum):\n     SPAN_AND_EVENT = 3\n \n \n+def _convert_generic_parts(\n+    parts: Sequence[MessagePart],\n+) -> Sequence[AnyValue]:\n+    if not any(isinstance(part, GenericPart) for part in parts):\n+        return cast(Sequence[AnyValue], parts)\n+\n+    from opentelemetry.util.genai.utils import (  # pylint: disable=import-outside-toplevel\n+        object_to_any_value,\n+    )\n+\n+    # Generic extensions can use Mapping method names as data fields.\n+    converted_parts: list[AnyValue] = []\n+    for part in parts:\n+        if isinstance(part, GenericPart):\n+            converted = object_to_any_value(part)\n+            if converted is not None:\n+                converted_parts.append(converted)\n+        else:\n+            converted_parts.append(part)\n+    return converted_parts\n+\n+\n+class _AnyValueMapping(Mapping[str, AnyValue]):\n+    __dataclass_fields__: ClassVar[dict[str, Field[object]]]\n+    _SANITIZE: ClassVar[frozenset[str]] = frozenset()\n+    _KEEP_NONE: ClassVar[frozenset[str]] = frozenset()\n+\n+    def __getitem__(self, key: str) -> AnyValue:\n+        if key not in self._present_fields():\n+            raise KeyError(key)\n+        value = getattr(self, key)\n+        message_parts: list[MessagePart] | None = None\n+        if key == \"parts\" and isinstance(self, (InputMessage, OutputMessage)):\n+            if any(isinstance(part, GenericPart) for part in self.parts):\n+                message_parts = self.parts",
+      "id": "PRRT_kwDOSbspP867oxrG",
+      "opened": "2026-11-24T23:35:47Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/types.py",
+      "replies": [
+        {
+          "at": "2026-11-25T17:05:27Z",
+          "body": "Addressed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1133#discussion_r4698198536"
+        }
+      ],
+      "reviewed": "63e2ce2ae400cb2dac06a861cc11681545e14bd2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1133#discussion_r4687797617"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: this adds `Mapping` to public types, so `.changed` fits better than `.fixed`, and the line could describe the user-visible effect:\n\n```suggestion\nGenAI content models now implement ``Mapping`` and are recorded on spans and events without an extra conversion pass.\n```",
+      "created": "2026-11-24T23:09:55Z",
+      "hunk": "@@ -0,0 +1 @@\n+Make typed GenAI content models implement ``Mapping`` for direct structured content recording.",
+      "id": "PRRT_kwDOSbspP867oxrJ",
+      "opened": "2026-11-24T23:35:47Z",
+      "path": "util/opentelemetry-util-genai/.changelog/1133.fixed",
+      "replies": [
+        {
+          "at": "2026-11-25T17:05:31Z",
+          "body": "Addressed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1133#discussion_r4698199560"
+        }
+      ],
+      "reviewed": "63e2ce2ae400cb2dac06a861cc11681545e14bd2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1133#discussion_r4687797620"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: the pydantic case only re-tests `object_to_any_value`, so it adds a test dependency without covering anything new here. More broadly, many new tests patch `object_to_any_value` and `assertIs` on what reaches `set_attributes`, which pins the implementation. Asserting on the exported span/log attributes would be enough and would cut a lot of the ~600 new test lines.",
+      "created": "2026-11-24T23:19:23Z",
+      "hunk": "@@ -1689,6 +1817,364 @@ def test_members_behave_as_strings(self) -> None:\n \n \n class TestMessageModels(unittest.TestCase):\n+    def test_messages_are_mappings_without_conversion(self):\n+        parts = [TextPart(content=\"hello\")]\n+        cases = [\n+            (\n+                InputMessage(role=Role.USER, parts=parts),\n+                {\"role\": Role.USER, \"parts\": parts},\n+            ),\n+            (\n+                InputMessage(role=\"user\", parts=[], name=\"\"),\n+                {\"role\": \"user\", \"parts\": [], \"name\": \"\"},\n+            ),\n+            (\n+                OutputMessage(role=Role.ASSISTANT, parts=parts),\n+                {\"role\": Role.ASSISTANT, \"parts\": parts},\n+            ),\n+            (\n+                OutputMessage(\n+                    role=\"assistant\", parts=[], finish_reason=\"stop\", name=\"\"\n+                ),\n+                {\n+                    \"role\": \"assistant\",\n+                    \"parts\": [],\n+                    \"finish_reason\": \"stop\",\n+                    \"name\": \"\",\n+                },\n+            ),\n+        ]\n+        with patch(\n+            \"opentelemetry.util.genai.utils.object_to_any_value\"\n+        ) as convert:\n+            for message, expected in cases:\n+                with self.subTest(message=message):\n+                    self.assertIsInstance(message, Mapping)\n+                    self.assertEqual(dict(message), expected)\n+                    self.assertEqual(len(message), len(expected))\n+                    self.assertIs(message[\"parts\"], message.parts)\n+            convert.assert_not_called()\n+\n+    def test_message_mappings_convert_only_generic_parts(self):\n+        @dataclass\n+        class CustomPart(GenericPart):\n+            items: dict[str, str]\n+            keys: list[str]\n+            invalid: object\n+\n+        generic = CustomPart(\n+            type=\"custom\",\n+            items={\"query\": \"weather\"},\n+            keys=[\"result\"],\n+            invalid=object(),\n+        )\n+        typed = TextPart(content=\"hello\")\n+        parts = [generic, typed]\n+        cases = [\n+            (\n+                InputMessage(role=\"user\", parts=parts),\n+                GenAI.GEN_AI_INPUT_MESSAGES,\n+            ),\n+            (\n+                OutputMessage(role=\"assistant\", parts=parts),\n+                GenAI.GEN_AI_OUTPUT_MESSAGES,\n+            ),\n+        ]\n+        for message, attribute in cases:\n+            for failed_conversion in (False, True):\n+                with (\n+                    self.subTest(\n+                        message=message,\n+                        failed_conversion=failed_conversion,\n+                    ),\n+                    patch(\n+                        \"opentelemetry.util.genai.utils.object_to_any_value\",\n+                        wraps=object_to_any_value,\n+                    ) as convert,\n+                ):\n+                    if failed_conversion:\n+                        convert.return_value = None\n+                    mapped_parts = message[\"parts\"]\n+                    self.assertIs(mapped_parts[-1], typed)\n+                    convert.assert_called_once_with(generic)\n+                    convert.reset_mock()\n+                    attributes = BoundedAttributes(\n+                        attributes={attribute: [message]},\n+                        extended_attributes=True,\n+                    )\n+                    expected_parts = ({\"content\": \"hello\", \"type\": \"text\"},)\n+                    if not failed_conversion:\n+                        expected_parts = (\n+                            {\n+                                \"type\": \"custom\",\n+                                \"items\": {\"query\": \"weather\"},\n+                                \"keys\": (\"result\",),\n+                            },\n+                            *expected_parts,\n+                        )\n+                    self.assertEqual(\n+                        attributes[attribute],\n+                        ({\"role\": message.role, \"parts\": expected_parts},),\n+                    )\n+                    self.assertIs(message.parts, parts)\n+                    self.assertIs(message.parts[0], generic)\n+                    self.assertIs(message.parts[1], typed)\n+                    convert.assert_called_once_with(generic)\n+\n+    def test_retrieval_documents_are_mappings_without_conversion(self):\n+        cases = [\n+            (RetrievalDocument(), {}),\n+            (\n+                RetrievalDocument(id=\"doc-1\", score=0.95),\n+                {\"id\": \"doc-1\", \"score\": 0.95},\n+            ),\n+            (RetrievalDocument(id=\"\"), {\"id\": \"\"}),\n+            (RetrievalDocument(score=0.0), {\"score\": 0.0}),\n+        ]\n+        with patch(\n+            \"opentelemetry.util.genai.utils.object_to_any_value\"\n+        ) as convert:\n+            for document, expected in cases:\n+                with self.subTest(document=document):\n+                    self.assertIsInstance(document, Mapping)\n+                    self.assertEqual(dict(document), expected)\n+                    self.assertEqual(len(document), len(expected))\n+            convert.assert_not_called()\n+\n+    def test_tool_payload_mappings(self):\n+        @dataclass\n+        class Payload:\n+            count: int\n+            label: str | None = None\n+\n+        class PydanticPayload(BaseModel):",
+      "id": "PRRT_kwDOSbspP867o9vf",
+      "opened": "2026-11-24T23:35:47Z",
+      "path": "util/opentelemetry-util-genai/tests/test_utils.py",
+      "replies": [
+        {
+          "at": "2026-11-25T17:05:34Z",
+          "body": "Addressed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1133#discussion_r4698200445"
+        }
+      ],
+      "reviewed": "63e2ce2ae400cb2dac06a861cc11681545e14bd2",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1133#discussion_r4687880003"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The typed-document branch now passes NaN and infinite scores through, whereas the previous converter omitted them; strict JSON consumers cannot serialize the resulting content. Agno can supply these values through `safe_float`/`format_retrieval_document`. Omit non-finite scores without converting the whole document, and add regression cases for NaN, both infinities, and zero.",
+      "created": "2026-11-25T17:12:42Z",
+      "hunk": "@@ -256,16 +256,24 @@ def _get_content_attributes_for_span(self) -> dict[str, AttributeValue]:\n             or not self._should_capture_content_on_span\n         ):\n             return {}\n+        documents: list[AttributeValue] | None = None\n+        if self._data.retrieval_documents is not None:\n+            documents = []\n+            for document in self._data.retrieval_documents:\n+                if isinstance(document, RetrievalDocument):\n+                    documents.append(document)",
+      "id": "PRRT_kwDOSbspP868BCi-",
+      "opened": "2026-11-25T17:12:42Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_retrieval_invocation.py",
+      "replies": [],
+      "reviewed": "1e058687f6b94097c0a12b8c64d21fd4b6925003",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1133#discussion_r4698288301"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`__dataclass_fields__` includes `ClassVar` entries, unlike `fields(self)`. Consequently, a `ToolCallRequestPart` reports `'_SANITIZE' in part` as true and returns a frozenset for `part['_SANITIZE']`, even though that key is absent from iteration and the value is not an AnyValue. Restrict lookup to actual present instance fields so the newly exposed Mapping interface has consistent lookup, membership, and iteration semantics.",
+      "created": "2026-11-25T17:58:05Z",
+      "hunk": "@@ -34,6 +38,66 @@ class ContentCapturingMode(Enum):\n     SPAN_AND_EVENT = 3\n \n \n+def _convert_generic_parts(\n+    parts: Sequence[MessagePart],\n+) -> Sequence[AnyValue]:\n+    if not any(isinstance(part, GenericPart) for part in parts):\n+        return cast(Sequence[AnyValue], parts)\n+\n+    from opentelemetry.util.genai.utils import (  # pylint: disable=import-outside-toplevel\n+        object_to_any_value,\n+    )\n+\n+    # Generic extensions can use Mapping method names as data fields.\n+    converted_parts: list[AnyValue] = []\n+    for part in parts:\n+        if isinstance(part, GenericPart):\n+            converted = object_to_any_value(part)\n+            if converted is not None:\n+                converted_parts.append(converted)\n+        else:\n+            converted_parts.append(part)\n+    return converted_parts\n+\n+\n+class _AnyValueMapping(Mapping[str, AnyValue]):\n+    __dataclass_fields__: ClassVar[dict[str, Field[object]]]\n+    _SANITIZE: ClassVar[frozenset[str]] = frozenset()\n+    _KEEP_NONE: ClassVar[frozenset[str]] = frozenset()\n+\n+    def __getitem__(self, key: str) -> AnyValue:\n+        if key not in self.__dataclass_fields__:\n+            raise KeyError(key)\n+        value = getattr(self, key)\n+        if value is None and key not in self._KEEP_NONE:\n+            raise KeyError(key)",
+      "id": "PRRT_kwDOSbspP868CRt-",
+      "opened": "2026-11-25T17:58:05Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/types.py",
+      "replies": [],
+      "reviewed": "441465d66bea696881dd3bcd79b5819e295410de",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1133#discussion_r4698826586"
+    }
+  ]
+}

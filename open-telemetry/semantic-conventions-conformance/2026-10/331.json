@@ -1,0 +1,61 @@
+{
+  "head": "356260b4eca0e8441cf92e70a00d1b806db7c4f5",
+  "merge": "2137aece90aeb3ec2b15ff79c9c565b9311e96dc",
+  "merged": "2026-10-21T06:56:02Z",
+  "missing_roots": 0,
+  "number": 331,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Anthropic 1.14+ enables native SDK tracing when a global tracer provider is registered, which these environments' `opentelemetry-instrument` commands do. The upgrade therefore mixes SDK-native spans with the declared instrumentation's spans instead of measuring one implementation. This affects `anthropic/opentelemetry-anthropic`, `anthropic/openllmetry`, and `anthropic/openinference`. Add `ANTHROPIC_OPEN_TELEMETRY: \"false\"` under `env` in each directory's `conformance.yaml`, then rerun the scenarios and commit any regenerated `data.json` changes.",
+      "created": "2026-10-19T05:24:28Z",
+      "hunk": "@@ -3,7 +3,7 @@ name = \"anthropic-opentelemetry-conformance\"\n version = \"0.0.0\"\n requires-python = \">=3.12\"\n dependencies = [\n-    \"anthropic==1.13.0\",\n+    \"anthropic==1.15.0\",",
+      "id": "PRRT_kwDOTuzK5c6ty4Ll",
+      "opened": "2026-10-19T05:24:28Z",
+      "path": "scenarios/gen-ai/python/anthropic/opentelemetry-anthropic/pyproject.toml",
+      "replies": [],
+      "reviewed": "d2d3cbbe5e3c159390a721859b356e4b67bbb086",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/331#discussion_r4310579501"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "The bot commit \"Update generated data files\" (f966b2fb) regenerated the litellm data.json files from this crashed run. That's why the diff adds error.type and missing gen_ai.response.* and gen_ai.usage.* attributes, and removes the tool-call attributes. Those baselines describe a crash, not real instrumentation behaviour, so they shouldn't be merged. The required-status-check failure only reflects this job failing.",
+      "created": "2026-10-19T18:52:40Z",
+      "hunk": "",
+      "id": "PRRT_kwDOTuzK5c6uDtyw",
+      "opened": "2026-10-19T18:54:12Z",
+      "path": "scenarios/gen-ai/python/litellm/openinference/data.json",
+      "replies": [],
+      "reviewed": "765b2e27a344323e8777e89efe631e9782b68398",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/331#discussion_r4317592195"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "litellm 1.106.0 imports the mcp package on the normal SDK path. mcp isn't installed: the lockfile on the PR branch has no mcp package, and litellm's lock entry doesn't depend on it. So the scenario process exits with code 1.",
+      "created": "2026-10-19T18:53:10Z",
+      "hunk": "@@ -3,7 +3,7 @@ name = \"litellm-native-conformance\"\n version = \"0.0.0\"\n requires-python = \">=3.12\"\n dependencies = [\n-    \"litellm==1.105.0\",\n+    \"litellm==1.106.0\",",
+      "id": "PRRT_kwDOTuzK5c6uDuk5",
+      "opened": "2026-10-19T18:54:12Z",
+      "path": "scenarios/gen-ai/python/litellm/native/pyproject.toml",
+      "replies": [
+        {
+          "at": "2026-10-21T05:28:22Z",
+          "body": "dropped it from version update, it's being fixed in next version",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/331#discussion_r4333346392"
+        }
+      ],
+      "reviewed": "765b2e27a344323e8777e89efe631e9782b68398",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/331#discussion_r4317597336"
+    }
+  ]
+}

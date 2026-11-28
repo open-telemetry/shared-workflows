@@ -1,0 +1,47 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "41beb8752f50d01449921ef1bc954cf9a6cd96f4dc7596bf77c33ddc8619d245",
+  "input_digest": "2aaadecd70a9fa339b983ab7e8c20f0fdd611f854da95609c6683df1b98ddee0",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/84ac9675cdf827c86a2d4483a301098dd2a173f4/javaagent/src/test/java/jvmbootstraptest/AgentLoadedChecker.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/84ac9675cdf827c86a2d4483a301098dd2a173f4/javaagent/src/test/java/io/opentelemetry/javaagent/AgentLoadedIntoBootstrapTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/81354bb3ad4b6fc655654c121755f5c4100648b0/javaagent/src/test/java/jvmbootstraptest/AgentLoadedChecker.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/81354bb3ad4b6fc655654c121755f5c4100648b0/javaagent/src/test/java/io/opentelemetry/javaagent/AgentLoadedIntoBootstrapTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/ce1ff38cb4b79534f4b271f9f877827e01f093e7"
+      ],
+      "id": "PRRT_kwDODJKVX86v6G0n",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ce1ff38cb4b79534f4b271f9f877827e01f093e7/javaagent-bootstrap/src/main/java/io/opentelemetry/javaagent/OpenTelemetryAgent.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/81354bb3ad4b6fc655654c121755f5c4100648b0/javaagent-bootstrap/src/main/java/io/opentelemetry/javaagent/OpenTelemetryAgent.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/536dece663ec28754bf5dd323a20d6a4dc6b63c2"
+      ],
+      "id": "PRRT_kwDODJKVX86v6RcS",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/536dece663ec28754bf5dd323a20d6a4dc6b63c2/javaagent-bootstrap/src/main/java/io/opentelemetry/javaagent/OpenTelemetryAgent.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/81354bb3ad4b6fc655654c121755f5c4100648b0/javaagent-bootstrap/src/main/java/io/opentelemetry/javaagent/OpenTelemetryAgent.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/13a6a5bb29de7858ddfce94d01b12d6b72d04739"
+      ],
+      "id": "PRRT_kwDODJKVX86v7AO2",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

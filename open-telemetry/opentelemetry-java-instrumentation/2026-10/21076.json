@@ -1,0 +1,130 @@
+{
+  "head": "5e0a97c4b0a1acba1ee8d346dbe9f4edbbce590e",
+  "merge": "a96e4a3f3708e016d7852ca50635dddd99fb28e7",
+  "merged": "2026-10-30T05:58:33Z",
+  "missing_roots": 0,
+  "number": 21076,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This new class exercises javaagent helpers directly, but its standalone `javaagent-unit-tests` location conflicts with `.github/instructions/java-tests.instructions.md:22-26`. Move it to `cassandra-3.0/javaagent/src/unitTests/java` and register an agent-free `unitTests` JvmTestSuite with its dependencies, wired into `check`. Apply the same change to the new `CassandraRequestTest` in `cassandra-4.0/javaagent-unit-tests`; existing standalone tests need not be migrated.",
+      "created": "2026-10-29T19:48:14Z",
+      "hunk": "@@ -0,0 +1,73 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.cassandra.v3_0;\n+\n+import static io.opentelemetry.semconv.DbAttributes.DB_OPERATION_BATCH_SIZE;\n+import static io.opentelemetry.semconv.DbAttributes.DB_QUERY_TEXT;\n+import static java.util.Arrays.asList;\n+import static org.assertj.core.api.Assertions.assertThat;\n+import static org.mockito.Mockito.mock;\n+import static org.mockito.Mockito.when;\n+\n+import com.datastax.driver.core.BatchStatement;\n+import com.datastax.driver.core.ConsistencyLevel;\n+import com.datastax.driver.core.QueryOptions;\n+import com.datastax.driver.core.Session;\n+import com.datastax.driver.core.SimpleStatement;\n+import com.datastax.driver.core.Statement;\n+import io.opentelemetry.api.common.Attributes;\n+import io.opentelemetry.api.common.AttributesBuilder;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.SqlClientAttributesExtractor;\n+import org.junit.jupiter.api.BeforeEach;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.ExtendWith;\n+import org.mockito.Answers;\n+import org.mockito.Mock;\n+import org.mockito.junit.jupiter.MockitoExtension;\n+\n+@ExtendWith(MockitoExtension.class)\n+class CassandraRequestTest {",
+      "id": "PRRT_kwDODJKVX86xuhHC",
+      "opened": "2026-10-29T19:48:14Z",
+      "path": "instrumentation/cassandra/cassandra-3.0/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/cassandra/v3_0/CassandraRequestTest.java",
+      "replies": [
+        {
+          "at": "2026-10-29T20:32:45Z",
+          "body": "Removed the newly added Cassandra helper tests and their suite wiring in ebdedda0f0d4d8ec9114ba6d5a484bfd1e4fea05, as requested by the author. The PR now relies on existing regression coverage and updates existing expectations for omitted attributes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21076#discussion_r4417575082"
+        }
+      ],
+      "reviewed": "6ecf57a4d84d3e32d889159c6b2804f1db765e2a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21076#discussion_r4417149635"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to address the verified test-layout finding in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21076#discussion_r4417149635. The previous coding task has completed; its missing-value behavior is delivered. Keep that production behavior and regression coverage unchanged.\n\nMove only the newly added CassandraRequestTest classes from cassandra-3.0/javaagent-unit-tests/src/test/java and cassandra-4.0/javaagent-unit-tests/src/test/java into the corresponding javaagent/src/unitTests/java directories. Follow .github/instructions/java-tests.instructions.md and .github/agents/knowledge/gradle-conventions.md: configure an agent-free JvmTestSuite named unitTests in each javaagent module, provide its actual required dependencies using repository patterns, and wire both suites into check so the tests run in normal validation. Leave pre-existing standalone javaagent-unit-tests tests in place; do not broaden this into a migration.\n\nRetain assertions that missing single-query text is absent and valid batch query text and original batch size are preserved. Run the narrowest applicable spotlessApply tasks directly before targeted validation, and run both new unitTests suites. Confirm their check wiring. Do not alter unrelated instrumentation behavior, change the draft state, create a follow-up PR, or resolve review threads. This is a scoped correction to the original missing-attribute-value task.",
+      "created": "2026-10-29T19:54:13Z",
+      "hunk": "@@ -0,0 +1,73 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.cassandra.v3_0;\n+\n+import static io.opentelemetry.semconv.DbAttributes.DB_OPERATION_BATCH_SIZE;\n+import static io.opentelemetry.semconv.DbAttributes.DB_QUERY_TEXT;\n+import static java.util.Arrays.asList;\n+import static org.assertj.core.api.Assertions.assertThat;\n+import static org.mockito.Mockito.mock;\n+import static org.mockito.Mockito.when;\n+\n+import com.datastax.driver.core.BatchStatement;\n+import com.datastax.driver.core.ConsistencyLevel;\n+import com.datastax.driver.core.QueryOptions;\n+import com.datastax.driver.core.Session;\n+import com.datastax.driver.core.SimpleStatement;\n+import com.datastax.driver.core.Statement;\n+import io.opentelemetry.api.common.Attributes;\n+import io.opentelemetry.api.common.AttributesBuilder;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.SqlClientAttributesExtractor;\n+import org.junit.jupiter.api.BeforeEach;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.ExtendWith;\n+import org.mockito.Answers;\n+import org.mockito.Mock;\n+import org.mockito.junit.jupiter.MockitoExtension;\n+\n+@ExtendWith(MockitoExtension.class)\n+class CassandraRequestTest {",
+      "id": "PRRT_kwDODJKVX86xupsC",
+      "opened": "2026-10-29T19:54:13Z",
+      "path": "instrumentation/cassandra/cassandra-3.0/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/cassandra/v3_0/CassandraRequestTest.java",
+      "replies": [],
+      "reviewed": "6ecf57a4d84d3e32d889159c6b2804f1db765e2a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21076#discussion_r4417206372"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the user's revised scope. This explicitly supersedes the earlier instruction to move the new tests into unitTests suites. The user said: \"I don't really want to add new tests for this. Only update integration tests needed to accommodate. I think our regression tests are good enough.\"\n\nRemove all three CassandraRequestTest classes newly introduced by this PR: cassandra-3.0/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/cassandra/v3_0/CassandraRequestTest.java, cassandra-4.0/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_0/CassandraRequestTest.java, and cassandra-4.4/library/src/test/java/io/opentelemetry/instrumentation/cassandra/v4_4/CassandraRequestTest.java. Remove the unitTests suites, dependencies, and check wiring added solely for those tests in the Cassandra 3.0 and 4.0 javaagent build.gradle.kts files. Do not remove pre-existing tests or pre-existing build wiring.\n\nPreserve the production fixes that omit unavailable RocketMQ namespaces and Cassandra query text, including correct handling of valid batch entries and original batch sizes. Rely on existing regression/integration coverage and retain only necessary expectation adjustments in existing tests to accommodate absent attributes. Do not introduce any replacement tests, new test methods/classes, new suites, or unrelated test migrations.\n\nRun the narrowest applicable spotlessApply tasks directly before relevant existing test validation. Keep this PR a draft, update its existing branch, do not create another PR, and do not resolve review threads. The earlier coding attempt has ended; this is a user-directed scope revision, not another request to relocate the new tests.",
+      "created": "2026-10-29T20:11:29Z",
+      "hunk": "@@ -0,0 +1,73 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.cassandra.v3_0;\n+\n+import static io.opentelemetry.semconv.DbAttributes.DB_OPERATION_BATCH_SIZE;\n+import static io.opentelemetry.semconv.DbAttributes.DB_QUERY_TEXT;\n+import static java.util.Arrays.asList;\n+import static org.assertj.core.api.Assertions.assertThat;\n+import static org.mockito.Mockito.mock;\n+import static org.mockito.Mockito.when;\n+\n+import com.datastax.driver.core.BatchStatement;\n+import com.datastax.driver.core.ConsistencyLevel;\n+import com.datastax.driver.core.QueryOptions;\n+import com.datastax.driver.core.Session;\n+import com.datastax.driver.core.SimpleStatement;\n+import com.datastax.driver.core.Statement;\n+import io.opentelemetry.api.common.Attributes;\n+import io.opentelemetry.api.common.AttributesBuilder;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.instrumentation.api.incubator.semconv.db.SqlClientAttributesExtractor;\n+import org.junit.jupiter.api.BeforeEach;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.ExtendWith;\n+import org.mockito.Answers;\n+import org.mockito.Mock;\n+import org.mockito.junit.jupiter.MockitoExtension;\n+\n+@ExtendWith(MockitoExtension.class)\n+class CassandraRequestTest {",
+      "id": "PRRT_kwDODJKVX86xvCT8",
+      "opened": "2026-10-29T20:11:29Z",
+      "path": "instrumentation/cassandra/cassandra-3.0/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/cassandra/v3_0/CassandraRequestTest.java",
+      "replies": [
+        {
+          "at": "2026-10-29T20:28:31Z",
+          "body": "Removed the three new CassandraRequestTest classes and only their dedicated unitTests build wiring; production behavior and existing tests remain unchanged. The relevant existing Cassandra and RocketMQ module tests passed. Commit: `ebdedda0`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21076#discussion_r4417534749"
+        }
+      ],
+      "reviewed": "f50572f26cf216c811006e82324473ef6c327457",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21076#discussion_r4417372748"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the user's requested assertion cleanup. The user said that equalTo(MESSAGING_ROCKETMQ_NAMESPACE, null) is unnecessary inside hasAttributesSatisfyingExactly and asked to fix all occurrences.\n\nRemove every unconditional equalTo(MESSAGING_ROCKETMQ_NAMESPACE, null) expectation from hasAttributesSatisfyingExactly calls in the existing RocketMQ 4.8 and 5.0 tests affected by this PR, not just this anchored occurrence. The exact attribute assertion already excludes keys omitted from its expected attributes. Check all six existing test files changed by this PR, and remove any other unconditional literal-null attribute expectations introduced by this PR under exact attribute assertions. Remove static imports only when they become unused. Preserve configured non-null namespace expectations, conditional or experimental expectations that can legitimately produce non-null values, and assertions outside exact attribute blocks.\n\nKeep all production fixes unchanged, including omission of unavailable RocketMQ namespaces and Cassandra query text, valid batch query handling, and original batch sizes. Do not add tests, test methods, suites, build wiring, replacement absence checks, or unrelated repository-wide cleanup. Retain the existing exact assertions and their coverage.\n\nRun the narrowest applicable spotlessApply tasks directly before relevant existing test validation. Keep this PR a draft and update its existing branch, not another PR. Do not resolve review threads. The previous coding attempt has ended; this is a user-directed follow-up cleanup.",
+      "created": "2026-10-29T20:40:56Z",
+      "hunk": "@@ -65,7 +65,7 @@ void usesEmptyProducerNamespaceByDefault() {\n                             equalTo(MESSAGING_DESTINATION_NAME, \"topic\"),\n                             equalTo(MESSAGING_OPERATION_NAME, \"send\"),\n                             equalTo(MESSAGING_OPERATION_TYPE, \"send\"),\n-                            equalTo(MESSAGING_ROCKETMQ_NAMESPACE, \"\"))));\n+                            equalTo(MESSAGING_ROCKETMQ_NAMESPACE, null))));",
+      "id": "PRRT_kwDODJKVX86xvrvq",
+      "opened": "2026-10-29T20:40:56Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-4.8/library/src/test/java/io/opentelemetry/instrumentation/rocketmqclient/v4_8/RocketMqInstrumenterFactoryTest.java",
+      "replies": [
+        {
+          "at": "2026-10-29T20:49:55Z",
+          "body": "Removed the unconditional null namespace expectations from the exact assertions and deleted now-unused imports, preserving configured namespace expectations. Spotless and targeted RocketMQ tests passed. Commit: `ede5de0`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21076#discussion_r4417736793"
+        }
+      ],
+      "reviewed": "ebdedda0f0d4d8ec9114ba6d5a484bfd1e4fea05",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21076#discussion_r4417651234"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the user's requested naming and expression cleanup. The user pointed out that RocketMqNamespaceUtil.normalize is just a standard string empty-to-null conversion and asked not to make it sound specialized. They also asked to move the producer's messageQueues.isEmpty() ternary outside the helper call.\n\nRename the new module-local, package-private helper to StringUtils.emptyToNull. Name its parameter generically, such as value, and preserve its nullable argument and return contract: null and the empty string return null, and every nonempty string, including whitespace, is preserved. Update its constructor and all producer, receive, and process call sites. Keep it module-local; do not broaden this into a shared API change, new dependency, or unrelated utility migration.\n\nIn ProducerImplInstrumentation, structure namespace extraction as messageQueues.isEmpty() ? null : StringUtils.emptyToNull(messageQueues.get(0).getTopicResource().getNamespace()). The no-queue branch should be outside the conversion call rather than passed into it. Preserve nullable annotations and existing behavior.\n\nPreserve all other production fixes, the removal of all 12 redundant namespace-null expectations, and the earlier user constraint against new tests. Do not add test methods, test classes, suites, build wiring, or replacement absence checks. Run the narrowest applicable spotlessApply tasks directly before relevant existing test validation. Keep this PR a draft and update its existing branch, not another PR. Do not resolve review threads. The previous coding attempt has ended; this consolidates both new user-directed cleanup requests.",
+      "created": "2026-10-29T20:53:40Z",
+      "hunk": "@@ -0,0 +1,18 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.rocketmqclient.v5_0;\n+\n+import javax.annotation.Nullable;\n+\n+final class RocketMqNamespaceUtil {\n+\n+  @Nullable\n+  static String normalize(@Nullable String namespace) {",
+      "id": "PRRT_kwDODJKVX86xv9pS",
+      "opened": "2026-10-29T20:53:40Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rocketmqclient/v5_0/RocketMqNamespaceUtil.java",
+      "replies": [
+        {
+          "at": "2026-10-29T21:04:35Z",
+          "body": "Renamed the helper to `StringUtils.emptyToNull` and moved the empty-queue branch outside the conversion call. Spotless and the RocketMQ 5.0 javaagent tests passed. Commit: `afab8d67`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21076#discussion_r4417877794"
+        }
+      ],
+      "reviewed": "ede5de0dfe4385af5c2e964191688f90c640382a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21076#discussion_r4417771877"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to confine empty-to-null conversion to the RocketMQ API boundaries. The user asked which RocketMQ getters return empty strings and whether we can convert only at those reads, then explicitly requested cloud implementation of this approach.\n\nThe verified upstream APIs are org.apache.rocketmq.client.java.message.protocol.Resource.getNamespace(), whose name-only constructor sets StringUtils.EMPTY, and the generated apache.rocketmq.v2.Resource.getResourceNamespace(), whose proto3 string defaults to empty. Sources for the supported 5.0.0 baseline are https://github.com/apache/rocketmq-clients/blob/rocketmq-client-java-5.0.0/java/client/src/main/java/org/apache/rocketmq/client/java/message/protocol/Resource.java and https://github.com/apache/rocketmq-clients/blob/rocketmq-client-java-5.0.0/cpp/proto/apache/rocketmq/v2/definition.proto . The 5.0.2 Resource implementation used by existing tests has the same behavior.\n\nIn RocketMqReceiveRequest.create(String consumerGroup, List<MessageView> messages), apply StringUtils.emptyToNull immediately to the namespace obtained from ((MessageViewImpl) message).getMessageQueue().getTopicResource().getNamespace(), before storing it in our request. In getNamespace(), return the stored nullable namespace unchanged when request == null; apply StringUtils.emptyToNull only to request.getMessageQueue().getTopic().getResourceNamespace() in the protobuf-request branch. Remove the conversion around the combined result. Preserve nullable contracts and avoid redundant reconversion of an already-normalized internal field.\n\nProducerImplInstrumentation and RocketMqConsumerProcessAttributeExtractor already convert immediately at their Resource.getNamespace() reads. Preserve those boundaries and the producer's outer messageQueues.isEmpty() ternary. Keep the module-local generic StringUtils.emptyToNull helper and its behavior unchanged: null or empty becomes null, nonempty strings including whitespace remain unchanged. Do not instrument or modify RocketMQ's own getter implementations.\n\nKeep all other production fixes, configured namespace behavior, Cassandra batch/query behavior, and previous assertion cleanup unchanged. The user does not want new tests: do not add test methods, test classes, suites, build wiring, or replacement absence checks. Use existing relevant RocketMQ regression/integration tests and run the narrowest applicable spotlessApply task directly before validation. Keep this PR a draft and update its existing branch, not another PR. Do not resolve review threads. The previous coding attempt and its clean latest-head review have completed; this is a user-directed behavior-preserving boundary cleanup.",
+      "created": "2026-10-29T21:20:13Z",
+      "hunk": "@@ -71,9 +71,11 @@ String getRequestDestination() {\n   @Nullable\n   String getNamespace() {\n     ReceiveMessageRequest request = this.request;\n-    return request == null\n-        ? namespace\n-        : request.getMessageQueue().getTopic().getResourceNamespace();\n+    String namespace =\n+        request == null\n+            ? this.namespace\n+            : request.getMessageQueue().getTopic().getResourceNamespace();\n+    return StringUtils.emptyToNull(namespace);",
+      "id": "PRRT_kwDODJKVX86xwicY",
+      "opened": "2026-10-29T21:20:13Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rocketmqclient/v5_0/RocketMqReceiveRequest.java",
+      "replies": [
+        {
+          "at": "2026-10-29T21:30:55Z",
+          "body": "Moved empty-to-null normalization to the two RocketMQ API reads and left the stored namespace unchanged. Spotless and the targeted RocketMQ client/SimpleConsumer tests passed. Commit: `5e0a97c4`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21076#discussion_r4418109174"
+        }
+      ],
+      "reviewed": "afab8d677153745a4eac0f1dc1a199246a15eaf6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21076#discussion_r4418016749"
+    }
+  ]
+}

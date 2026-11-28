@@ -1,0 +1,25 @@
+{
+  "head": "880d7b68a7aef896333858cfc3f864c7f88accff",
+  "merge": "928964e31b9cc23c89ff1484f176d06bec56a22f",
+  "merged": "2026-10-24T17:20:25Z",
+  "missing_roots": 0,
+  "number": 372,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The retrieval coverage added here contradicts the paragraph at lines 137–138, which still says no instrumentation emits retrieval and no scenario class exists for it. Limit that paragraph to memory and planning so the README consistently describes the new coverage.",
+      "created": "2026-10-23T00:14:33Z",
+      "hunk": "@@ -121,9 +122,9 @@ classes than the row, the row says so.\n | `google-genai` | every client class, plus automatic_tool_calling | `opentelemetry-google-genai`, `openinference`, `openllmetry` |\n | `groq` | inference, streaming, tool_calling, structured_output, multimodal, embeddings | `openinference`, `openllmetry` |\n | `haystack` | workflow, invoke_agent, automatic_tool_calling | `native`, `openinference`<br>no `openllmetry`: does not support Haystack 3 |\n-| `langchain` | workflow, invoke_agent, automatic_tool_calling | `opentelemetry-langchain`, `openinference`, `openllmetry` |\n+| `langchain` | workflow, invoke_agent, automatic_tool_calling, retrieval | `opentelemetry-langchain`, `openinference`, `openllmetry` |\n | `litellm` | inference, streaming, tool_calling, structured_output, multimodal, embeddings | `native`, `openinference`, `openllmetry` |\n-| `llama-index` | workflow, invoke_agent, automatic_tool_calling | `native`, `openinference`<br>no `openllmetry`:  does not record anything for modern versions |\n+| `llama-index` | workflow, invoke_agent, automatic_tool_calling, retrieval | `native`, `openinference`<br>no `openllmetry`:  does not record anything for modern versions |",
+      "id": "PRRT_kwDOTuzK5c6vbW4n",
+      "opened": "2026-10-23T00:14:34Z",
+      "path": "scenarios/gen-ai/README.md",
+      "replies": [],
+      "reviewed": "e62e425ce6cfefa01ace56ae7fb3076562d07a90",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/372#discussion_r4354860572"
+    }
+  ]
+}

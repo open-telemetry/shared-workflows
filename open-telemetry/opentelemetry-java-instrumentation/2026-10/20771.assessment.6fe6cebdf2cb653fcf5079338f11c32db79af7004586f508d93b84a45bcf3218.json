@@ -1,0 +1,45 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "8b62c722b9adee79f4133d8fdf38bef605a2e6af3eb79c8ce3d8d2caa203d6cc",
+  "input_digest": "6fe6cebdf2cb653fcf5079338f11c32db79af7004586f508d93b84a45bcf3218",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/804420d9bfa4dc4b9ff50e3d51a2e6fdff4e019f/instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/OpenTelemetryAutoConfiguration.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8783ffa99ca4678caad4bd633178ce0eafc8f04a/instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/OpenTelemetryAutoConfiguration.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/2129f85384bc2c9799a79737f84c2698a89fd615"
+      ],
+      "id": "PRRT_kwDODJKVX86uegEG",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2129f85384bc2c9799a79737f84c2698a89fd615/instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/OpenTelemetryAutoConfiguration.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8783ffa99ca4678caad4bd633178ce0eafc8f04a/instrumentation/spring/spring-boot-autoconfigure/src/main/java/io/opentelemetry/instrumentation/spring/autoconfigure/OpenTelemetryAutoConfiguration.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/380f024956f1bc81688c59b8757fd2686fd49816"
+      ],
+      "id": "PRRT_kwDODJKVX86uiZch",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/380f024956f1bc81688c59b8757fd2686fd49816/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8783ffa99ca4678caad4bd633178ce0eafc8f04a/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/b9ef9df18e33767cf68a3bdc7d84c938fa01a2a6"
+      ],
+      "id": "PRRT_kwDODJKVX86uiyuJ",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

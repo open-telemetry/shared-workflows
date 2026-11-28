@@ -1,0 +1,73 @@
+{
+  "head": "a6ad76370fc49db53947ff23546a278e78606f96",
+  "merge": "235437c1206092bf09841c4d44633fcc45d9c864",
+  "merged": "2026-10-28T18:01:46Z",
+  "missing_roots": 0,
+  "number": 992,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "DylanRussell"
+      },
+      "body": "This can be removed.. ruffs up rule misses some stuff.\n\nOther things that can be removed:\n\nscripts/check_deps.py (lines 42–45):\n  \ndiff\n-try:\n-    import tomllib\n-except ModuleNotFoundError:  # Python < 3.11\n-    import tomli as tomllib\n+import tomllib\n\n\nscripts/version_utils.py (lines 14–17):\n  \ndiff\n-try:\n-    import tomllib\n-except ModuleNotFoundError:\n-    import tomli as tomllib\n+import tomllib\n\n\n2. Dead sys.version_info < (3, 11) Test Skip Markers in langchain\n\n3. Stale pypy-3.10 Mapping and Comments\n\nscripts/tox_matrix.py (lines 25, 30–31):\n_PY_FACTOR_VERSION: dict[str, str] = {\"pypy3\": \"pypy-3.10\"} is dead code pointing to Python 3.10\n\n4. random stuff\n\nenum.StrEnum (Python 3.11+): Modality(str, Enum) (which manually defines def __str__(self) -> str: return self.value to work around Python 3.11's str(Enum) format change) and Role(str, Enum) in util/opentelemetry-util-genai/src/opentelemetry/util/genai/types.py (lines 162, 332) can use enum.StrEnum (verify against tox -e check-util-api / griffe first in case base-class change is flagged).\n\nBranch Protection Rules:  if repository branch protection rules list specific 3.10 or 3.14 matrix job names as required status checks, they will need to be updated to the 3.11 / 3.15 job names (not sure if we do this)",
+      "created": "2026-10-27T20:40:06Z",
+      "hunk": "",
+      "id": "PRRT_kwDOSbspP86w38wp",
+      "opened": "2026-10-27T20:40:06Z",
+      "path": "tox.ini",
+      "replies": [
+        {
+          "at": "2026-10-27T21:44:53Z",
+          "body": "Done in b769550, and merged main. I left StrEnum out because check-util-api flags it; happy to do it in a separate PR.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/992#discussion_r4394542558"
+        }
+      ],
+      "reviewed": "527d8eb9b8f8601aaa931c3f211e98299c982716",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/992#discussion_r4393898879"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: crewai also pulls in onnxruntime (via chromadb), which has no cp315 wheels yet (microsoft/onnxruntime#33359). Naming both blockers makes it easier to tell when 3.15 can be enabled.\n\n```suggestion\n    ; crewai caps pydantic below 2.13 and pulls in onnxruntime (via chromadb); neither has Python 3.15 wheels.\n```",
+      "created": "2026-10-28T06:25:47Z",
+      "hunk": "@@ -9,88 +9,89 @@ envlist =\n     ; for specifying supported Python versions per package.\n \n     ; instrumentation-genai-openai\n-    py3{10,14}-test-instrumentation-genai-openai-latest\n-    py3{10,14}-test-instrumentation-genai-openai-v2\n-    py3{10,14}-test-instrumentation-genai-openai-v1\n-    py310-test-instrumentation-genai-openai-oldest\n+    py3{11,15}-test-instrumentation-genai-openai-latest\n+    py3{11,15}-test-instrumentation-genai-openai-v2\n+    py3{11,15}-test-instrumentation-genai-openai-v1\n+    py311-test-instrumentation-genai-openai-oldest\n     py314-test-instrumentation-genai-openai-conformance\n \n     ; instrumentation-genai-openai-agents\n-    py3{10,14}-test-instrumentation-genai-openai_agents-latest\n-    py310-test-instrumentation-genai-openai_agents-oldest\n+    py3{11,15}-test-instrumentation-genai-openai_agents-latest\n+    py311-test-instrumentation-genai-openai_agents-oldest\n     py314-test-instrumentation-genai-openai_agents-conformance\n \n     ; instrumentation-google-genai\n-    py3{10,14}-test-instrumentation-google-genai-latest\n-    py310-test-instrumentation-google-genai-oldest\n-    py310-test-instrumentation-google-genai-v2\n+    py3{11,15}-test-instrumentation-google-genai-latest\n+    py311-test-instrumentation-google-genai-oldest\n+    py311-test-instrumentation-google-genai-v2\n     py314-test-instrumentation-google-genai-conformance\n \n     ; instrumentation-genai-agno\n-    py3{10,14}-test-instrumentation-genai-agno-latest\n-    py310-test-instrumentation-genai-agno-oldest\n+    py3{11,15}-test-instrumentation-genai-agno-latest\n+    py311-test-instrumentation-genai-agno-oldest\n     py314-test-instrumentation-genai-agno-conformance\n \n     ; instrumentation-genai-smolagents\n-    py3{10,14}-test-instrumentation-genai-smolagents-latest\n-    py310-test-instrumentation-genai-smolagents-oldest\n+    py3{11,15}-test-instrumentation-genai-smolagents-latest\n+    py311-test-instrumentation-genai-smolagents-oldest\n     py314-test-instrumentation-genai-smolagents-conformance\n \n     ; instrumentation-genai-anthropic\n-    py3{10,14}-test-instrumentation-genai-anthropic-latest\n-    py310-test-instrumentation-genai-anthropic-oldest\n+    py3{11,15}-test-instrumentation-genai-anthropic-latest\n+    py311-test-instrumentation-genai-anthropic-oldest\n     py314-test-instrumentation-genai-anthropic-conformance\n \n     ; instrumentation-genai-bedrock\n-    py3{10,14}-test-instrumentation-genai-bedrock-latest\n-    py310-test-instrumentation-genai-bedrock-oldest\n+    py3{11,15}-test-instrumentation-genai-bedrock-latest\n+    py311-test-instrumentation-genai-bedrock-oldest\n     py314-test-instrumentation-genai-bedrock-conformance\n \n     ; instrumentation-genai-claude-agent-sdk\n-    py3{10,14}-test-instrumentation-genai-claude-agent-sdk-latest\n-    py310-test-instrumentation-genai-claude-agent-sdk-oldest\n+    py3{11,15}-test-instrumentation-genai-claude-agent-sdk-latest\n+    py311-test-instrumentation-genai-claude-agent-sdk-oldest\n \n     ; instrumentation-genai-crewai\n-    py3{10,14}-test-instrumentation-genai-crewai-latest\n-    py310-test-instrumentation-genai-crewai-oldest\n+    ; crewai caps pydantic below 2.13, which has no Python 3.15 wheels.",
+      "id": "PRRT_kwDOSbspP86xAZWO",
+      "opened": "2026-10-28T06:27:12Z",
+      "path": "tox.ini",
+      "replies": [
+        {
+          "at": "2026-10-28T08:18:24Z",
+          "body": "Done in a6ad763.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/992#discussion_r4398314631"
+        }
+      ],
+      "reviewed": "b769550a81baa46695b4d4fb7c2756b3882fa8f6",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/992#discussion_r4397552192"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: with 3.10 dropped, the second half of this comment is stale.\n\n```suggestion\n    ; qwenpaw supports Python <3.14.\n```",
+      "created": "2026-10-28T06:25:48Z",
+      "hunk": "@@ -9,88 +9,89 @@ envlist =\n     ; for specifying supported Python versions per package.\n \n     ; instrumentation-genai-openai\n-    py3{10,14}-test-instrumentation-genai-openai-latest\n-    py3{10,14}-test-instrumentation-genai-openai-v2\n-    py3{10,14}-test-instrumentation-genai-openai-v1\n-    py310-test-instrumentation-genai-openai-oldest\n+    py3{11,15}-test-instrumentation-genai-openai-latest\n+    py3{11,15}-test-instrumentation-genai-openai-v2\n+    py3{11,15}-test-instrumentation-genai-openai-v1\n+    py311-test-instrumentation-genai-openai-oldest\n     py314-test-instrumentation-genai-openai-conformance\n \n     ; instrumentation-genai-openai-agents\n-    py3{10,14}-test-instrumentation-genai-openai_agents-latest\n-    py310-test-instrumentation-genai-openai_agents-oldest\n+    py3{11,15}-test-instrumentation-genai-openai_agents-latest\n+    py311-test-instrumentation-genai-openai_agents-oldest\n     py314-test-instrumentation-genai-openai_agents-conformance\n \n     ; instrumentation-google-genai\n-    py3{10,14}-test-instrumentation-google-genai-latest\n-    py310-test-instrumentation-google-genai-oldest\n-    py310-test-instrumentation-google-genai-v2\n+    py3{11,15}-test-instrumentation-google-genai-latest\n+    py311-test-instrumentation-google-genai-oldest\n+    py311-test-instrumentation-google-genai-v2\n     py314-test-instrumentation-google-genai-conformance\n \n     ; instrumentation-genai-agno\n-    py3{10,14}-test-instrumentation-genai-agno-latest\n-    py310-test-instrumentation-genai-agno-oldest\n+    py3{11,15}-test-instrumentation-genai-agno-latest\n+    py311-test-instrumentation-genai-agno-oldest\n     py314-test-instrumentation-genai-agno-conformance\n \n     ; instrumentation-genai-smolagents\n-    py3{10,14}-test-instrumentation-genai-smolagents-latest\n-    py310-test-instrumentation-genai-smolagents-oldest\n+    py3{11,15}-test-instrumentation-genai-smolagents-latest\n+    py311-test-instrumentation-genai-smolagents-oldest\n     py314-test-instrumentation-genai-smolagents-conformance\n \n     ; instrumentation-genai-anthropic\n-    py3{10,14}-test-instrumentation-genai-anthropic-latest\n-    py310-test-instrumentation-genai-anthropic-oldest\n+    py3{11,15}-test-instrumentation-genai-anthropic-latest\n+    py311-test-instrumentation-genai-anthropic-oldest\n     py314-test-instrumentation-genai-anthropic-conformance\n \n     ; instrumentation-genai-bedrock\n-    py3{10,14}-test-instrumentation-genai-bedrock-latest\n-    py310-test-instrumentation-genai-bedrock-oldest\n+    py3{11,15}-test-instrumentation-genai-bedrock-latest\n+    py311-test-instrumentation-genai-bedrock-oldest\n     py314-test-instrumentation-genai-bedrock-conformance\n \n     ; instrumentation-genai-claude-agent-sdk\n-    py3{10,14}-test-instrumentation-genai-claude-agent-sdk-latest\n-    py310-test-instrumentation-genai-claude-agent-sdk-oldest\n+    py3{11,15}-test-instrumentation-genai-claude-agent-sdk-latest\n+    py311-test-instrumentation-genai-claude-agent-sdk-oldest\n \n     ; instrumentation-genai-crewai\n-    py3{10,14}-test-instrumentation-genai-crewai-latest\n-    py310-test-instrumentation-genai-crewai-oldest\n+    ; crewai caps pydantic below 2.13, which has no Python 3.15 wheels.\n+    py3{11,14}-test-instrumentation-genai-crewai-latest\n+    py311-test-instrumentation-genai-crewai-oldest\n \n     ; instrumentation-genai-dspy\n-    py3{10,14}-test-instrumentation-genai-dspy-latest\n-    py310-test-instrumentation-genai-dspy-oldest\n+    py3{11,15}-test-instrumentation-genai-dspy-latest\n+    py311-test-instrumentation-genai-dspy-oldest\n     py314-test-instrumentation-genai-dspy-conformance\n \n     ; instrumentation-genai-langchain\n-    py3{10,14}-test-instrumentation-genai-langchain-latest\n-    py310-test-instrumentation-genai-langchain-oldest\n+    py3{11,15}-test-instrumentation-genai-langchain-latest\n+    py311-test-instrumentation-genai-langchain-oldest\n     py314-test-instrumentation-genai-langchain-conformance\n \n     ; instrumentation-genai-llama-index\n-    py3{10,14}-test-instrumentation-genai-llama_index-latest\n-    py310-test-instrumentation-genai-llama_index-oldest\n+    py3{11,15}-test-instrumentation-genai-llama_index-latest\n+    py311-test-instrumentation-genai-llama_index-oldest\n     py314-test-instrumentation-genai-llama_index-conformance\n \n     ; instrumentation-genai-qwen-agent\n-    py3{10,14}-test-instrumentation-genai-qwen-agent-latest\n-    py310-test-instrumentation-genai-qwen-agent-oldest\n+    py3{11,15}-test-instrumentation-genai-qwen-agent-latest\n+    py311-test-instrumentation-genai-qwen-agent-oldest\n     py314-test-instrumentation-genai-qwen-agent-conformance\n \n     ; instrumentation-genai-portkey\n-    py3{10,14}-test-instrumentation-genai-portkey-latest\n-    py310-test-instrumentation-genai-portkey-oldest\n+    py3{11,15}-test-instrumentation-genai-portkey-latest\n+    py311-test-instrumentation-genai-portkey-oldest\n     py314-test-instrumentation-genai-portkey-conformance\n \n     ; instrumentation-genai-qwenpaw\n     ; qwenpaw 1.1.0 supports Python >=3.10,<3.14; later 1.x releases require >=3.11.",
+      "id": "PRRT_kwDOSbspP86xAZWb",
+      "opened": "2026-10-28T06:27:12Z",
+      "path": "tox.ini",
+      "replies": [
+        {
+          "at": "2026-10-28T08:18:26Z",
+          "body": "Done in a6ad763.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/992#discussion_r4398314947"
+        }
+      ],
+      "reviewed": "b769550a81baa46695b4d4fb7c2756b3882fa8f6",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/992#discussion_r4397552210"
+    }
+  ]
+}

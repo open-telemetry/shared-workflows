@@ -1,0 +1,67 @@
+{
+  "head": "48c87356fb4a8a4c8a74d35502302c5230aac5b1",
+  "merge": "809b4361a9ccf6877f599aac5fa935665dd9d4e0",
+  "merged": "2026-11-21T22:41:05Z",
+  "missing_roots": 0,
+  "number": 21357,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] On `maintenance/v2.x`, these overrides are replaced by that branch's inherited `workarounds:javaLTSVersions` rules, losing security-tag handling and filtering out Java 27. Renovate's [current default-branch implementation resolves branch presets before merging over main](https://github.com/renovatebot/renovate/blob/34d4f5ee1e339cb0a1d690b48fb4df963238fc41/lib/workers/repository/process/index.ts#L141-L147), so the maintenance rules run after these additions. Apply both overrides after the preset on maintenance too, or have both branches consume a shared preset, and revise the claim that no branch-specific follow-up is needed.",
+      "created": "2026-11-19T18:10:11Z",
+      "hunk": "@@ -156,6 +156,30 @@\n       ],\n       versioning: 'semver-partial',\n     },\n+    {\n+      // Temurin security releases add a fourth numeric component before the build number.\n+      matchCurrentValue: '/^(?:(?:17|21|25)(?:\\\\.\\\\d+){1,3}|27(?:\\\\.\\\\d+){1,3})_\\\\d+-.+$/',",
+      "id": "PRRT_kwDODJKVX865pDn8",
+      "opened": "2026-11-19T18:10:12Z",
+      "path": ".github/renovate.json5",
+      "replies": [],
+      "reviewed": "78fe3b35bb390d7deea182ba3fa667e7cbe69905",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21357#discussion_r4633039593"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] This suppresses ordinary build-only updates: `21.0.13_9-jdk` and `21.0.13_10-jdk` both parse as `[21, 0, 13]`. Renovate's [regex parser on its current default branch](https://github.com/renovatebot/renovate/blob/34d4f5ee1e339cb0a1d690b48fb4df963238fc41/lib/modules/versioning/regex/index.ts#L66-L71) only includes `revision` when `build` is present, but this rule leaves `build` absent for ordinary tags. Use normalization or a versioning strategy that retains the underscore build number for both tag shapes and treats an absent security component as zero; cover build-only updates and security-to-next-patch ordering.",
+      "created": "2026-11-19T18:10:11Z",
+      "hunk": "@@ -156,6 +156,30 @@\n       ],\n       versioning: 'semver-partial',\n     },\n+    {\n+      // Temurin security releases add a fourth numeric component before the build number.\n+      matchCurrentValue: '/^(?:(?:17|21|25)(?:\\\\.\\\\d+){1,3}|27(?:\\\\.\\\\d+){1,3})_\\\\d+-.+$/',\n+      matchDatasources: [\n+        'docker',\n+      ],\n+      matchPackageNames: [\n+        'eclipse-temurin',\n+      ],\n+      // Java 27 is not LTS but is already in the smoke-test matrix; major updates remain disabled below.\n+      allowedVersions: '/^(?:17|21|25|27)(?:\\\\.|_|-|$)/',\n+      versioning: 'regex:^(?<major>\\\\d+)(?:\\\\.(?<minor>\\\\d+)(?:\\\\.(?<patch>\\\\d+))?)?(?:\\\\.(?<build>\\\\d+))?_(?<revision>\\\\d+)-(?<compatibility>.+)$',",
+      "id": "PRRT_kwDODJKVX865pDoh",
+      "opened": "2026-11-19T18:10:12Z",
+      "path": ".github/renovate.json5",
+      "replies": [
+        {
+          "at": "2026-11-19T18:40:31Z",
+          "body": "Fixed in 5236eb66b9f2. The rule compares the underscore build number numerically even when the security component is absent, so `21.0.13_9-jdk` can advance to `21.0.13_10-jdk`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21357#discussion_r4633383104"
+        }
+      ],
+      "reviewed": "78fe3b35bb390d7deea182ba3fa667e7cbe69905",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21357#discussion_r4633039663"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Fix the Temurin Renovate rule in this PR directly on its existing same-repository head branch `copilot/main-ff958ec8-22c0-42ac-97b4-5c49ce091c3b`. Keep that branch; if GitHub assigns a follow-up branch, keep the platform-assigned branch. Do not start further tasks or request any additional PRs.\n\nAddress both verified review findings and the Java 27 gap in one coding attempt. In `.github/renovate.json5`, Renovate's regex parser only appends `revision` if the `build` group is present, so the current expression compares `21.0.13_9-jdk` and `21.0.13_10-jdk` as equal; preserve the underscore build number for ordinary and security releases, and verify ordering across an ordinary build increment, a new security release, and the next ordinary patch. The existing Linux `27_35-jdk` and Windows `27_35-jdk-windowsservercore-ltsc2022` pins select the inherited rule, which rejects `27.0.1.1_4` tags even after permitting 27. Make the current 27 pins eligible for the matching patched release without editing either pin. Preserve major, OS/variant and JDK/JRE boundaries, and leave rolling tags and intentional historical fixtures alone. No manual image tags/digests, no Jib discovery changes, and no global Java policy changes.\n\nRenovate resolves the `maintenance/v2.x` configuration's presets before merging it over main, so its Java LTS preset can supersede both the versioning and allowlist. Check effective config precedence, not just JSON syntax. Preserve maintenance branch-specific dependency compatibility rules. If the correct fix cannot take effect from main alone, identify the exact backport needed on the maintenance branch in your coding report; do not open it or modify unrelated configuration. Validate against representative tag pairs using real Renovate versioning/lookup behavior where feasible, and report which checks ran. Keep the diff narrow.",
+      "created": "2026-11-19T18:17:01Z",
+      "hunk": "@@ -156,6 +156,30 @@\n       ],\n       versioning: 'semver-partial',\n     },\n+    {\n+      // Temurin security releases add a fourth numeric component before the build number.",
+      "id": "PRRT_kwDODJKVX865pPCF",
+      "opened": "2026-11-19T18:17:01Z",
+      "path": ".github/renovate.json5",
+      "replies": [
+        {
+          "at": "2026-11-19T18:29:15Z",
+          "body": "Applied in `5236eb66`. Renovate 44.253.4 orders ordinary build increments, the security release, and the next patch correctly; both existing `27_35` pins can advance to compatible patched tags without changing the pins. This cannot take effect on `maintenance/v2.x` from main alone: backport both Temurin package rules in `.github/renovate.json5` there, after its resolved `workarounds:javaLTSVersions` rules, preserving the maintenance-only formatter restriction.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21357#discussion_r4633257353"
+        }
+      ],
+      "reviewed": "78fe3b35bb390d7deea182ba3fa667e7cbe69905",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21357#discussion_r4633116125"
+    }
+  ]
+}

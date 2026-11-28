@@ -1,0 +1,361 @@
+{
+  "head": "17fb42646b142e48bea7c9175bf0b07c61600803",
+  "merge": "3e3ee8ca604219c592d8cc3c1788f19b71d94b6e",
+  "merged": "2026-10-25T04:12:57Z",
+  "missing_roots": 0,
+  "number": 137,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Adding Redis here leaves the runner's public documentation contradictory: `tools/database/runner/README.md:23-26` still says only PostgreSQL and MariaDB are supported and that every backend applies packaged SQL, while lines 43-46 still classify Redis under generic `db.client`. Please update that README to document the Redis backend, its command-based bootstrap, and the new `db.redis.client` refinement.",
+      "created": "2026-08-29T19:33:11Z",
+      "hunk": "@@ -39,6 +40,7 @@\n _BACKENDS: dict[str, Callable[[], DatabaseContainer]] = {\n     \"mariadb\": MariaDB,\n     \"postgresql\": Postgres,\n+    \"redis\": Redis,",
+      "id": "PRRT_kwDOTuzK5c6dcKHr",
+      "opened": "2026-08-29T19:33:11Z",
+      "path": "tools/database/runner/src/database_conformance/__init__.py",
+      "replies": [
+        {
+          "at": "2026-08-29T20:54:55Z",
+          "body": "Addressed in eabc2378aa3e8d0914171c28e617107a5368806d.\n\nAnalysis: The README still described only the relational backends and the generic non-SQL span identity. It now documents Redis initialization through `redis-cli` and the `db.redis.client` refinement.\n\nUpsides: Users can see every supported backend, understand how Redis is bootstrapped, and predict the Redis coverage identity.\n\nDownsides: No material downside identified",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/137#discussion_r3887658102"
+        }
+      ],
+      "reviewed": "d3fea09a3572e5853c576b755f41d737c16dc811",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/137#discussion_r3887474981"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "For the new command-only Redis backend, a failed `redis-cli SET` still flows through `_apply_schema()` and reports “Could not apply the Redis schema,” even though Redis has no schema resource. This makes initialization failures misleading; please generalize the helper and error text to backend initialization (or allow the backend to supply the diagnostic wording).",
+      "created": "2026-08-31T00:59:36Z",
+      "hunk": "@@ -97,7 +96,18 @@ def start(self: _DatabaseContainerT) -> _DatabaseContainerT:\n         container = self._container_factory(self._spec.image)\n         for key, value in self._spec.environment:\n             container.with_env(key, value)\n-        container.with_copy_into_container(schema, self._spec.schema_path)\n+        if self._spec.schema_resource is not None:",
+      "id": "PRRT_kwDOTuzK5c6dlbsA",
+      "opened": "2026-08-31T00:59:36Z",
+      "path": "tools/database/runner/src/database_conformance/_container.py",
+      "replies": [
+        {
+          "at": "2026-08-31T01:03:43Z",
+          "body": "Addressed in 0aa2796049fa6f82f210f7b1aa513c46393332c8.\n\nAnalysis: The shared command initializes every backend, but its helper name and failure text assumed that every command applies a schema. Redis uses the command without a schema resource, so the helper and diagnostic now describe backend initialization.\n\nUpsides: Redis failures no longer claim that a schema exists. The shared wording remains accurate for PostgreSQL and MariaDB, and a focused regression test covers command-only initialization.\n\nDownsides: The PostgreSQL and MariaDB failure text now says initialization instead of schema application.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/137#discussion_r3891080647"
+        }
+      ],
+      "reviewed": "500d027f25717aac873b0425c0a8c7e28f2467da",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/137#discussion_r3891069400"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "This needs to go to 2.13.17 or later once the branch picks up #316, which moved the shared Java toolchain to 25. On a local merge of this branch with current `main`, `:shared:redis:rediscala:opentelemetry-javaagent:compileScala` fails:\n\n```\n[Error] : Error while emitting RediscalaJavaagentScenario.scala\n25 (of class java.lang.String)\n```\n\nWith `scala = \"2.13.17\"` (the first 2.13 release with JDK 25 support) it compiles cleanly.",
+      "created": "2026-10-16T06:00:45Z",
+      "hunk": "@@ -3,21 +3,32 @@\n \n [versions]\n mariadb = \"3.5.10\"\n+jedis = \"8.0.1\"\n+lettuce = \"7.7.0.RELEASE\"\n opentelemetry = \"1.67.0\"\n # The agent and the instrumentation BOM are one release, published under two\n # coordinates, so these two move together or the library scenarios measure a\n # different instrumentation from the agent scenarios.\n opentelemetry-instrumentation = \"2.32.0\"\n opentelemetry-instrumentation-alpha = \"2.32.0-alpha\"\n postgresql = \"42.7.14\"\n+rediscala = \"1.17.0\"\n+redisson = \"4.7.0\"\n+scala = \"2.13.16\"",
+      "id": "PRRT_kwDOTuzK5c6tFPWi",
+      "opened": "2026-10-16T06:00:45Z",
+      "path": "scenarios/database/java/gradle/libs.versions.toml",
+      "replies": [
+        {
+          "at": "2026-10-17T02:37:28Z",
+          "body": "272e2c5bc771da8e87d52011304d8b18c5c6b7ce",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/137#discussion_r4300940754"
+        }
+      ],
+      "reviewed": "a37a155d8b5a9e1d3e8994cf059696cd2ee46623",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/137#discussion_r4291397919"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "Without `-e`, `redis-cli` exits 0 even when the server returns an error reply, so the exit-code check in `_initialize_backend` can never fail for Redis. Against this image started with `--requirepass`, `redis-cli SET conformance:bootstrap ready` prints `NOAUTH Authentication required.` and exits 0; with `-e` it exits 1. That also means `test_command_only_initialization_failure_uses_general_diagnostic` covers a path the real command doesn't produce.\n\nSince nothing reads `conformance:bootstrap`, would it be simpler to make `initialize_command` optional (like `schema_copy`) and skip the exec for Redis? Otherwise, adding `-e` here makes the check meaningful.",
+      "created": "2026-10-16T06:00:45Z",
+      "hunk": "@@ -0,0 +1,56 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Redis backend definition.\"\"\"\n+\n+from __future__ import annotations\n+\n+from testcontainers.core.container import DockerContainer\n+\n+from ._container import BackendSpec, DatabaseContainer\n+\n+REDIS_DATABASE = \"0\"\n+REDIS_USER = \"default\"\n+REDIS_PASSWORD = \"\"\n+REDIS_PORT = 6379\n+# renovate: datasource=docker depName=redis versioning=docker\n+REDIS_IMAGE = \"redis:8.2.1-bookworm@sha256:5fa2edb1e408fa8235e6db8fab01d1afaaae96c9403ba67b70feceb8661e8621\"\n+\n+REDIS = BackendSpec(\n+    name=\"Redis\",\n+    image=REDIS_IMAGE,\n+    port=REDIS_PORT,\n+    database=REDIS_DATABASE,\n+    user=REDIS_USER,\n+    password=REDIS_PASSWORD,\n+    environment=(),\n+    ready_command=(\n+        \"redis-cli\",\n+        \"-h\",\n+        \"127.0.0.1\",\n+        \"-p\",\n+        str(REDIS_PORT),\n+        \"PING\",\n+    ),\n+    schema_copy=None,\n+    initialize_command=(",
+      "id": "PRRT_kwDOTuzK5c6tFPWl",
+      "opened": "2026-10-16T06:00:45Z",
+      "path": "tools/database/runner/src/database_conformance/_redis.py",
+      "replies": [
+        {
+          "at": "2026-10-17T02:37:33Z",
+          "body": "68ef62584224503e8e3766da691b4111517e2cb5",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/137#discussion_r4300940960"
+        },
+        {
+          "at": "2026-10-17T02:56:51Z",
+          "body": "4876af0a03a2a1fe2bce2364b289e8700115edf8",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/137#discussion_r4301002561"
+        }
+      ],
+      "reviewed": "a37a155d8b5a9e1d3e8994cf059696cd2ee46623",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/137#discussion_r4291397922"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "Same here: `redis-cli PING` exits 0 on an error reply such as `LOADING`, so this passes as soon as the server accepts a connection. Low risk with an empty disposable container, but `-e` would make it check the reply.",
+      "created": "2026-10-16T06:00:45Z",
+      "hunk": "@@ -0,0 +1,56 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Redis backend definition.\"\"\"\n+\n+from __future__ import annotations\n+\n+from testcontainers.core.container import DockerContainer\n+\n+from ._container import BackendSpec, DatabaseContainer\n+\n+REDIS_DATABASE = \"0\"\n+REDIS_USER = \"default\"\n+REDIS_PASSWORD = \"\"\n+REDIS_PORT = 6379\n+# renovate: datasource=docker depName=redis versioning=docker\n+REDIS_IMAGE = \"redis:8.2.1-bookworm@sha256:5fa2edb1e408fa8235e6db8fab01d1afaaae96c9403ba67b70feceb8661e8621\"\n+\n+REDIS = BackendSpec(\n+    name=\"Redis\",\n+    image=REDIS_IMAGE,\n+    port=REDIS_PORT,\n+    database=REDIS_DATABASE,\n+    user=REDIS_USER,\n+    password=REDIS_PASSWORD,\n+    environment=(),\n+    ready_command=(",
+      "id": "PRRT_kwDOTuzK5c6tFPWm",
+      "opened": "2026-10-16T06:00:45Z",
+      "path": "tools/database/runner/src/database_conformance/_redis.py",
+      "replies": [
+        {
+          "at": "2026-10-17T02:37:38Z",
+          "body": "961e0e8f29f454b69daf09a3309ffdd2b2f64da2",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/137#discussion_r4300941195"
+        }
+      ],
+      "reviewed": "a37a155d8b5a9e1d3e8994cf059696cd2ee46623",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/137#discussion_r4291397923"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "Nit: the runner exports `DATABASE_NAME` / `DATABASE_USER` / `DATABASE_PASSWORD` for Redis, but none of the Redis scenarios read them (Redisson hard-codes `setDatabase(0)`, the others use the default database without auth). Harmless today since these are the defaults, but either reading them in the scenarios or documenting that Redis scenarios ignore them would keep the runner/scenario contract accurate.",
+      "created": "2026-10-16T06:00:45Z",
+      "hunk": "@@ -0,0 +1,56 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Redis backend definition.\"\"\"\n+\n+from __future__ import annotations\n+\n+from testcontainers.core.container import DockerContainer\n+\n+from ._container import BackendSpec, DatabaseContainer\n+\n+REDIS_DATABASE = \"0\"",
+      "id": "PRRT_kwDOTuzK5c6tFPWq",
+      "opened": "2026-10-16T06:00:45Z",
+      "path": "tools/database/runner/src/database_conformance/_redis.py",
+      "replies": [
+        {
+          "at": "2026-10-17T02:37:43Z",
+          "body": "62aad36f6ec38c67ae03511c056b3f3e6348229d",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/137#discussion_r4300941449"
+        },
+        {
+          "at": "2026-10-17T03:33:08Z",
+          "body": "f54d026c1e23be32068e779112c7c4aee42fa363",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/137#discussion_r4301119550"
+        }
+      ],
+      "reviewed": "a37a155d8b5a9e1d3e8994cf059696cd2ee46623",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/137#discussion_r4291397928"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "Nit: if anything between here and the `try` throws (e.g. `DATABASE_PORT` missing or not numeric), `system.terminate()` never runs and Pekko's non-daemon threads keep the JVM alive. Running with `DATABASE_PORT` unset hung until `timeout` killed it. Reading the environment before creating the actor system would make it fail fast:\n\n```scala\nval host = ScenarioEnvironment.require(\"DATABASE_HOST\")\nval port = ScenarioEnvironment.require(\"DATABASE_PORT\").toInt\nimplicit val system: ActorSystem = ActorSystem(\"redis-conformance\")\nval redis = RedisClient(host, port)\n```",
+      "created": "2026-10-16T06:00:45Z",
+      "hunk": "@@ -0,0 +1,73 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+import io.opentelemetry.conformance.scenario.ScenarioEnvironment\n+import org.apache.pekko.actor.ActorSystem\n+import redis.RedisClient\n+\n+import scala.concurrent.Await\n+import scala.concurrent.ExecutionContext.Implicits.global\n+import scala.concurrent.duration._\n+\n+object RediscalaJavaagentScenario {\n+  def main(args: Array[String]): Unit = {\n+    if (args.length != 1) {\n+      throw new IllegalArgumentException(\"expected one Rediscala operation argument\")\n+    }\n+    implicit val system: ActorSystem = ActorSystem(\"redis-conformance\")",
+      "id": "PRRT_kwDOTuzK5c6tFPWs",
+      "opened": "2026-10-16T06:00:45Z",
+      "path": "scenarios/database/java/shared/redis/rediscala/opentelemetry-javaagent/src/main/scala/RediscalaJavaagentScenario.scala",
+      "replies": [
+        {
+          "at": "2026-10-17T02:37:48Z",
+          "body": "0400217f16802ec599bae465f9d67cfb98bd2e11",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/137#discussion_r4300941635"
+        }
+      ],
+      "reviewed": "a37a155d8b5a9e1d3e8994cf059696cd2ee46623",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/137#discussion_r4291397932"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "Nit: the `backend_type is Redis` branches here and at L150 could move into the parametrize tuples (expected variables plus the expected initialization), which keeps this test flat as more non-SQL backends are added.",
+      "created": "2026-10-16T06:00:46Z",
+      "hunk": "@@ -131,20 +138,29 @@ def test_starts_initializes_publishes_and_removes_database(\n         assert database.variables == {\n             \"DATABASE_HOST\": \"127.0.0.1\",\n             \"DATABASE_PORT\": \"32768\",\n-            \"DATABASE_NAME\": \"conformance\",\n-            \"DATABASE_USER\": \"conformance\",\n-            \"DATABASE_PASSWORD\": \"conformance\",\n+            \"DATABASE_NAME\": \"0\" if backend_type is Redis else \"conformance\",",
+      "id": "PRRT_kwDOTuzK5c6tFPW5",
+      "opened": "2026-10-16T06:00:45Z",
+      "path": "tools/database/runner/tests/test_database_backends.py",
+      "replies": [
+        {
+          "at": "2026-10-17T03:37:18Z",
+          "body": "a39cc85ef4d43be9e68be1e09ead73954ea8cb2e",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/137#discussion_r4301133865"
+        }
+      ],
+      "reviewed": "a37a155d8b5a9e1d3e8994cf059696cd2ee46623",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/137#discussion_r4291397949"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "Nit: Spotless in `otel-conformance.java-conventions` only targets `src/**/*.java` and Kotlin, so the Scala source gets no formatting or license-header check. A `scala { scalafmt(); licenseHeader(...) }` block (in the conventions or here) would cover it.",
+      "created": "2026-10-16T06:00:46Z",
+      "hunk": "@@ -0,0 +1,11 @@\n+plugins {\n+    id(\"otel-conformance.scenario-launcher\")\n+    scala",
+      "id": "PRRT_kwDOTuzK5c6tFPWw",
+      "opened": "2026-10-16T06:00:45Z",
+      "path": "scenarios/database/java/shared/redis/rediscala/opentelemetry-javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-17T02:37:54Z",
+          "body": "76474e28d0d55874b2026744244358091f91c87e",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/137#discussion_r4300941905"
+        }
+      ],
+      "reviewed": "a37a155d8b5a9e1d3e8994cf059696cd2ee46623",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/137#discussion_r4291397942"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "This runs whichever `java` is first on PATH, not the JVM the runtime was prepared with. Since #316, Gradle compiles with a JDK 25 toolchain, so with an older JDK on PATH all 15 cases fail instead of skipping:\n\n```\njava.lang.UnsupportedClassVersionError: io/opentelemetry/conformance/scenario/ScenarioLauncher has been compiled by a more recent version of the Java Runtime (class file version 69.0), this version of the Java Runtime only recognizes class file versions up to 65.0\n```\n\n(Reproduced on this branch merged with current `main`, with JDK 21 on PATH.)\n\nAfter rebasing on `main`, `otel_conformance_java.java_command` already builds this exact command, and it takes the JVM from the runtime's `java-runtime.json`. Using it here removes the `shutil.which(\"java\")` skip and the `JAVA_HOME` guess, and keeps the test in step with the launcher:\n\n```python\nfrom otel_conformance_java import java_command\n\n# launcher fixture: return f\"shared:redis:{client}:{instrumentation}\", main_class\n\nresult = subprocess.run(\n    java_command(\n        _JAVA_ROOT,\n        project,\n        main_class,\n        agent=False,\n        arguments=[\"set_get\"],\n    ),\n    env=env,\n    ...\n)\n```\n\nWith that change and JDK 21 still on PATH, all 15 cases pass locally.",
+      "created": "2026-10-18T21:01:40Z",
+      "hunk": "@@ -0,0 +1,155 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Real Redis connections from prepared Java scenario runtimes.\"\"\"\n+\n+from __future__ import annotations\n+\n+import os\n+import shutil\n+import subprocess\n+from pathlib import Path\n+\n+import docker\n+import pytest\n+from docker.errors import DockerException\n+from testcontainers.core.container import ExecConfig\n+\n+from database_conformance._redis import Redis\n+from opentelemetry.conformance._env import build_env\n+\n+_JAVA_ROOT = Path(__file__).parents[4] / \"scenarios\" / \"database\" / \"java\"\n+\n+\n+@pytest.fixture(\n+    scope=\"module\",\n+    params=[\n+        (\"jedis\", \"opentelemetry-javaagent\", \"JedisJavaagentScenario\"),\n+        (\"lettuce\", \"opentelemetry-javaagent\", \"LettuceJavaagentScenario\"),\n+        (\"lettuce\", \"opentelemetry-library\", \"LettuceLibraryScenario\"),\n+        (\"rediscala\", \"opentelemetry-javaagent\", \"RediscalaJavaagentScenario\"),\n+        (\"redisson\", \"opentelemetry-javaagent\", \"RedissonJavaagentScenario\"),\n+    ],\n+    ids=[\"jedis\", \"lettuce-agent\", \"lettuce-library\", \"rediscala\", \"redisson\"],\n+)\n+def launcher(request: pytest.FixtureRequest) -> tuple[str, Path, str]:\n+    client, instrumentation, main_class = request.param\n+    runtime = (\n+        _JAVA_ROOT\n+        / \"build\"\n+        / \"scenario-runtime\"\n+        / f\"shared-redis-{client}-{instrumentation}\"\n+    )\n+    if not (runtime / \"lib\").is_dir():\n+        pytest.skip(f\"prepare shared:redis:{client}:{instrumentation} first\")\n+    java = shutil.which(\"java\")",
+      "id": "PRRT_kwDOTuzK5c6tudxy",
+      "opened": "2026-10-18T21:07:26Z",
+      "path": "tools/database/runner/tests/test_redis_clients.py",
+      "replies": [
+        {
+          "at": "2026-10-18T23:57:54Z",
+          "body": "3b2a2b80ad5a8e0149775cab5214de1f873df390",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/137#discussion_r4309328889"
+        }
+      ],
+      "reviewed": "a39cc85ef4d43be9e68be1e09ead73954ea8cb2e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/137#discussion_r4308718649"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "Question: why turn off protocol negotiation and `CLIENT SETINFO`? It means Jedis is measured with non-default client settings. If they're needed (for example, to keep the handshake out of the expected spans, or for the auth path), a short comment saying so would help the next reader.",
+      "created": "2026-10-18T21:01:41Z",
+      "hunk": "@@ -0,0 +1,91 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+import io.opentelemetry.conformance.scenario.ScenarioEnvironment;\n+import redis.clients.jedis.ClientSetInfoConfig;\n+import redis.clients.jedis.DefaultJedisClientConfig;\n+import redis.clients.jedis.Jedis;\n+import redis.clients.jedis.Pipeline;\n+import redis.clients.jedis.Response;\n+import redis.clients.jedis.exceptions.JedisDataException;\n+\n+public final class JedisJavaagentScenario {\n+  private JedisJavaagentScenario() {}\n+\n+  public static void main(String[] args) {\n+    if (args.length != 1) {\n+      throw new IllegalArgumentException(\"expected one Jedis operation argument\");\n+    }\n+    int database = Integer.parseInt(ScenarioEnvironment.require(\"DATABASE_NAME\"));\n+    if (database < 0) {\n+      throw new IllegalArgumentException(\n+          \"DATABASE_NAME must be a non-negative Redis database index\");\n+    }\n+    String user = ScenarioEnvironment.require(\"DATABASE_USER\");\n+    String password = ScenarioEnvironment.requirePresent(\"DATABASE_PASSWORD\");\n+    DefaultJedisClientConfig.Builder config =\n+        DefaultJedisClientConfig.builder()\n+            .database(database)\n+            .autoNegotiateProtocol(false)",
+      "id": "PRRT_kwDOTuzK5c6tudx5",
+      "opened": "2026-10-18T21:07:26Z",
+      "path": "scenarios/database/java/shared/redis/jedis/opentelemetry-javaagent/src/main/java/JedisJavaagentScenario.java",
+      "replies": [
+        {
+          "at": "2026-10-18T23:57:59Z",
+          "body": "e45768e15552a1d45db129fefec179e2c80104a0",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/137#discussion_r4309329127"
+        },
+        {
+          "at": "2026-10-19T00:14:25Z",
+          "body": "fa996c8b512ae936f6b83e39b9d94f35a952a8ee",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/137#discussion_r4309380631"
+        }
+      ],
+      "reviewed": "a39cc85ef4d43be9e68be1e09ead73954ea8cb2e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/137#discussion_r4308718655"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "Heads-up for merging with #164: `main` removed `scenarios/database/contracts/` (the SQL contracts moved to `tools/database/sql-test-client/contracts/`) and rewrote the text below this tree. This block conflicts, and after the merge this directory holds only the Redis contracts, with nothing documenting them.\n\nCould you decide where the Redis contracts should live, and add a sentence on why they keep named per-client scenarios rather than #164's list form with `action`? The per-client expectations (Rediscala without query text, Redisson's startup `PING`/`EVAL`, Lettuce's `CLIENT` spans) seem like a good reason to keep them as they are.",
+      "created": "2026-10-18T21:01:41Z",
+      "hunk": "@@ -3,17 +3,22 @@\n What database instrumentations emit, checked against the\n [database semantic conventions][database] and recorded as committed coverage.\n \n-Initial support is Java-only and exercises PostgreSQL and MariaDB through JDBC.\n-Each vendor runs against the OpenTelemetry Java agent and the OpenTelemetry JDBC\n-library instrumentation. The database runner starts the selected Docker\n-container and applies its shared schema before any measured process starts.\n+Initial support is Java-only. It exercises PostgreSQL and MariaDB through JDBC,\n+and Redis through Jedis, Lettuce, Rediscala, and Redisson. JDBC runs against the\n+OpenTelemetry Java agent and JDBC library instrumentation. Redis runs against\n+the Java agent, with an additional Lettuce run against its standalone library\n+instrumentation. The database runner starts the selected Docker container and\n+applies any required initialization before measured processes start.\n \n ```text\n java/shared/jdbc/scenarios/                 the JDBC workload, with no OpenTelemetry\n java/shared/jdbc/opentelemetry-javaagent/   the shared Java agent launcher\n java/shared/jdbc/opentelemetry-library/     the shared library launcher\n-contracts/                                 shared telemetry expectations by vendor\n+contracts/                                 shared telemetry expectations by backend/client",
+      "id": "PRRT_kwDOTuzK5c6tudx8",
+      "opened": "2026-10-18T21:07:26Z",
+      "path": "scenarios/database/README.md",
+      "replies": [
+        {
+          "at": "2026-10-18T23:58:04Z",
+          "body": "ac0b5af91c892cef46a04b6422cf8736abc8c7bb",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/137#discussion_r4309329372"
+        }
+      ],
+      "reviewed": "a39cc85ef4d43be9e68be1e09ead73954ea8cb2e",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/137#discussion_r4308718659"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`queueSize` is the Java SDK's own processor metric, not Redis telemetry. Declaring it makes every Redis scenario require it, and the SQL contracts don't list it. Could we drop it here and in the other three Redis contracts?\n\n```suggestion\n      - db.client.operation.duration\n```",
+      "created": "2026-10-22T23:24:29Z",
+      "hunk": "@@ -0,0 +1,102 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+scenarios:\n+  set_get:\n+    spans:\n+      - match:\n+          type: db.redis.client\n+          attributes:\n+            db.operation.name: SET\n+        expect:\n+          count: 1\n+          attributes:\n+            db.namespace: \"0\"\n+            db.query.text: \"SET conformance:value ?\"\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+      - match:\n+          type: db.redis.client\n+          attributes:\n+            db.operation.name: GET\n+        expect:\n+          count: 1\n+          attributes:\n+            db.namespace: \"0\"\n+            db.query.text: GET conformance:value\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+    metrics:\n+      - db.client.operation.duration\n+      - queueSize",
+      "id": "PRRT_kwDOTuzK5c6var7r",
+      "opened": "2026-10-22T23:35:54Z",
+      "path": "scenarios/database/contracts/redis-jedis.yaml",
+      "replies": [
+        {
+          "at": "2026-10-24T23:09:15Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/137/commits/1568d53d6e6300ac16a777912bd4bf8790ae181c",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/137#discussion_r4368878804"
+        }
+      ],
+      "reviewed": "189f2683deb52708f95a29cf6680cf16a17b95e4",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/137#discussion_r4354570748"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "on upstream instrumentation: None of the clients emit `db.response.status_code` on the rejected `LPUSH`, though the Redis span conventions make it conditionally required on failure (`WRONGTYPE` here). Weaver can't flag conditional requirements, so the `error` scenarios are the only place this would surface. ",
+      "created": "2026-10-22T23:33:37Z",
+      "hunk": "@@ -0,0 +1,165 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+scenarios:\n+  set_get:\n+    spans:\n+      - match:\n+          type: db.redis.client\n+          attributes:\n+            db.operation.name: HELLO\n+        expect:\n+          count: 1\n+          attributes:\n+            db.query.text: HELLO 3\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+      - match:\n+          type: db.redis.client\n+          attributes:\n+            db.operation.name: CLIENT\n+        expect:\n+          count: 3\n+          attributes:\n+            db.query.text: {distinct: 3}\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+      - match:\n+          type: db.redis.client\n+          attributes:\n+            db.operation.name: SET\n+        expect:\n+          count: 1\n+          attributes:\n+            db.query.text: \"SET conformance:value ?\"\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+      - match:\n+          type: db.redis.client\n+          attributes:\n+            db.operation.name: GET\n+        expect:\n+          count: 1\n+          attributes:\n+            db.query.text: GET conformance:value\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+    metrics:\n+      - db.client.operation.duration\n+      - queueSize\n+    events: []\n+\n+  pipeline:\n+    spans:\n+      - match:\n+          type: db.redis.client\n+          attributes:\n+            db.operation.name: HELLO\n+        expect:\n+          count: 1\n+          attributes:\n+            db.query.text: HELLO 3\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+      - match:\n+          type: db.redis.client\n+          attributes:\n+            db.operation.name: CLIENT\n+        expect:\n+          count: 3\n+          attributes:\n+            db.query.text: {distinct: 3}\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+      - match:\n+          type: db.redis.client\n+          attributes:\n+            db.operation.name: SET\n+            db.query.text: \"SET conformance:pipeline:1 ?\"\n+        expect:\n+          count: 1\n+          attributes:\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+      - match:\n+          type: db.redis.client\n+          attributes:\n+            db.operation.name: SET\n+            db.query.text: \"SET conformance:pipeline:2 ?\"\n+        expect:\n+          count: 1\n+          attributes:\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+      - match:\n+          type: db.redis.client\n+          attributes:\n+            db.operation.name: GET\n+            db.query.text: GET conformance:pipeline:1\n+        expect:\n+          count: 1\n+          attributes:\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+      - match:\n+          type: db.redis.client\n+          attributes:\n+            db.operation.name: GET\n+            db.query.text: GET conformance:pipeline:2\n+        expect:\n+          count: 1\n+          attributes:\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+    metrics:\n+      - db.client.operation.duration\n+      - queueSize\n+    events: []\n+\n+  error:\n+    spans:\n+      - match:\n+          type: db.redis.client\n+          attributes:\n+            db.operation.name: HELLO\n+        expect:\n+          count: 1\n+          attributes:\n+            db.query.text: HELLO 3\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+      - match:\n+          type: db.redis.client\n+          attributes:\n+            db.operation.name: CLIENT\n+        expect:\n+          count: 3\n+          attributes:\n+            db.query.text: {distinct: 3}\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+      - match:\n+          type: db.redis.client\n+          attributes:\n+            db.operation.name: SET\n+        expect:\n+          count: 1\n+          attributes:\n+            db.query.text: \"SET conformance:error ?\"\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+      - match:\n+          type: db.redis.client\n+          attributes:\n+            db.operation.name: LPUSH\n+        expect:\n+          count: 1\n+          attributes:\n+            db.query.text: \"LPUSH conformance:error ?\"\n+            error.type: WRONGTYPE\n+            server.address: 127.0.0.1",
+      "id": "PRRT_kwDOTuzK5c6vaz6X",
+      "opened": "2026-10-22T23:35:54Z",
+      "path": "scenarios/database/contracts/redis-lettuce.yaml",
+      "replies": [
+        {
+          "at": "2026-10-25T02:58:43Z",
+          "body": "https://github.com/open-telemetry/semantic-conventions-conformance/issues/384",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/137#discussion_r4369445154"
+        }
+      ],
+      "reviewed": "189f2683deb52708f95a29cf6680cf16a17b95e4",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/137#discussion_r4354625082"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to remove the Java SDK processor metric `queueSize` from the Redis telemetry contracts, as requested in https://github.com/open-telemetry/semantic-conventions-conformance/pull/137#discussion_r4354570748.\n\nRemove all 13 `- queueSize` entries across `scenarios/database/contracts/redis-jedis.yaml`, `redis-lettuce.yaml`, `redis-rediscala.yaml`, and `redis-redisson.yaml`. Keep `db.client.operation.duration` in every scenario's metrics list and preserve all other expectations. These four files have 3, 3, 4, and 3 scenarios respectively.\n\n`queueSize` describes the SDK rather than Redis instrumentation. The existing `tools/java/weaver.toml` already filters SDK-owned metric findings, and `tools/runner/src/opentelemetry/conformance/_checks.py` ignores undeclared non-registry metrics in metric expectations, so removing this declaration should not require runner or Weaver changes. SQL contracts already require only `db.client.operation.duration`.\n\nKeep the change limited to this metric cleanup. Do not change response-status/error handling, merge or rebase main, resolve unrelated merge conflicts, or reply to or resolve human review threads. Preserve this PR's ready-for-review state. Verify that no `queueSize` declaration remains in the four contracts and all 13 scenarios retain `db.client.operation.duration`; run relevant existing targeted validation.",
+      "created": "2026-10-24T22:52:13Z",
+      "hunk": "@@ -0,0 +1,102 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+scenarios:\n+  set_get:\n+    spans:\n+      - match:\n+          type: db.redis.client\n+          attributes:\n+            db.operation.name: SET\n+        expect:\n+          count: 1\n+          attributes:\n+            db.namespace: \"0\"\n+            db.query.text: \"SET conformance:value ?\"\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+      - match:\n+          type: db.redis.client\n+          attributes:\n+            db.operation.name: GET\n+        expect:\n+          count: 1\n+          attributes:\n+            db.namespace: \"0\"\n+            db.query.text: GET conformance:value\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+    metrics:\n+      - db.client.operation.duration\n+      - queueSize",
+      "id": "PRRT_kwDOTuzK5c6v8alt",
+      "opened": "2026-10-24T22:52:13Z",
+      "path": "scenarios/database/contracts/redis-jedis.yaml",
+      "replies": [
+        {
+          "at": "2026-10-24T22:55:05Z",
+          "body": "Removed all 13 `queueSize` declarations while retaining `db.client.operation.duration` in every Redis scenario. Commit: `1568d53`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/137#discussion_r4368833125"
+        }
+      ],
+      "reviewed": "189f2683deb52708f95a29cf6680cf16a17b95e4",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/137#discussion_r4368826585"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly so the Redis error contracts assert `db.response.status_code: WRONGTYPE` now, exposing the existing upstream instrumentation gap rather than waiting for instrumentation to emit the attribute.\n\nAdd that required attribute under `expect.attributes` for the rejected `LPUSH` span in the `error` scenario of all four contracts: `scenarios/database/contracts/redis-jedis.yaml`, `redis-lettuce.yaml`, `redis-rediscala.yaml`, and `redis-redisson.yaml`. The Lettuce contract covers both agent and standalone instrumentation, so all five packages must be covered. Keep operation matching unchanged and preserve every other expectation, including existing client-specific `error.type` values.\n\nThe missing attribute must produce an ordinary conformance failure now. Do not make it optional, add an absence expectation, skip or suppress the failure, synthesize telemetry, or change instrumentation or runner behavior to keep these scenarios green. Successful commands and other scenarios must remain unchanged. Run relevant existing targeted validation and distinguish expected failures due to the missing upstream attribute from structural or unrelated failures. Keep this change limited to these response-status assertions; do not fix unrelated review findings, merge or rebase main, or reply to or resolve human review threads. Preserve this PR's ready-for-review state.",
+      "created": "2026-10-24T23:15:28Z",
+      "hunk": "@@ -0,0 +1,162 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+scenarios:\n+  set_get:\n+    spans:\n+      - match:\n+          type: db.redis.client\n+          attributes:\n+            db.operation.name: HELLO\n+        expect:\n+          count: 1\n+          attributes:\n+            db.query.text: HELLO 3\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+      - match:\n+          type: db.redis.client\n+          attributes:\n+            db.operation.name: CLIENT\n+        expect:\n+          count: 3\n+          attributes:\n+            db.query.text: {distinct: 3}\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+      - match:\n+          type: db.redis.client\n+          attributes:\n+            db.operation.name: SET\n+        expect:\n+          count: 1\n+          attributes:\n+            db.query.text: \"SET conformance:value ?\"\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+      - match:\n+          type: db.redis.client\n+          attributes:\n+            db.operation.name: GET\n+        expect:\n+          count: 1\n+          attributes:\n+            db.query.text: GET conformance:value\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+    metrics:\n+      - db.client.operation.duration\n+    events: []\n+\n+  pipeline:\n+    spans:\n+      - match:\n+          type: db.redis.client\n+          attributes:\n+            db.operation.name: HELLO\n+        expect:\n+          count: 1\n+          attributes:\n+            db.query.text: HELLO 3\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+      - match:\n+          type: db.redis.client\n+          attributes:\n+            db.operation.name: CLIENT\n+        expect:\n+          count: 3\n+          attributes:\n+            db.query.text: {distinct: 3}\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+      - match:\n+          type: db.redis.client\n+          attributes:\n+            db.operation.name: SET\n+            db.query.text: \"SET conformance:pipeline:1 ?\"\n+        expect:\n+          count: 1\n+          attributes:\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+      - match:\n+          type: db.redis.client\n+          attributes:\n+            db.operation.name: SET\n+            db.query.text: \"SET conformance:pipeline:2 ?\"\n+        expect:\n+          count: 1\n+          attributes:\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+      - match:\n+          type: db.redis.client\n+          attributes:\n+            db.operation.name: GET\n+            db.query.text: GET conformance:pipeline:1\n+        expect:\n+          count: 1\n+          attributes:\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+      - match:\n+          type: db.redis.client\n+          attributes:\n+            db.operation.name: GET\n+            db.query.text: GET conformance:pipeline:2\n+        expect:\n+          count: 1\n+          attributes:\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+    metrics:\n+      - db.client.operation.duration\n+    events: []\n+\n+  error:\n+    spans:\n+      - match:\n+          type: db.redis.client\n+          attributes:\n+            db.operation.name: HELLO\n+        expect:\n+          count: 1\n+          attributes:\n+            db.query.text: HELLO 3\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+      - match:\n+          type: db.redis.client\n+          attributes:\n+            db.operation.name: CLIENT\n+        expect:\n+          count: 3\n+          attributes:\n+            db.query.text: {distinct: 3}\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+      - match:\n+          type: db.redis.client\n+          attributes:\n+            db.operation.name: SET\n+        expect:\n+          count: 1\n+          attributes:\n+            db.query.text: \"SET conformance:error ?\"\n+            server.address: 127.0.0.1\n+            server.port: {present: true}\n+      - match:\n+          type: db.redis.client\n+          attributes:\n+            db.operation.name: LPUSH\n+        expect:\n+          count: 1\n+          attributes:\n+            db.query.text: \"LPUSH conformance:error ?\"",
+      "id": "PRRT_kwDOTuzK5c6v8lGe",
+      "opened": "2026-10-24T23:15:28Z",
+      "path": "scenarios/database/contracts/redis-lettuce.yaml",
+      "replies": [
+        {
+          "at": "2026-10-24T23:22:37Z",
+          "body": "Added the required `db.response.status_code: WRONGTYPE` assertion to the rejected LPUSH span in all four Redis contracts. Validation confirms all five error scenarios fail only for the missing attribute; `set_get` and `pipeline` pass across all five packages. Commit: `0d03ba8`.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/137#discussion_r4368916416"
+        }
+      ],
+      "reviewed": "60c1d396bd46aa53fc5fa91797d4dbc6d589fc0a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/137#discussion_r4368895780"
+    }
+  ]
+}

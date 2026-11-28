@@ -1,0 +1,82 @@
+{
+  "head": "4dd81441ef92ecee3402ed6501ba050f183e5309",
+  "merge": "55171b455c43a84319cbede4525b2264d2c097cb",
+  "merged": "2026-10-31T23:07:22Z",
+  "missing_roots": 0,
+  "number": 21024,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "pjfanning"
+      },
+      "body": "@laurit does this look right? Shouldn't otel testing test with pekko-http 1.0.x and 1.4.2? Basically, the oldest supported pekko-http release and the latest release. Is there a reason to also test with 1.1.0?\n1.1.0 had some reasonably big changes compared to 1.0.x but those changes are in 1.4.2 too.",
+      "created": "2026-10-29T17:24:46Z",
+      "hunk": "@@ -71,6 +71,13 @@ dependencies {\n \n testing {\n   suites {\n+    register<JvmTestSuite>(\"pekko11Test\") {",
+      "id": "PRRT_kwDODJKVX86xrB3E",
+      "opened": "2026-10-29T17:24:46Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-29T17:35:06Z",
+          "body": "if this only affects pekko-http 1.1.0, is it worth adding the extra code and test overhead for 1 pekko-http version - users can always upgrade pekko-http",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21024#discussion_r4415763755"
+        },
+        {
+          "at": "2026-10-29T17:39:38Z",
+          "body": "I think this might have been the issue that fixed this for 1.2.0.\r\nhttps://github.com/apache/pekko-http/pull/616\r\n\r\nI don't have a vote but if I did have one, I would vote not to accept this PR and ask users to upgrade pekko-http.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21024#discussion_r4415811472"
+        },
+        {
+          "at": "2026-10-30T13:11:47Z",
+          "body": "We don't prescribe what libraries or what versions of them users should use. For automatic instrumenation with the agent we try to support a wide version range so that telemetry could still be collected when libraries can't be updated or users choose not to update them. Unfortunately this means that adding code and tests for specific minor versions may be needed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21024#discussion_r4423968344"
+        },
+        {
+          "at": "2026-10-30T14:06:25Z",
+          "body": "pekko-http 1.2.0 that fixed the cause of this issue was released in May 2025 ",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21024#discussion_r4424495175"
+        },
+        {
+          "at": "2026-10-31T17:37:45Z",
+          "body": "We rarely drop support for older library versions in the Java agent, see [Dropping support for older library versions](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/VERSIONING.md#javaagent-instrumentation)",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21024#discussion_r4432636655"
+        }
+      ],
+      "reviewed": "8c729c00a332ff43b3ac06ab392d8d9994787791",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21024#discussion_r4415654910"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "pjfanning"
+      },
+      "body": "This advice also applies when http/2 is disabled. In that case `bindAndHandleAsync` binds `Flow.mapAsync(handler)` through `bindAndHandleImpl` -> `bindAndHandle`, so the handler wrapper now ends up nested inside `PekkoFlowWrapper`. `PekkoFlowWrapper` removes `PekkoTracingRequest.ATTR_KEY` before pushing the request downstream, so `PekkoHttpServerHandlerWrapper.apply` never sees the traced request and falls through to the \"start a new span\" branch.\n\nToday that is harmless only because the `GraphInterpreterInstrumentation` push advice has already made the server context current, so `instrumenter().shouldStart(...)` returns false via span suppression. With `otel.instrumentation.experimental.span-suppression-strategy=none`, every plain http/1.1 request (on all pekko-http versions, not just 1.1) would get a second, nested SERVER span. Before this change the handler wrapper was never on that path.\n\nOnly pekko-http 1.1.x inlines the http/2 binding (1.0, 1.2, 1.3 and 1.4 all delegate to `Http2Ext.bindAndHandleAsync`), so the new advice is needed, but I think the wrapper should pass through http/1.1 requests that don't carry the tracing attribute, e.g. in `PekkoHttpServerHandlerWrapper.apply`:\n\n```java\nif (tracedRequest == null && !isHttp2(serverRequest)) {\n  // already traced by PekkoFlowWrapper, or the http/1.1 tracer chose not to start a span\n  return handler.apply(serverRequest);\n}\n```\n\nThat also avoids the wrapper starting http/1.1 spans that `PekkoHttpServerTracer` intentionally didn't start.\n",
+      "created": "2026-10-29T17:31:40Z",
+      "hunk": "@@ -30,6 +33,9 @@ public void transform(TypeTransformer transformer) {\n         named(\"bindAndHandle\")\n             .and(takesArgument(0, named(\"org.apache.pekko.stream.scaladsl.Flow\"))),\n         getClass().getName() + \"$PekkoBindAndHandleAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"bindAndHandleAsync\").and(takesArgument(0, named(\"scala.Function1\"))),",
+      "id": "PRRT_kwDODJKVX86xrM0i",
+      "opened": "2026-10-29T17:31:40Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/HttpExtServerInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-10-29T17:33:43Z",
+          "body": "Following up: since only pekko-http 1.1.0 (and 1.1.0-M1) inlines the http/2 binding, maybe this advice should be gated to that version, so 1.0.x, 1.2.x+ and 2.x are not affected at all by the change.\n\nThe class lists of pekko-http-core 1.0.1 and 1.1.0 are identical, so a `hasClassesNamed` classloader matcher can't tell them apart. One option is a check in the advice on `org.apache.pekko.http.Version.current()` (or the jar's `Implementation-Version`), only wrapping the handler when it starts with `1.1.`, ideally cached in a helper so it isn't evaluated per bind.\n\nEven with the gate, the http/1.1 pass-through in `PekkoHttpServerHandlerWrapper` I mentioned above is still worth having, since on 1.1.x with http/2 disabled the handler would still end up nested inside `PekkoFlowWrapper`.\n",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21024#discussion_r4415749521"
+        },
+        {
+          "at": "2026-10-30T13:59:20Z",
+          "body": "Good catch. I missed that HttpExt.bindAndHandleAsync also reaches the existing HTTP/1.1 flow wrapper. I’ll add the HTTP/1.1 pass-through and restrict the new advice to Pekko HTTP 1.1.x, with coverage for the span-suppression-disabled case.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21024#discussion_r4424420254"
+        },
+        {
+          "at": "2026-10-30T19:34:06Z",
+          "body": "Addressed in 4dd8144. The handler wrapper now passes through HTTP/1.1 requests without the tracing attribute, and the new HttpExt advice is limited to Pekko HTTP 1.1.x. I added a focused suppression-disabled regression task. That task and the full Pekko javaagent module check pass after rebasing onto the latest main.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21024#discussion_r4427749510"
+        }
+      ],
+      "reviewed": "8c729c00a332ff43b3ac06ab392d8d9994787791",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21024#discussion_r4415728012"
+    }
+  ]
+}

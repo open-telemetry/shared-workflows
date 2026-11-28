@@ -1,0 +1,55 @@
+{
+  "head": "80cf9d1704a7f4cdce269a4fee16562164f2ef6c",
+  "merge": "15fc78edbf5dc7d6e90d668fdba0fbe9bc9bc624",
+  "merged": "2026-11-20T05:04:19Z",
+  "missing_roots": 0,
+  "number": 1110,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This skips schema validation for every content attribute whose value is null, not just the new map-shaped prompt variables. For example, `gen_ai.input.messages = null` now escapes the violation even though its schema requires an array. Please scope the Weaver workaround to `gen_ai.prompt.variables` so validation of the existing array-valued attributes remains intact.",
+      "created": "2026-11-19T17:44:09Z",
+      "hunk": "@@ -16,12 +16,15 @@ _genai_content_schema_keys := {\n \t\"gen_ai.system_instructions\": \"gen-ai-system-instructions\",\n \t\"gen_ai.tool.definitions\":    \"gen-ai-tool-definitions\",\n \t\"gen_ai.retrieval.documents\": \"gen-ai-retrieval-documents\",\n+\t\"gen_ai.prompt.variables\":    \"gen-ai-prompt-variables\",\n }\n \n deny contains result if {\n \tinput.sample.attribute\n \tattr_name := input.sample.attribute.name\n \tattr_value := input.sample.attribute.value\n+\t# Weaver drops OTLP KvlistValue maps to null during OTLP-to-JSON conversion.\n+\tattr_value != null",
+      "id": "PRRT_kwDOSbspP865oX_9",
+      "opened": "2026-11-19T17:44:11Z",
+      "path": "policies/genai_content_validation.rego",
+      "replies": [],
+      "reviewed": "5a8a15ce5126b3c5c6e5680496ae789d2b3e607b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1110#discussion_r4632742594"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The [prompt-variables schema in semconv #696](https://github.com/open-telemetry/semantic-conventions-genai/pull/696) permits arbitrary string property names, including the empty string, but this filter silently changes `{\"\": 42, \"name\": \"Ada\"}` to `{\"name\": \"Ada\"}`. Retain all sanitized string keys and update the new assertions in `tests/test_utils.py` that classify empty-string keys as invalid.",
+      "created": "2026-11-19T17:44:10Z",
+      "hunk": "@@ -556,18 +555,18 @@ def __exit__(\n                 detach(token)\n \n \n-def _json_dumps_unless_str(value: object) -> str | None:\n-    if value is None or isinstance(value, str):\n-        return value\n-    try:\n-        return gen_ai_json_dumps(value, allow_nan=False)\n-    except (TypeError, ValueError, RecursionError):\n-        pass\n-    # Callers may set objects (e.g. models) that weren't converted to AnyValue.\n-    converted = object_to_any_value(value)\n-    if converted is None or isinstance(converted, str):\n-        return converted\n-    return gen_ai_json_dumps(converted)\n+def _prompt_variables_to_any_value(\n+    prompt_variables: object,\n+) -> AnyValue | None:\n+    if not isinstance(prompt_variables, Mapping):\n+        return None\n+    converted = object_to_any_value(\n+        cast(Mapping[object, object], prompt_variables)\n+    )\n+    if not isinstance(converted, Mapping):\n+        return None\n+    cleaned = {k: v for k, v in converted.items() if k}\n+    return cleaned or None",
+      "id": "PRRT_kwDOSbspP865oYAk",
+      "opened": "2026-11-19T17:44:11Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [],
+      "reviewed": "5a8a15ce5126b3c5c6e5680496ae789d2b3e607b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1110#discussion_r4632742665"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Neither Bedrock's nor LangChain's conformance scenarios supply prompt variables, so those runs never exercise the new structured attribute. Extend the inference and streaming scenarios with Bedrock `promptVariables` and LangChain prompt-template inputs, asserting the resulting maps on spans and detail events as required by the [conformance rule](instrumentation/AGENTS.md#conformance-tests). Declare any pinned-registry limitation as an explicit gap.",
+      "created": "2026-11-19T17:44:10Z",
+      "hunk": "@@ -639,13 +639,9 @@ def get_content_attributes(\n             if tool_definitions\n             else None,\n         ),\n+        (\n+            _GEN_AI_PROMPT_VARIABLES,\n+            _prompt_variables_to_any_value(prompt_variables),",
+      "id": "PRRT_kwDOSbspP865oYBO",
+      "opened": "2026-11-19T17:44:11Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [],
+      "reviewed": "5a8a15ce5126b3c5c6e5680496ae789d2b3e607b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1110#discussion_r4632742745"
+    }
+  ]
+}

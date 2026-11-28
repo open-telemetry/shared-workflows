@@ -1,0 +1,107 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "ba35b10de2f8903f8967bb775f1f4e4ecdc0b0be9a623ccf00c9f9453649dff0",
+  "input_digest": "12bcfc48f11964478e95b2031d85c56853e05dcdc3361e47a92981067c2fd58e",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/407e4ea43fc5219b5e14e4a603c488f59bbd762e/instrumentation/rediscala-1.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cd115226d7c4e0eb43c9347dd73f18f25994de03/instrumentation/rediscala-1.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cd115226d7c4e0eb43c9347dd73f18f25994de03/instrumentation/rediscala-1.8/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaClientTest.scala",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f7aaf00eac94d076cba63ad288eeb7b4666fcdac"
+      ],
+      "id": "PRRT_kwDODJKVX86ujTB8",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/afb71ca1e0a46e6f05987636e65e6a965d421be6/instrumentation/rediscala-1.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cd115226d7c4e0eb43c9347dd73f18f25994de03/instrumentation/rediscala-1.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaAttributesGetter.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ul662",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/afb71ca1e0a46e6f05987636e65e6a965d421be6/instrumentation/rediscala-1.8/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaClientTest.scala",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cd115226d7c4e0eb43c9347dd73f18f25994de03/instrumentation/rediscala-1.8/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaClientTest.scala",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/0c0643a6dca35e7dddd4aeefc7d4b61223c67dcd"
+      ],
+      "id": "PRRT_kwDODJKVX86umkfB",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0c0643a6dca35e7dddd4aeefc7d4b61223c67dcd/instrumentation/rediscala-1.8/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaClientTest.scala",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cd115226d7c4e0eb43c9347dd73f18f25994de03/instrumentation/rediscala-1.8/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaClientTest.scala",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/490d64419f7a661b42fe9739fcf4784746b83d63"
+      ],
+      "id": "PRRT_kwDODJKVX86umzYV",
+      "kind": "improvement",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e13432faf8e7fa7a1dbaabcbe847701e75329e55/instrumentation/rediscala-1.8/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaClientTest.scala",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cd115226d7c4e0eb43c9347dd73f18f25994de03/instrumentation/rediscala-1.8/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaClientTest.scala",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/a29fc974775c8cf797a9d3364e06fadc5b068a1f"
+      ],
+      "id": "PRRT_kwDODJKVX86unO0q",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a29fc974775c8cf797a9d3364e06fadc5b068a1f/instrumentation/rediscala-1.8/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaAttributesGetterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cd115226d7c4e0eb43c9347dd73f18f25994de03/instrumentation/rediscala-1.8/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaAttributesGetterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a29fc974775c8cf797a9d3364e06fadc5b068a1f/instrumentation/rediscala-1.8/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaClientTest.scala",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cd115226d7c4e0eb43c9347dd73f18f25994de03/instrumentation/rediscala-1.8/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaClientTest.scala",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/8aeaa6e9005212e4cf64f746e3a6275f5c1501b8"
+      ],
+      "id": "PRRT_kwDODJKVX86unb-X",
+      "kind": "test coverage gap",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3c63019e80c8ccdcccba795b36c0adf449425238/instrumentation/rediscala-1.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cd115226d7c4e0eb43c9347dd73f18f25994de03/instrumentation/rediscala-1.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e97f1397a33dd2566d7a951d2f936441b76d7d1b"
+      ],
+      "id": "PRRT_kwDODJKVX86u2MoE",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e97f1397a33dd2566d7a951d2f936441b76d7d1b/instrumentation/rediscala-1.8/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaAttributesGetterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cd115226d7c4e0eb43c9347dd73f18f25994de03/instrumentation/rediscala-1.8/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaAttributesGetterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/ea96438af0b47e56e18832875d97c4632dac6c57"
+      ],
+      "id": "PRRT_kwDODJKVX86u3lVo",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

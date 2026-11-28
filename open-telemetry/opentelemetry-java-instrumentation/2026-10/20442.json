@@ -1,0 +1,52 @@
+{
+  "head": "2eea7226c9ca6736d435048b0a1585afa8fdb86a",
+  "merge": "7e2db50673c71761c609275552958a3d5c79ca78",
+  "merged": "2026-10-23T14:09:47Z",
+  "missing_roots": 0,
+  "number": 20442,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new `unitTests` suite introduces JUnit5/AssertJ/Mockito-based tests (see `src/unitTests/.../SpanBridgeTest.java`), but the suite configuration here doesn’t set a test framework (e.g., `useJUnitJupiter()`) and doesn’t declare dependencies for JUnit Jupiter / AssertJ / Mockito (unless they’re added by shared conventions not shown). As-is, this can cause the new suite to not discover tests or fail compilation due to missing test libraries. Configure the suite to use JUnit Platform and ensure the needed test dependencies are available to this suite (either by adding them here or by extending from the existing `test` configurations/conventions used by `src/test`).",
+      "created": "2026-10-08T13:26:38Z",
+      "hunk": "@@ -41,6 +41,26 @@ dependencies {\n   testImplementation(project(\":instrumentation-annotations\"))\n }\n \n+testing {\n+  suites {\n+    register<JvmTestSuite>(\"unitTests\") {\n+      dependencies {\n+        implementation(project())\n+        implementation(\"io.opentelemetry:opentelemetry-api\")\n+        implementation(project(\":opentelemetry-api-shaded-for-instrumenting\")) {\n+          targetConfiguration = \"shadow\"\n+        }\n+      }\n+    }\n+  }\n+}",
+      "id": "PRRT_kwDODJKVX86qYMjN",
+      "opened": "2026-10-08T13:26:39Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-09T17:02:40Z",
+          "body": "No change needed here: `otel.java-conventions` already configures every `JvmTestSuite` (`testing.suites.withType(JvmTestSuite::class).configureEach`) with JUnit Jupiter, AssertJ and Mockito, which is how the existing `src/test` suite gets them too. The `unitTests` suite picks those up, so it compiles and its tests are discovered.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20442#discussion_r4232585200"
+        }
+      ],
+      "reviewed": "1ae2e501454a2aad36fe57e801b4eda8cd60f91e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20442#discussion_r4219509952"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`dependsOn(testing.suites)` is not a reliable task dependency because `testing.suites` is a container of suite objects, not necessarily the concrete `Test` tasks. This may result in `check` not actually running the `unitTests` execution task (or failing task dependency resolution). Prefer depending directly on the suite’s test task (e.g., the generated `unitTests` `Test` task, or the suite target’s `testTask`) so `check` deterministically runs the new suite.",
+      "created": "2026-10-08T13:26:38Z",
+      "hunk": "@@ -41,6 +41,26 @@ dependencies {\n   testImplementation(project(\":instrumentation-annotations\"))\n }\n \n+testing {\n+  suites {\n+    register<JvmTestSuite>(\"unitTests\") {\n+      dependencies {\n+        implementation(project())\n+        implementation(\"io.opentelemetry:opentelemetry-api\")\n+        implementation(project(\":opentelemetry-api-shaded-for-instrumenting\")) {\n+          targetConfiguration = \"shadow\"\n+        }\n+      }\n+    }\n+  }\n+}\n+\n+tasks {\n+  check {\n+    dependsOn(testing.suites)",
+      "id": "PRRT_kwDODJKVX86qYMkd",
+      "opened": "2026-10-08T13:26:39Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-09T17:02:43Z",
+          "body": "Leaving this as is: `check { dependsOn(testing.suites) }` is the pattern recommended in `docs/contributing/writing-instrumentation.md` and already used by other modules (e.g. `executors`, `methods`, `jmx-metrics`, `jedis-4.0`). Gradle resolves the suites to their test tasks, so `check` runs `unitTests`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20442#discussion_r4232585620"
+        }
+      ],
+      "reviewed": "1ae2e501454a2aad36fe57e801b4eda8cd60f91e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20442#discussion_r4219510066"
+    }
+  ]
+}

@@ -1,0 +1,151 @@
+{
+  "head": "6e7ba02de8d0562d10e3a895d3ed83373c56f843",
+  "merge": "6371309ee85baa46e32149d69fda356ccd851747",
+  "merged": "2026-11-04T07:50:27Z",
+  "missing_roots": 0,
+  "number": 20528,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] Nodes stashed while the root context is current have no virtual-field value because `ConstructorAdvice` intentionally skips `Context.root()`. In that case, closing the prior scope here restores the context of the message that triggered the unstash, so the root-context message is still interpreted under the wrong parent. Make root current when no context was stored; a root-context stash case should cover this path.",
+      "created": "2026-10-12T12:05:26Z",
+      "hunk": "@@ -0,0 +1,34 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkoactor.v1_0.typed;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Holds the scope of the stashed message that is currently being unstashed. A message is\n+ * interpreted right after it is taken from the stash, so its scope stays open until the next\n+ * message is taken from the stash or until unstashing ends.\n+ */\n+public final class UnstashScope {\n+\n+  @Nullable private Scope scope;\n+\n+  public void switchTo(@Nullable Context context) {\n+    close();\n+    if (context != null) {\n+      scope = context.makeCurrent();\n+    }\n+  }",
+      "id": "PRRT_kwDODJKVX86rcxB8",
+      "opened": "2026-10-12T12:05:41Z",
+      "path": "instrumentation/pekko/pekko-actor-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkoactor/v1_0/typed/UnstashScope.java",
+      "replies": [
+        {
+          "at": "2026-10-15T13:21:24Z",
+          "body": "Good catch, fixed: when a node has no stored context, root is made current so the unstashed message no longer runs in the context of the message that triggered the unstash. The stash test now also stashes a message sent outside any span and checks it ends up in its own trace.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20528#discussion_r4283477864"
+        },
+        {
+          "at": "2026-10-17T23:26:02Z",
+          "body": "Addressed in a later commit: `UnstashScope.switchTo` now makes `Context.root()` current when the stashed node has no stored context. The typed `stashAndUnstash` test stashes a message sent in the root context and asserts its span has no parent.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20528#discussion_r4304958581"
+        }
+      ],
+      "reviewed": "94035daa9dd7142f8e5f6a1918c08340079bb488",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20528#discussion_r4247803904"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This does not force the sends through `UnstartedCell`: the guardian may process `Supervise` and replace the cell before these subsequent tells. The normal dispatcher instrumentation then produces the same asserted trace, so this test can pass even if the new `PekkoUnstartedCellInstrumentation` is absent. Please block actor activation until both messages have been queued, then release it, so this race path is exercised deterministically.",
+      "created": "2026-10-12T12:05:41Z",
+      "hunk": "@@ -74,6 +75,53 @@ class PekkoActors {\n     }\n   }\n \n+  def stashAndUnstash(): Unit = {\n+    // a fresh actor per call starts out locked\n+    val stasher = system.actorOf(Stasher.props(printer))\n+    val parentSpan = tracer.spanBuilder(\"parent\").startSpan()\n+    val parentScope =\n+      Java8BytecodeBridge.currentContext().`with`(parentSpan).makeCurrent()\n+    try {\n+      stasher ! WhoToGreet(\"Pekko\")\n+      stasher ! Greet\n+    } finally {\n+      parentScope.close()\n+      parentSpan.end()\n+    }\n+    val unlockSpan = tracer.spanBuilder(\"unlock\").startSpan()\n+    val unlockScope =\n+      Java8BytecodeBridge.currentContext().`with`(unlockSpan).makeCurrent()\n+    try {\n+      stasher ! Stasher.Unlock\n+    } finally {\n+      unlockScope.close()\n+      unlockSpan.end()\n+    }\n+  }\n+\n+  def tellBeforeStarted(): Unit = {\n+    // a top level actor starts asynchronously, the messages are sent before it has started\n+    val createSpan = tracer.spanBuilder(\"create\").startSpan()\n+    val createScope =\n+      Java8BytecodeBridge.currentContext().`with`(createSpan).makeCurrent()\n+    val greeter =\n+      try system.actorOf(Greeter.props(\"Hi\", printer))",
+      "id": "PRRT_kwDODJKVX86rcxTl",
+      "opened": "2026-10-12T12:05:41Z",
+      "path": "instrumentation/pekko/pekko-actor-1.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/pekkoactor/v1_0/PekkoActors.scala",
+      "replies": [
+        {
+          "at": "2026-10-15T13:21:26Z",
+          "body": "Agreed, fixed: the test now runs on a separate actor system whose internal dispatcher (which the guardians use) has a single thread. The top level actor is created and messaged from an actor on that same dispatcher, so the guardian cannot process `Supervise` until those sends are done and they are guaranteed to go through `UnstartedCell`. Verified the test fails without the `UnstartedCell` instrumentation.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20528#discussion_r4283478239"
+        },
+        {
+          "at": "2026-10-17T23:26:03Z",
+          "body": "Addressed in a later commit: the `UnstartedCell` path is now covered by `tellBeforeStarted`. The spawner runs on a single-threaded internal dispatcher shared with the guardian, so the greeter's `Supervise` can't be processed until the spawner's message completes, and all sends go through `UnstartedCell`. With `PekkoUnstartedCellInstrumentation` removed, the test fails for both counts.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20528#discussion_r4304958728"
+        }
+      ],
+      "reviewed": "94035daa9dd7142f8e5f6a1918c08340079bb488",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20528#discussion_r4247805741"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "since the next release is going to be 3.0 no need to add `AgentCommonConfig.get().isV3Preview()`",
+      "created": "2026-10-15T12:38:03Z",
+      "hunk": "@@ -0,0 +1,30 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkoactor.v1_0.typed;\n+\n+import static java.util.Arrays.asList;\n+\n+import com.google.auto.service.AutoService;\n+import io.opentelemetry.javaagent.bootstrap.internal.AgentCommonConfig;\n+import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import java.util.List;\n+\n+@AutoService(InstrumentationModule.class)\n+public class PekkoActorTypedInstrumentationModule extends InstrumentationModule {\n+  public PekkoActorTypedInstrumentationModule() {\n+    super(\n+        AgentCommonConfig.get().isV3Preview() ? \"pekko-actor-1.0\" : \"pekko-actor\",",
+      "id": "PRRT_kwDODJKVX86sxYg5",
+      "opened": "2026-10-15T12:38:03Z",
+      "path": "instrumentation/pekko/pekko-actor-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkoactor/v1_0/typed/PekkoActorTypedInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-10-15T13:21:20Z",
+          "body": "Removed, the typed module now uses `super(\"pekko-actor-1.0\", \"pekko-actor\", \"pekko\")`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20528#discussion_r4283477033"
+        }
+      ],
+      "reviewed": "fa4e7c7125fe619b5490ff11fbf3823148854e19",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20528#discussion_r4283034251"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Could use `Context.current()`. Since advice sets `inline = false` it won't be inlined into the target class so using `Context.current()` won't cause issues even if the instrumented class has pre java 8 bytecode. For 3.0 version we'll switch to non-inlined advice, for 2.x versions that used inlined advice we used to erase `inline = false` but since the next release is going to be 3.0 that is not going to happen any more.",
+      "created": "2026-10-15T12:58:15Z",
+      "hunk": "@@ -0,0 +1,56 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkoactor.v1_0;\n+\n+import static io.opentelemetry.javaagent.instrumentation.pekkoactor.v1_0.VirtualFields.ENVELOPE_PROPAGATED_CONTEXT;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.javaagent.bootstrap.Java8BytecodeBridge;\n+import io.opentelemetry.javaagent.bootstrap.executors.ExecutorAdviceHelper;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import org.apache.pekko.actor.ActorCell;\n+import org.apache.pekko.actor.StashSupport;\n+import org.apache.pekko.dispatch.Envelope;\n+\n+/**\n+ * The context attached to an envelope is removed when the envelope is first processed. A stashed\n+ * envelope is processed again once it is unstashed, but unstashing puts it back into the mailbox\n+ * without going through the dispatcher, so attach the current context to it again when it is\n+ * stashed.\n+ */\n+class PekkoStashSupportInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"org.apache.pekko.actor.StashSupport\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        named(\"stash\").and(takesArguments(0)), getClass().getName() + \"$StashAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class StashAdvice {\n+\n+    @Advice.OnMethodExit(suppress = Throwable.class, inline = false)\n+    public static void exit(@Advice.This StashSupport stashSupport) {\n+      Envelope envelope = ((ActorCell) stashSupport.context()).currentMessage();\n+      Context context = Java8BytecodeBridge.currentContext();",
+      "id": "PRRT_kwDODJKVX86sx3YI",
+      "opened": "2026-10-15T12:58:15Z",
+      "path": "instrumentation/pekko/pekko-actor-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkoactor/v1_0/PekkoStashSupportInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-10-15T13:21:22Z",
+          "body": "Thanks, switched to `Context.current()` in the advice added by this PR.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20528#discussion_r4283477464"
+        }
+      ],
+      "reviewed": "fa4e7c7125fe619b5490ff11fbf3823148854e19",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20528#discussion_r4283232626"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] `tellBeforeStarted` queues both messages under `parent`, whose attached context cannot be overwritten by `PropagatedContext.setContext()`. Those assertions therefore do not cover this root-context isolation. A message queued under `Context.root()` has no attached context and could inherit the startup thread's `create` context if this isolation regressed. Extend the deterministic startup fixture to queue work explicitly under `Context.root()` and assert that it produces a separate trace with no parent.",
+      "created": "2026-10-15T13:29:12Z",
+      "hunk": "@@ -0,0 +1,119 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkoactor.v1_0;\n+\n+import static io.opentelemetry.javaagent.instrumentation.pekkoactor.v1_0.VirtualFields.ENVELOPE_PROPAGATED_CONTEXT;\n+import static io.opentelemetry.javaagent.instrumentation.pekkoactor.v1_0.VirtualFields.SYSTEM_MESSAGE_PROPAGATED_CONTEXT;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.javaagent.bootstrap.executors.ExecutorAdviceHelper;\n+import io.opentelemetry.javaagent.bootstrap.executors.PropagatedContext;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import org.apache.pekko.dispatch.Envelope;\n+import org.apache.pekko.dispatch.sysmsg.SystemMessage;\n+\n+/**\n+ * A top level actor is backed by an {@code UnstartedCell} until it has started. Messages that are\n+ * sent to it in the meantime are queued and later handed to the started cell by the thread that\n+ * starts the actor, attach the context to them when they are queued.\n+ */\n+class PekkoUnstartedCellInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"org.apache.pekko.actor.UnstartedCell\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    transformer.applyAdviceToMethod(\n+        named(\"sendMessage\")\n+            .and(takesArguments(1))\n+            .and(takesArgument(0, named(\"org.apache.pekko.dispatch.Envelope\"))),\n+        getClass().getName() + \"$SendMessageAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"sendSystemMessage\")\n+            .and(takesArgument(0, named(\"org.apache.pekko.dispatch.sysmsg.SystemMessage\"))),\n+        getClass().getName() + \"$SendSystemMessageAdvice\");\n+    transformer.applyAdviceToMethod(\n+        named(\"replaceWith\").and(takesArguments(1)), getClass().getName() + \"$ReplaceWithAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class SendMessageAdvice {\n+\n+    @Nullable\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static PropagatedContext enter(@Advice.Argument(0) Envelope envelope) {\n+      Context context = Context.current();\n+      if (ExecutorAdviceHelper.shouldPropagateContext(context, envelope.message())) {\n+        return ExecutorAdviceHelper.attachContextToTask(\n+            context, ENVELOPE_PROPAGATED_CONTEXT, envelope);\n+      }\n+      return null;\n+    }\n+\n+    @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)\n+    public static void exit(\n+        @Advice.Argument(0) Envelope envelope,\n+        @Advice.Enter @Nullable PropagatedContext propagatedContext,\n+        @Advice.Thrown @Nullable Throwable throwable) {\n+      ExecutorAdviceHelper.cleanUpAfterSubmit(\n+          propagatedContext, throwable, ENVELOPE_PROPAGATED_CONTEXT, envelope);\n+    }\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class SendSystemMessageAdvice {\n+\n+    @Nullable\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static PropagatedContext enter(@Advice.Argument(0) SystemMessage systemMessage) {\n+      Context context = Context.current();\n+      if (ExecutorAdviceHelper.shouldPropagateContext(context, systemMessage)) {\n+        return ExecutorAdviceHelper.attachContextToTask(\n+            context, SYSTEM_MESSAGE_PROPAGATED_CONTEXT, systemMessage);\n+      }\n+      return null;\n+    }\n+\n+    @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)\n+    public static void exit(\n+        @Advice.Argument(0) SystemMessage systemMessage,\n+        @Advice.Enter @Nullable PropagatedContext propagatedContext,\n+        @Advice.Thrown @Nullable Throwable throwable) {\n+      ExecutorAdviceHelper.cleanUpAfterSubmit(\n+          propagatedContext, throwable, SYSTEM_MESSAGE_PROPAGATED_CONTEXT, systemMessage);\n+    }\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class ReplaceWithAdvice {\n+\n+    // the queued messages already carry the context they were sent with, without this the context\n+    // of the thread that starts the actor would replace it when they are handed to the started cell\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static Scope enter() {\n+      return Context.root().makeCurrent();",
+      "id": "PRRT_kwDODJKVX86syrEu",
+      "opened": "2026-10-15T13:29:13Z",
+      "path": "instrumentation/pekko/pekko-actor-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkoactor/v1_0/PekkoUnstartedCellInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-10-15T13:53:09Z",
+          "body": "Good point, added: the spawner now also sends a greeting from a new thread (so it has no context at all) before the greeter starts, and the test checks that it ends up in its own trace rather than in the `create` trace that the guardian starts the greeter in. Verified it fails when `ReplaceWithAdvice` does not make root current. Sending under `Context.root().makeCurrent()` from the test code did not exercise this path (the test passed without the isolation), so a plain thread is used instead.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20528#discussion_r4283847526"
+        }
+      ],
+      "reviewed": "5062bdd640f46655dc3c5784cd733b2723bf153f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20528#discussion_r4283566355"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The typed stash test asserts context only inside successfully unstashed handlers. It does not check that this cleanup restores the triggering message's context before application code continues, or when an unstashed handler throws. Please add installed-agent cases that emit a span immediately after `unstashAll` returns and after catching an unstashed-handler exception, and assert that both use the triggering `unlock` context rather than the last stashed context.",
+      "created": "2026-11-03T20:05:03Z",
+      "hunk": "@@ -0,0 +1,81 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkoactor.v1_0.typed;\n+\n+import static io.opentelemetry.javaagent.instrumentation.pekkoactor.v1_0.typed.PekkoActorTypedSingletons.currentUnstashScope;\n+import static io.opentelemetry.javaagent.instrumentation.pekkoactor.v1_0.typed.VirtualFields.STASH_NODE_CONTEXT;\n+import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import org.apache.pekko.actor.typed.internal.StashBufferImpl;\n+\n+/**\n+ * Unstashed messages are interpreted while the message that unstashes them is being processed, run\n+ * each of them in the context that was current when it was stashed.\n+ *\n+ * <p>Pekko's own hook for interpreting an unstashed message is inlined in the scala 2.13 artifacts.\n+ * Instead, the scope of a message is opened when its node is taken from the stash, which happens\n+ * right before the message is interpreted. The scope is closed when the next node is taken or when\n+ * unstashing ends, also when it ends with an exception.\n+ */\n+class PekkoStashBufferInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return named(\"org.apache.pekko.actor.typed.internal.StashBufferImpl\");\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    // unstashAll and the javadsl unstash delegate to the scaladsl unstash, but that call may be\n+    // inlined, instrument all of them\n+    transformer.applyAdviceToMethod(\n+        named(\"unstash\").and(takesArguments(3)).or(named(\"unstashAll\").and(takesArguments(1))),\n+        getClass().getName() + \"$UnstashAdvice\");\n+    // the name is mangled because the method is private and called from an inner class\n+    transformer.applyAdviceToMethod(\n+        nameEndsWith(\"dropHeadForUnstash\").and(takesArguments(0)),\n+        getClass().getName() + \"$DropHeadAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class UnstashAdvice {\n+\n+    @Nullable\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static UnstashScope enter() {\n+      return currentUnstashScope().set(new UnstashScope());\n+    }\n+\n+    @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)\n+    public static void exit(@Advice.Enter @Nullable UnstashScope previous) {\n+      UnstashScope unstashScope = currentUnstashScope().get();\n+      if (unstashScope != null) {\n+        unstashScope.close();",
+      "id": "PRRT_kwDODJKVX86zT1b6",
+      "opened": "2026-11-03T20:05:03Z",
+      "path": "instrumentation/pekko/pekko-actor-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkoactor/v1_0/typed/PekkoStashBufferInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-11-03T20:32:54Z",
+          "body": "Added `unstashRestoresContext` in 0e2de65804. A new `TypedUnstasher` actor stashes one message sent under a `parent` span. On `Unlock` it emits a span right after `unstashAll` returns, or, in the failing variant where the unstashed handler throws, after catching that exception. The test asserts that the span is a child of the `unlock` span, not of the stashed message's `parent`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20528#discussion_r4460110569"
+        },
+        {
+          "at": "2026-11-03T21:24:21Z",
+          "body": "0e2de658041d5c7ee33d28a3f9bacb94ccf21de4",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20528#discussion_r4460610343"
+        }
+      ],
+      "reviewed": "e9825edfafb344652b62bdd55ab22f619e4d31f9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20528#discussion_r4459840394"
+    }
+  ]
+}

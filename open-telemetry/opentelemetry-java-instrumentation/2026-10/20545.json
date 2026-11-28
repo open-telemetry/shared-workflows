@@ -1,0 +1,46 @@
+{
+  "head": "f2c1bf54ec887ccee9840ace6921ac00aad10d3f",
+  "merge": "361aa26922f5444a41672b723f37bdfd9b1ed297",
+  "merged": "2026-10-13T05:54:34Z",
+  "missing_roots": 0,
+  "number": 20545,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This changes the module's installed-agent default in the v3-preview/common-defaults-disabled configuration, but the module has no coverage for that enablement boundary. Add a `DefaultEnablementTest` that runs the same `@WithSpan` operation in the normal JVM and in a filtered task with both `otel.instrumentation.common.v3-preview=true` and `otel.instrumentation.common.default-enabled=false`, asserting the annotation span in the first run and exactly a manually created parent span in the second.",
+      "created": "2026-10-12T20:24:16Z",
+      "hunk": "@@ -12,13 +12,11 @@\n import io.opentelemetry.javaagent.bootstrap.internal.AgentCommonConfig;\n import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;\n import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n-import io.opentelemetry.javaagent.extension.instrumentation.internal.V3PreviewFallbackEnabledInstrumentationModule;\n import java.util.List;\n import net.bytebuddy.matcher.ElementMatcher;\n \n @AutoService(InstrumentationModule.class)\n-@SuppressWarnings(\"deprecation\") // using v3 preview fallback helper until 3.0\n-public class AnnotationInstrumentationModule extends V3PreviewFallbackEnabledInstrumentationModule {\n+public class AnnotationInstrumentationModule extends InstrumentationModule {",
+      "id": "PRRT_kwDODJKVX86rnBJ8",
+      "opened": "2026-10-12T20:24:16Z",
+      "path": "instrumentation/opentelemetry-instrumentation-annotations-1.16/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/instrumentationannotations/v1_16/AnnotationInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-10-12T20:27:25Z",
+          "body": "not testing this is conventional in repo",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20545#discussion_r4252044160"
+        }
+      ],
+      "reviewed": "be8d4b5fb08314e3769b4d0e077803127f38c14e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20545#discussion_r4252021589"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-12T20:26:53Z",
+      "hunk": "@@ -4,6 +4,9 @@\n \n ### ⚠️ Breaking changes\n \n+- Annotation instrumentation follows `otel.instrumentation.common.default-enabled`.\n+  When `otel.instrumentation.common.default-enabled=false`, explicitly enable it with\n+  `otel.instrumentation.opentelemetry-instrumentation-annotations.enabled=true`.",
+      "id": "PRRT_kwDODJKVX86rnD9X",
+      "opened": "2026-10-12T20:26:53Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "be8d4b5fb08314e3769b4d0e077803127f38c14e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20545#discussion_r4252040227"
+    }
+  ]
+}

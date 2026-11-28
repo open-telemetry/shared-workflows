@@ -1,0 +1,55 @@
+{
+  "head": "93cd50a8a168afb8673ad2ccd4b01c9821186cd2",
+  "merge": "8719bf19439032375c8297d4284e9b3f4e32dcc1",
+  "merged": "2026-10-30T06:00:12Z",
+  "missing_roots": 0,
+  "number": 21065,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "so that the benchmarks wouldn't run for too long",
+      "created": "2026-10-29T14:48:55Z",
+      "hunk": "@@ -0,0 +1,104 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.benchmark.bridgecost;\n+\n+import static java.util.concurrent.TimeUnit.NANOSECONDS;\n+\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.api.trace.Span;\n+import io.opentelemetry.api.trace.SpanContext;\n+import io.opentelemetry.api.trace.TraceFlags;\n+import io.opentelemetry.api.trace.TraceState;\n+import io.opentelemetry.api.trace.Tracer;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import org.openjdk.jmh.annotations.Benchmark;\n+import org.openjdk.jmh.annotations.BenchmarkMode;\n+import org.openjdk.jmh.annotations.Fork;\n+import org.openjdk.jmh.annotations.Measurement;\n+import org.openjdk.jmh.annotations.Mode;\n+import org.openjdk.jmh.annotations.OutputTimeUnit;\n+import org.openjdk.jmh.annotations.Setup;\n+import org.openjdk.jmh.annotations.State;\n+import org.openjdk.jmh.annotations.Warmup;\n+\n+@Fork(1)\n+@Warmup(iterations = 1, time = 10)\n+@Measurement(iterations = 3, time = 10)",
+      "id": "PRRT_kwDODJKVX86xmzqH",
+      "opened": "2026-10-29T14:48:55Z",
+      "path": "benchmark-overhead-jmh/src/jmh/java/io/opentelemetry/javaagent/benchmark/bridgecost/BridgeCost.java",
+      "replies": [],
+      "reviewed": "abecbd79a68d91cb6c8a3533077c51d53acc33a8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21065#discussion_r4413851534"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The fork inherits the agent's sampler configuration. For example, `OTEL_TRACES_SAMPLER=always_on` makes the child sampled even though its parent is unsampled, so this measures a different span path and produces results that are not comparable with the intended unsampled case. Pin the fork to a parent-based sampler, or reject a sampled child during setup.",
+      "created": "2026-10-29T14:57:44Z",
+      "hunk": "@@ -0,0 +1,104 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.benchmark.bridgecost;\n+\n+import static java.util.concurrent.TimeUnit.NANOSECONDS;\n+\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.api.trace.Span;\n+import io.opentelemetry.api.trace.SpanContext;\n+import io.opentelemetry.api.trace.TraceFlags;\n+import io.opentelemetry.api.trace.TraceState;\n+import io.opentelemetry.api.trace.Tracer;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import org.openjdk.jmh.annotations.Benchmark;\n+import org.openjdk.jmh.annotations.BenchmarkMode;\n+import org.openjdk.jmh.annotations.Fork;\n+import org.openjdk.jmh.annotations.Measurement;\n+import org.openjdk.jmh.annotations.Mode;\n+import org.openjdk.jmh.annotations.OutputTimeUnit;\n+import org.openjdk.jmh.annotations.Setup;\n+import org.openjdk.jmh.annotations.State;\n+import org.openjdk.jmh.annotations.Warmup;\n+\n+@Fork(1)",
+      "id": "PRRT_kwDODJKVX86xnDsN",
+      "opened": "2026-10-29T14:57:44Z",
+      "path": "benchmark-overhead-jmh/src/jmh/java/io/opentelemetry/javaagent/benchmark/bridgecost/BridgeCost.java",
+      "replies": [],
+      "reviewed": "abecbd79a68d91cb6c8a3533077c51d53acc33a8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21065#discussion_r4413958127"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] With an inherited `OTEL_SDK_DISABLED=true`, span creation propagates the remote parent instead of creating a local child, so this benchmark can report misleading no-op timings. The diagnostic print does not reject that setup. Fail setup unless the child's span context is valid and local; this also works for the documented standalone-SDK baseline.",
+      "created": "2026-10-29T14:57:44Z",
+      "hunk": "@@ -0,0 +1,104 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.benchmark.bridgecost;\n+\n+import static java.util.concurrent.TimeUnit.NANOSECONDS;\n+\n+import io.opentelemetry.api.GlobalOpenTelemetry;\n+import io.opentelemetry.api.trace.Span;\n+import io.opentelemetry.api.trace.SpanContext;\n+import io.opentelemetry.api.trace.TraceFlags;\n+import io.opentelemetry.api.trace.TraceState;\n+import io.opentelemetry.api.trace.Tracer;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.Scope;\n+import org.openjdk.jmh.annotations.Benchmark;\n+import org.openjdk.jmh.annotations.BenchmarkMode;\n+import org.openjdk.jmh.annotations.Fork;\n+import org.openjdk.jmh.annotations.Measurement;\n+import org.openjdk.jmh.annotations.Mode;\n+import org.openjdk.jmh.annotations.OutputTimeUnit;\n+import org.openjdk.jmh.annotations.Setup;\n+import org.openjdk.jmh.annotations.State;\n+import org.openjdk.jmh.annotations.Warmup;\n+\n+@Fork(1)\n+@Warmup(iterations = 1, time = 10)\n+@Measurement(iterations = 3, time = 10)\n+@State(org.openjdk.jmh.annotations.Scope.Benchmark)\n+@BenchmarkMode(Mode.AverageTime)\n+@OutputTimeUnit(NANOSECONDS)\n+public class BridgeCost {\n+  Tracer tracer;\n+  Context parent;\n+  Span child;\n+  Context withChild;\n+\n+  @Setup\n+  public void setup() {\n+    /*\n+    To run without the agent add the sdk dependency to build.gradle.kts\n+    jmhImplementation(\"io.opentelemetry:opentelemetry-sdk\")\n+    also comment out adding the -javaagent: flag to jvm. Use the following to set up the global\n+    OpenTelemetry instance.\n+\n+    OpenTelemetrySdk.builder()\n+        .setTracerProvider(SdkTracerProvider.builder().build())\n+        .buildAndRegisterGlobal();\n+     */\n+\n+    tracer = GlobalOpenTelemetry.get().getTracer(\"bridge-cost\");\n+    parent =\n+        Context.root()\n+            .with(\n+                Span.wrap(\n+                    SpanContext.createFromRemoteParent(\n+                        \"0af7651916cd43dd8448eb211c80319c\",\n+                        \"b7ad6b7169203331\",\n+                        TraceFlags.getDefault(),\n+                        TraceState.getDefault())));\n+    child = tracer.spanBuilder(\"child\").setParent(parent).startSpan();\n+    withChild = parent.with(child);\n+    System.out.println(\n+        \"child span: \" + child.getClass().getName() + \", recording \" + child.isRecording());",
+      "id": "PRRT_kwDODJKVX86xnDta",
+      "opened": "2026-10-29T14:57:44Z",
+      "path": "benchmark-overhead-jmh/src/jmh/java/io/opentelemetry/javaagent/benchmark/bridgecost/BridgeCost.java",
+      "replies": [],
+      "reviewed": "abecbd79a68d91cb6c8a3533077c51d53acc33a8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21065#discussion_r4413958241"
+    }
+  ]
+}

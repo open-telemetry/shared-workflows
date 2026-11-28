@@ -1,0 +1,67 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "23233cc1a68722cdaae27a665921e0398ea7551439371b682bacb43c14b5b480",
+  "input_digest": "741838d9298a51e13f501a6e44806abde9ebaf8563215cc26819fbe24b45bc92",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53c23ba4d57dc892ed326ab82f85ff369ef664cc/instrumentation/logback/logback-appender-1.0/library/src/test/java/io/opentelemetry/instrumentation/logback/appender/v1_0/OpenTelemetryAppenderMdcExportTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dddb0f88beca57b7adf9c8a6938f91566d03e84c/instrumentation/logback/logback-appender-1.0/library/src/test/java/io/opentelemetry/instrumentation/logback/appender/v1_0/OpenTelemetryAppenderMdcExportTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/53c23ba4d57dc892ed326ab82f85ff369ef664cc/instrumentation/logback/logback-appender-1.0/library/src/asyncAppenderTest/java/io/opentelemetry/instrumentation/logback/appender/v1_0/AsyncOpenTelemetryAppenderTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dddb0f88beca57b7adf9c8a6938f91566d03e84c/instrumentation/logback/logback-appender-1.0/library/src/asyncAppenderTest/java/io/opentelemetry/instrumentation/logback/appender/v1_0/AsyncOpenTelemetryAppenderTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX860x_ib",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1fee9c5f3c29a3d616bac70d24c3d5889dfa4c41/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/log/internal/MdcContext.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dddb0f88beca57b7adf9c8a6938f91566d03e84c/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/log/internal/MdcContext.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1fee9c5f3c29a3d616bac70d24c3d5889dfa4c41/instrumentation/logback/logback-mdc-1.0/library/src/main/java/io/opentelemetry/instrumentation/logback/mdc/v1_0/internal/MdcContext.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dddb0f88beca57b7adf9c8a6938f91566d03e84c/instrumentation/logback/logback-mdc-1.0/library/src/main/java/io/opentelemetry/instrumentation/logback/mdc/v1_0/internal/MdcContext.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1fee9c5f3c29a3d616bac70d24c3d5889dfa4c41/instrumentation/logback/logback-mdc-1.0/library/src/test/java/io/opentelemetry/instrumentation/logback/mdc/v1_0/internal/MdcContextTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dddb0f88beca57b7adf9c8a6938f91566d03e84c/instrumentation/logback/logback-mdc-1.0/library/src/test/java/io/opentelemetry/instrumentation/logback/mdc/v1_0/internal/MdcContextTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1fee9c5f3c29a3d616bac70d24c3d5889dfa4c41/instrumentation/logback/logback-mdc-1.0/library/src/main/java/io/opentelemetry/instrumentation/logback/mdc/v1_0/OpenTelemetryAppender.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dddb0f88beca57b7adf9c8a6938f91566d03e84c/instrumentation/logback/logback-mdc-1.0/library/src/main/java/io/opentelemetry/instrumentation/logback/mdc/v1_0/OpenTelemetryAppender.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/1fee9c5f3c29a3d616bac70d24c3d5889dfa4c41/instrumentation/logback/logback-appender-1.0/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dddb0f88beca57b7adf9c8a6938f91566d03e84c/instrumentation/logback/logback-appender-1.0/library/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX860yQBL",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cf7fc6a4d0904157e9ef2172a9cfd51e23bb675a/instrumentation/logback/logback-appender-1.0/library/src/test/java/io/opentelemetry/instrumentation/logback/appender/v1_0/OpenTelemetryAppenderMdcExportTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/cf7fc6a4d0904157e9ef2172a9cfd51e23bb675a/instrumentation/logback/logback-appender-1.0/library/src/asyncAppenderTest/java/io/opentelemetry/instrumentation/logback/appender/v1_0/AsyncOpenTelemetryAppenderTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dddb0f88beca57b7adf9c8a6938f91566d03e84c/instrumentation/logback/logback-appender-1.0/library/src/test/java/io/opentelemetry/instrumentation/logback/appender/v1_0/OpenTelemetryAppenderMdcExportTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dddb0f88beca57b7adf9c8a6938f91566d03e84c/instrumentation/logback/logback-appender-1.0/library/src/asyncAppenderTest/java/io/opentelemetry/instrumentation/logback/appender/v1_0/AsyncOpenTelemetryAppenderTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX8604R1H",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/24bda0b32733e2d2eafc59083b97f97c5f902a91/instrumentation/logback/logback-mdc-1.0/library/src/main/java/io/opentelemetry/instrumentation/logback/mdc/v1_0/internal/MdcContext.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/24bda0b32733e2d2eafc59083b97f97c5f902a91/instrumentation/logback/logback-mdc-1.0/library/src/main/java/io/opentelemetry/instrumentation/logback/mdc/v1_0/OpenTelemetryAppender.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dddb0f88beca57b7adf9c8a6938f91566d03e84c/instrumentation/logback/logback-mdc-1.0/library/src/main/java/io/opentelemetry/instrumentation/logback/mdc/v1_0/internal/MdcContext.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/dddb0f88beca57b7adf9c8a6938f91566d03e84c/instrumentation/logback/logback-mdc-1.0/library/src/main/java/io/opentelemetry/instrumentation/logback/mdc/v1_0/OpenTelemetryAppender.java"
+      ],
+      "id": "PRRT_kwDODJKVX861Mzfg",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

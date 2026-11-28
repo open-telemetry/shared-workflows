@@ -1,0 +1,307 @@
+{
+  "head": "550bbd65ed30bb0f04177e41a692fd6b069371e5",
+  "merge": "0e8c713e96608c29b7e96bfc5535ca8c5db8a308",
+  "merged": "2026-11-08T16:23:48Z",
+  "missing_roots": 0,
+  "number": 474,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "With overlay scrollbars (for example, macOS's automatic scrollbars), the scrollbar contributes no layout height, so this rail collapses to its 1px child. That leaves only a 1px hit area for the replacement scrollbar, while the table's native scrollbar is explicitly hidden. Give the rail a minimum height so the sticky scrolling control remains usable on those systems.",
+      "created": "2026-11-07T04:26:21Z",
+      "hunk": "@@ -624,150 +630,234 @@ td.num {\n \n /* --- heatmap ------------------------------------------------------------- */\n \n-/* The heatmap is wider than the screen and longer than it, so it scrolls in\n-   its own pane rather than dragging the page sideways: one scrollbar per axis,\n-   and the header row parks under the controls band instead of behind it. The\n-   fallback is a band with one row of filters; `trackBand` replaces it with the\n-   measured height as soon as the page has one. */\n+/* The heatmap is wider than the screen, so it scrolls sideways in its own pane\n+   rather than dragging the page with it. Down is the page's job, so a swipe\n+   down the table never gets stuck inside it. */\n .scroller {\n-  overflow: auto;\n-  max-height: max(22rem, calc(100vh - var(--controls-h, 7rem) - 9rem));\n+  overflow-x: auto;\n   overscroll-behavior-x: contain;\n+  scrollbar-width: none;\n+}\n+.scroller::-webkit-scrollbar {\n+  display: none;\n+}\n+/* The table's own scrollbar is below its last row, often a screen or more\n+   away, so this one stands in for it: held at the bottom of the screen while\n+   the table is in view, and resting under the last row once that is. */\n+.scroll-rail {\n+  position: sticky;\n+  bottom: 0;\n+  z-index: 5;\n+  overflow-x: auto;\n+  overflow-y: hidden;\n+  background: var(--bg);",
+      "id": "PRRT_kwDOTuzK5c60yHUU",
+      "opened": "2026-11-07T04:26:22Z",
+      "path": "docs/assets/style.css",
+      "replies": [
+        {
+          "at": "2026-11-07T04:35:04Z",
+          "body": "18f28fe485b3e5a13d36ac3b916646af969d746e",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/474#discussion_r4500115052"
+        }
+      ],
+      "reviewed": "c67fec4133614d6d47c86609025e4cba76fa40aa",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/474#discussion_r4500088199"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The newly dimmed namespace text has only 3.33:1 contrast against the light heatmap background and 3.85:1 against the dark background. At 0.78rem, it needs 4.5:1 contrast for normal-sized text; the namespace is still an essential part of each attribute identifier. Use `--ink-2`, which preserves the muted treatment while meeting that threshold in both themes.",
+      "created": "2026-11-07T04:26:21Z",
+      "hunk": "@@ -624,150 +630,234 @@ td.num {\n \n /* --- heatmap ------------------------------------------------------------- */\n \n-/* The heatmap is wider than the screen and longer than it, so it scrolls in\n-   its own pane rather than dragging the page sideways: one scrollbar per axis,\n-   and the header row parks under the controls band instead of behind it. The\n-   fallback is a band with one row of filters; `trackBand` replaces it with the\n-   measured height as soon as the page has one. */\n+/* The heatmap is wider than the screen, so it scrolls sideways in its own pane\n+   rather than dragging the page with it. Down is the page's job, so a swipe\n+   down the table never gets stuck inside it. */\n .scroller {\n-  overflow: auto;\n-  max-height: max(22rem, calc(100vh - var(--controls-h, 7rem) - 9rem));\n+  overflow-x: auto;\n   overscroll-behavior-x: contain;\n+  scrollbar-width: none;\n+}\n+.scroller::-webkit-scrollbar {\n+  display: none;\n+}\n+/* The table's own scrollbar is below its last row, often a screen or more\n+   away, so this one stands in for it: held at the bottom of the screen while\n+   the table is in view, and resting under the last row once that is. */\n+.scroll-rail {\n+  position: sticky;\n+  bottom: 0;\n+  z-index: 5;\n+  overflow-x: auto;\n+  overflow-y: hidden;\n+  background: var(--bg);\n+}\n+.scroll-rail > div {\n+  height: 1px;\n+}\n+.scroll-frame.fits .scroll-rail {\n+  display: none;\n+}\n+\n+/* The scrollbar only says how far along the table is, so a shadow on each side\n+   that still has columns past it is what says where it goes on. The left one\n+   starts at the pinned attribute column's edge, which `trackEdges` in\n+   `signals.js` publishes as `--pinned-w`. */\n+.scroll-frame {\n+  position: relative;\n+}\n+.scroll-frame::before,\n+.scroll-frame::after {\n+  content: \"\";\n+  position: absolute;\n+  top: 0;\n+  bottom: 0;\n+  width: 1.25rem;\n+  pointer-events: none;\n+  opacity: 0;\n+  transition: opacity 0.15s;\n+  z-index: 4;\n+}\n+.scroll-frame::before {\n+  left: var(--pinned-w, 0);\n+  background: linear-gradient(\n+    to right,\n+    color-mix(in srgb, var(--ink) 16%, transparent),\n+    transparent\n+  );\n+}\n+.scroll-frame::after {\n+  right: 0;\n+  background: linear-gradient(\n+    to left,\n+    color-mix(in srgb, var(--ink) 16%, transparent),\n+    transparent\n+  );\n+}\n+.scroll-frame.more-left::before,\n+.scroll-frame.more-right::after {\n+  opacity: 1;\n }\n \n .heatmap {\n-  width: auto;\n+  width: max-content;\n   font-size: 0.8rem;\n   border-collapse: separate;\n   border-spacing: 0;\n }\n .heatmap th.attr {\n   position: sticky;\n   left: 0;\n-  background: var(--surface);\n   z-index: 2;\n+  background: var(--surface);\n   font-family: var(--mono);\n   font-size: 0.78rem;\n   font-weight: 400;\n   text-transform: none;\n   letter-spacing: 0;\n+  text-align: left;\n   white-space: nowrap;\n   border-right: 1px solid var(--line-strong);\n   color: var(--ink);\n }\n /* The attribute name is the row's label first and a registry link second, so it\n-   keeps the row's colour and only underlines under the pointer. */\n+   keeps the row's colour and only underlines under the pointer. The namespace\n+   is muted, so the part that differs between neighbours stands out. */\n .heatmap th.attr a {\n   color: inherit;\n   text-decoration: none;\n }\n .heatmap th.attr a:hover {\n   text-decoration: underline;\n }\n+.heatmap th.attr .ns {\n+  color: var(--ink-3);",
+      "id": "PRRT_kwDOTuzK5c60yHUu",
+      "opened": "2026-11-07T04:26:22Z",
+      "path": "docs/assets/style.css",
+      "replies": [
+        {
+          "at": "2026-11-07T04:35:04Z",
+          "body": "7811b6cae8c9eb782ed9e410d61025f0edc4d4a5",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/474#discussion_r4500115051"
+        }
+      ],
+      "reviewed": "c67fec4133614d6d47c86609025e4cba76fa40aa",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/474#discussion_r4500088238"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Without ResizeObserver, this only measures the table once. If a table initially fits and the window is then narrowed, `fits` stays set: the rail remains hidden and `.scroller` retains `overflow-x: visible`, making the page overflow horizontally instead of providing the replacement scrollbar. Please also update on window resize in this fallback, removing the listener when the next heatmap replaces it.",
+      "created": "2026-11-07T04:49:24Z",
+      "hunk": "@@ -337,32 +336,86 @@ function heatmap(signal, rows, levels, refinements, pin) {\n     });\n   }\n \n-  return el(\"div\", {}, [\n-    el(\"div\", { class: \"scroller\" }, [\n-      el(\"table\", { class: \"heatmap\" }, [\n-        el(\"thead\", {}, [languageBands(columns), header]),\n-        ...groups,\n-      ]),\n+  const scroller = el(\"div\", { class: \"scroller\" }, [\n+    el(\"table\", { class: \"heatmap\" }, [\n+      el(\"thead\", {}, [header, languageBands(columns)]),\n+      ...groups,\n     ]),\n-    levelLegend(levels, refinements.length > 0),\n   ]);\n+  const rail = el(\n+    \"div\",\n+    { class: \"scroll-rail\", \"aria-hidden\": \"true\", tabindex: \"-1\" },\n+    [el(\"div\")],\n+  );\n+  const frame = el(\"div\", { class: \"scroll-frame\" }, [scroller, rail]);\n+  trackEdges(frame, scroller, rail);\n+  return el(\"div\", {}, [frame, levelLegend(levels, refinements.length > 0)]);\n+}\n+\n+let edgeObserver = null;\n+\n+/**\n+ * Flag the sides of the frame that have columns scrolled past them, or `fits`\n+ * when there are none, and publish `--pinned-w`, the pinned attribute column's\n+ * width, where the left shadow starts. The rail is a scrollbar held at the\n+ * bottom of the screen, kept as wide as the table and in step with it, since\n+ * the table's own is past the last row. One observer serves the one heatmap on\n+ * the page.\n+ */\n+function trackEdges(frame, scroller, rail) {\n+  const update = () => {\n+    const end = scroller.scrollWidth - scroller.clientWidth;\n+    frame.classList.toggle(\"fits\", end <= 1);\n+    frame.classList.toggle(\"more-left\", scroller.scrollLeft > 1);\n+    frame.classList.toggle(\"more-right\", scroller.scrollLeft < end - 1);\n+    const pinned = scroller.querySelector(\"th.attr\");\n+    frame.style.setProperty(\"--pinned-w\", `${pinned?.offsetWidth ?? 0}px`);\n+    rail.firstElementChild.style.width = `${scroller.scrollWidth}px`;\n+    if (rail.scrollLeft !== scroller.scrollLeft) {\n+      rail.scrollLeft = scroller.scrollLeft;\n+    }\n+  };\n+  scroller.addEventListener(\"scroll\", update, { passive: true });\n+  rail.addEventListener(\n+    \"scroll\",\n+    () => {\n+      if (scroller.scrollLeft !== rail.scrollLeft) {\n+        scroller.scrollLeft = rail.scrollLeft;\n+      }\n+    },\n+    { passive: true },\n+  );\n+  if (typeof ResizeObserver !== \"function\") {\n+    setTimeout(update, 0);\n+    return;\n+  }\n+  edgeObserver?.disconnect();\n+  edgeObserver = new ResizeObserver(update);",
+      "id": "PRRT_kwDOTuzK5c60yRvA",
+      "opened": "2026-11-07T04:49:24Z",
+      "path": "docs/assets/views/signals.js",
+      "replies": [
+        {
+          "at": "2026-11-07T04:52:25Z",
+          "body": "14a30065233b4bb8e4a1fcf55b7e1cbb9eb1e356",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/474#discussion_r4500169706"
+        }
+      ],
+      "reviewed": "9fbaaafbd00c0fd437be3789f5ee07e6f91cea9a",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/474#discussion_r4500157628"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This cleanup only runs when another heatmap is built, so navigating to a target leaves the resize tracker retaining the detached table. Without `ResizeObserver`, window resizes also keep updating that detached table. Add a signals-view disposal hook and call it from the route renderer when replacing the view, as well as cleaning up when rebuilding the heatmap.",
+      "created": "2026-11-07T04:56:21Z",
+      "hunk": "@@ -272,6 +271,8 @@ export default function signals(data, key, params) {\n   ]);\n }\n function heatmap(signal, rows, levels, refinements, pin) {\n+  stopTrackingEdges?.();\n+  stopTrackingEdges = null;",
+      "id": "PRRT_kwDOTuzK5c60yWCH",
+      "opened": "2026-11-07T04:56:22Z",
+      "path": "docs/assets/views/signals.js",
+      "replies": [
+        {
+          "at": "2026-11-07T05:00:57Z",
+          "body": "b3d7cf7a2d50b30c8641f6294c779ecb72b14b25",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/474#discussion_r4500201237"
+        }
+      ],
+      "reviewed": "14a30065233b4bb8e4a1fcf55b7e1cbb9eb1e356",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/474#discussion_r4500185160"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "With the `•` gone the cells have no text, and `title` on a plain span isn't announced, so screen readers now read every cell as blank. Maybe give the span an accessible name:\n\n```suggestion\n        el(\"span\", {\n          role: \"img\",\n          \"aria-label\": yes ? \"emits\" : \"does not emit\",\n          title: `${fullLabel(columns[i].target)} ${yes ? \"emits\" : \"does not emit\"} ${attribute}`,\n        }),\n```",
+      "created": "2026-11-07T16:52:33Z",
+      "hunk": "@@ -337,32 +337,96 @@ function heatmap(signal, rows, levels, refinements, pin) {\n     });\n   }\n \n-  return el(\"div\", {}, [\n-    el(\"div\", { class: \"scroller\" }, [\n-      el(\"table\", { class: \"heatmap\" }, [\n-        el(\"thead\", {}, [languageBands(columns), header]),\n-        ...groups,\n-      ]),\n+  const scroller = el(\"div\", { class: \"scroller\" }, [\n+    el(\"table\", { class: \"heatmap\" }, [\n+      el(\"thead\", {}, [header, languageBands(columns)]),\n+      ...groups,\n     ]),\n-    levelLegend(levels, refinements.length > 0),\n   ]);\n+  const rail = el(\n+    \"div\",\n+    { class: \"scroll-rail\", \"aria-hidden\": \"true\", tabindex: \"-1\" },\n+    [el(\"div\")],\n+  );\n+  const frame = el(\"div\", { class: \"scroll-frame\" }, [scroller, rail]);\n+  trackEdges(frame, scroller, rail);\n+  return el(\"div\", {}, [frame, levelLegend(levels, refinements.length > 0)]);\n+}\n+\n+let stopTrackingEdges = null;\n+\n+export function dispose() {\n+  stopTrackingEdges?.();\n+  stopTrackingEdges = null;\n+}\n+\n+/**\n+ * Flag the sides of the frame that have columns scrolled past them, or `fits`\n+ * when there are none, and publish `--pinned-w`, the pinned attribute column's\n+ * width, where the left shadow starts. The rail is a scrollbar held at the\n+ * bottom of the screen, kept as wide as the table and in step with it, since\n+ * the table's own is past the last row. Only the current heatmap listens for\n+ * size changes.\n+ */\n+function trackEdges(frame, scroller, rail) {\n+  const update = () => {\n+    const end = scroller.scrollWidth - scroller.clientWidth;\n+    frame.classList.toggle(\"fits\", end <= 1);\n+    frame.classList.toggle(\"more-left\", scroller.scrollLeft > 1);\n+    frame.classList.toggle(\"more-right\", scroller.scrollLeft < end - 1);\n+    const pinned = scroller.querySelector(\"th.attr\");\n+    frame.style.setProperty(\"--pinned-w\", `${pinned?.offsetWidth ?? 0}px`);\n+    rail.firstElementChild.style.width = `${scroller.scrollWidth}px`;\n+    if (rail.scrollLeft !== scroller.scrollLeft) {\n+      rail.scrollLeft = scroller.scrollLeft;\n+    }\n+  };\n+  scroller.addEventListener(\"scroll\", update, { passive: true });\n+  rail.addEventListener(\n+    \"scroll\",\n+    () => {\n+      if (scroller.scrollLeft !== rail.scrollLeft) {\n+        scroller.scrollLeft = rail.scrollLeft;\n+      }\n+    },\n+    { passive: true },\n+  );\n+  if (typeof ResizeObserver !== \"function\") {\n+    const timer = setTimeout(update, 0);\n+    addEventListener(\"resize\", update, { passive: true });\n+    stopTrackingEdges = () => {\n+      clearTimeout(timer);\n+      removeEventListener(\"resize\", update);\n+    };\n+    return;\n+  }\n+  const observer = new ResizeObserver(update);\n+  observer.observe(scroller);\n+  observer.observe(scroller.firstElementChild);\n+  stopTrackingEdges = () => observer.disconnect();\n }\n \n /** One attribute, across every column, and how many of them carried it. */\n function attributeRow(attribute, columns, pin) {\n   const emitted = columns.map((row) => row.signal.emitted.includes(attribute));\n   const count = emitted.filter(Boolean).length;\n   const url = attributeUrl(attribute, pin);\n+  // The namespace is muted, so the part that differs between neighbours\n+  // stands out.\n+  const leaf = attribute.lastIndexOf(\".\") + 1;\n+  const name = [\n+    leaf > 0 && el(\"span\", { class: \"ns\", text: attribute.slice(0, leaf) }),\n+    attribute.slice(leaf),\n+  ];\n   return el(\"tr\", {}, [\n     el(\"th\", { class: \"attr\", scope: \"row\" }, [\n       url\n-        ? el(\"a\", { href: url, rel: \"noreferrer\", text: attribute })\n-        : attribute,\n+        ? el(\"a\", { href: url, rel: \"noreferrer\" }, name)\n+        : el(\"span\", {}, name),\n     ]),\n     ...emitted.map((yes, i) =>\n       el(\"td\", { class: `cell ${yes ? \"cell-yes\" : \"cell-no\"}` }, [\n         el(\"span\", {\n-          text: yes ? \"•\" : \"\",\n           title: `${fullLabel(columns[i].target)} ${yes ? \"emits\" : \"does not emit\"} ${attribute}`,\n         }),",
+      "id": "PRRT_kwDOTuzK5c604qx2",
+      "opened": "2026-11-07T16:53:59Z",
+      "path": "docs/assets/views/signals.js",
+      "replies": [
+        {
+          "at": "2026-11-08T05:39:56Z",
+          "body": "Applied this in db039b20: each indicator has role=\"img\" and an accessible \"emits\" or \"does not emit\" label. The full tooltip and the table's row and column header associations are preserved.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/474#discussion_r4505184410"
+        }
+      ],
+      "reviewed": "b3d7cf7a2d50b30c8641f6294c779ecb72b14b25",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/474#discussion_r4502846798"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: `--pinned-w` and the rail width only change on resize, but this runs on every scroll event and forces a layout read (`offsetWidth`) after the class writes. Could move these two into a resize-only callback and keep the scroll handler to the edge classes and rail sync.",
+      "created": "2026-11-07T16:52:33Z",
+      "hunk": "@@ -337,32 +337,96 @@ function heatmap(signal, rows, levels, refinements, pin) {\n     });\n   }\n \n-  return el(\"div\", {}, [\n-    el(\"div\", { class: \"scroller\" }, [\n-      el(\"table\", { class: \"heatmap\" }, [\n-        el(\"thead\", {}, [languageBands(columns), header]),\n-        ...groups,\n-      ]),\n+  const scroller = el(\"div\", { class: \"scroller\" }, [\n+    el(\"table\", { class: \"heatmap\" }, [\n+      el(\"thead\", {}, [header, languageBands(columns)]),\n+      ...groups,\n     ]),\n-    levelLegend(levels, refinements.length > 0),\n   ]);\n+  const rail = el(\n+    \"div\",\n+    { class: \"scroll-rail\", \"aria-hidden\": \"true\", tabindex: \"-1\" },\n+    [el(\"div\")],\n+  );\n+  const frame = el(\"div\", { class: \"scroll-frame\" }, [scroller, rail]);\n+  trackEdges(frame, scroller, rail);\n+  return el(\"div\", {}, [frame, levelLegend(levels, refinements.length > 0)]);\n+}\n+\n+let stopTrackingEdges = null;\n+\n+export function dispose() {\n+  stopTrackingEdges?.();\n+  stopTrackingEdges = null;\n+}\n+\n+/**\n+ * Flag the sides of the frame that have columns scrolled past them, or `fits`\n+ * when there are none, and publish `--pinned-w`, the pinned attribute column's\n+ * width, where the left shadow starts. The rail is a scrollbar held at the\n+ * bottom of the screen, kept as wide as the table and in step with it, since\n+ * the table's own is past the last row. Only the current heatmap listens for\n+ * size changes.\n+ */\n+function trackEdges(frame, scroller, rail) {\n+  const update = () => {\n+    const end = scroller.scrollWidth - scroller.clientWidth;\n+    frame.classList.toggle(\"fits\", end <= 1);\n+    frame.classList.toggle(\"more-left\", scroller.scrollLeft > 1);\n+    frame.classList.toggle(\"more-right\", scroller.scrollLeft < end - 1);\n+    const pinned = scroller.querySelector(\"th.attr\");\n+    frame.style.setProperty(\"--pinned-w\", `${pinned?.offsetWidth ?? 0}px`);\n+    rail.firstElementChild.style.width = `${scroller.scrollWidth}px`;",
+      "id": "PRRT_kwDOTuzK5c604qx9",
+      "opened": "2026-11-07T16:53:59Z",
+      "path": "docs/assets/views/signals.js",
+      "replies": [
+        {
+          "at": "2026-11-08T05:36:03Z",
+          "body": "Moved the pinned-column width and rail width updates into the resize measurement callback. Neither scroll handler reads offsetWidth or updates those widths.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/474#discussion_r4505176847"
+        }
+      ],
+      "reviewed": "b3d7cf7a2d50b30c8641f6294c779ecb72b14b25",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/474#discussion_r4502846808"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "Trying this in the browser, sideways scrolling is noticeably less smooth than on main. I think this is the cause: the two scroll handlers each copy their position to the other, and neither can tell its own echo from a real scroll. A scroll event is dispatched a frame after the change, so a handler can read a position that has already moved on and write the old one back:\n\n- Dragging the rail: the rail handler sets `scroller.scrollLeft = R1`. By the time the scroller's event runs `update()`, the rail is at R2, so this line puts the rail back to R1 and the thumb jumps back under the pointer.\n- Flinging the table on a trackpad: the rail's event from the previous frame sets `scroller.scrollLeft` to an old value, which cancels the momentum.\n\nRemembering which element was just written to and skipping its next event would stop it, for example:\n\n```js\nlet echo = null;\nconst mirror = (from, to) => {\n  if (echo === from) {\n    echo = null;\n    return;\n  }\n  if (to.scrollLeft !== from.scrollLeft) {\n    echo = to;\n    to.scrollLeft = from.scrollLeft;\n  }\n};\n```\n\nwith the scroller's listener calling `mirror(scroller, rail)` alongside the edge updates, and the rail's calling `mirror(rail, scroller)`.",
+      "created": "2026-11-07T16:52:17Z",
+      "hunk": "@@ -337,32 +337,96 @@ function heatmap(signal, rows, levels, refinements, pin) {\n     });\n   }\n \n-  return el(\"div\", {}, [\n-    el(\"div\", { class: \"scroller\" }, [\n-      el(\"table\", { class: \"heatmap\" }, [\n-        el(\"thead\", {}, [languageBands(columns), header]),\n-        ...groups,\n-      ]),\n+  const scroller = el(\"div\", { class: \"scroller\" }, [\n+    el(\"table\", { class: \"heatmap\" }, [\n+      el(\"thead\", {}, [header, languageBands(columns)]),\n+      ...groups,\n     ]),\n-    levelLegend(levels, refinements.length > 0),\n   ]);\n+  const rail = el(\n+    \"div\",\n+    { class: \"scroll-rail\", \"aria-hidden\": \"true\", tabindex: \"-1\" },\n+    [el(\"div\")],\n+  );\n+  const frame = el(\"div\", { class: \"scroll-frame\" }, [scroller, rail]);\n+  trackEdges(frame, scroller, rail);\n+  return el(\"div\", {}, [frame, levelLegend(levels, refinements.length > 0)]);\n+}\n+\n+let stopTrackingEdges = null;\n+\n+export function dispose() {\n+  stopTrackingEdges?.();\n+  stopTrackingEdges = null;\n+}\n+\n+/**\n+ * Flag the sides of the frame that have columns scrolled past them, or `fits`\n+ * when there are none, and publish `--pinned-w`, the pinned attribute column's\n+ * width, where the left shadow starts. The rail is a scrollbar held at the\n+ * bottom of the screen, kept as wide as the table and in step with it, since\n+ * the table's own is past the last row. Only the current heatmap listens for\n+ * size changes.\n+ */\n+function trackEdges(frame, scroller, rail) {\n+  const update = () => {\n+    const end = scroller.scrollWidth - scroller.clientWidth;\n+    frame.classList.toggle(\"fits\", end <= 1);\n+    frame.classList.toggle(\"more-left\", scroller.scrollLeft > 1);\n+    frame.classList.toggle(\"more-right\", scroller.scrollLeft < end - 1);\n+    const pinned = scroller.querySelector(\"th.attr\");\n+    frame.style.setProperty(\"--pinned-w\", `${pinned?.offsetWidth ?? 0}px`);\n+    rail.firstElementChild.style.width = `${scroller.scrollWidth}px`;\n+    if (rail.scrollLeft !== scroller.scrollLeft) {\n+      rail.scrollLeft = scroller.scrollLeft;",
+      "id": "PRRT_kwDOTuzK5c604qnX",
+      "opened": "2026-11-07T17:04:23Z",
+      "path": "docs/assets/views/signals.js",
+      "replies": [
+        {
+          "at": "2026-11-08T05:39:56Z",
+          "body": "Fixed in db039b20. Each pane remembers the actual offset accepted by a programmatic write and ignores only events matching that offset. New input arriving before the echo still synchronizes, so neither rail drags nor table scrolling get rewound by the other pane.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/474#discussion_r4505184411"
+        }
+      ],
+      "reviewed": "b3d7cf7a2d50b30c8641f6294c779ecb72b14b25",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/474#discussion_r4502845585"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "Nit: `update()` runs on every scroll event, but only the three class toggles and the rail sync depend on the scroll position. The `th.attr` lookup, `--pinned-w` and the rail's width only change when the table's size does, so they could move to the `ResizeObserver` callback, with `th.attr` looked up once. That keeps style writes and the `offsetWidth` read out of the scroll path.",
+      "created": "2026-11-07T16:52:17Z",
+      "hunk": "@@ -337,32 +337,96 @@ function heatmap(signal, rows, levels, refinements, pin) {\n     });\n   }\n \n-  return el(\"div\", {}, [\n-    el(\"div\", { class: \"scroller\" }, [\n-      el(\"table\", { class: \"heatmap\" }, [\n-        el(\"thead\", {}, [languageBands(columns), header]),\n-        ...groups,\n-      ]),\n+  const scroller = el(\"div\", { class: \"scroller\" }, [\n+    el(\"table\", { class: \"heatmap\" }, [\n+      el(\"thead\", {}, [header, languageBands(columns)]),\n+      ...groups,\n     ]),\n-    levelLegend(levels, refinements.length > 0),\n   ]);\n+  const rail = el(\n+    \"div\",\n+    { class: \"scroll-rail\", \"aria-hidden\": \"true\", tabindex: \"-1\" },\n+    [el(\"div\")],\n+  );\n+  const frame = el(\"div\", { class: \"scroll-frame\" }, [scroller, rail]);\n+  trackEdges(frame, scroller, rail);\n+  return el(\"div\", {}, [frame, levelLegend(levels, refinements.length > 0)]);\n+}\n+\n+let stopTrackingEdges = null;\n+\n+export function dispose() {\n+  stopTrackingEdges?.();\n+  stopTrackingEdges = null;\n+}\n+\n+/**\n+ * Flag the sides of the frame that have columns scrolled past them, or `fits`\n+ * when there are none, and publish `--pinned-w`, the pinned attribute column's\n+ * width, where the left shadow starts. The rail is a scrollbar held at the\n+ * bottom of the screen, kept as wide as the table and in step with it, since\n+ * the table's own is past the last row. Only the current heatmap listens for\n+ * size changes.\n+ */\n+function trackEdges(frame, scroller, rail) {\n+  const update = () => {\n+    const end = scroller.scrollWidth - scroller.clientWidth;\n+    frame.classList.toggle(\"fits\", end <= 1);\n+    frame.classList.toggle(\"more-left\", scroller.scrollLeft > 1);\n+    frame.classList.toggle(\"more-right\", scroller.scrollLeft < end - 1);\n+    const pinned = scroller.querySelector(\"th.attr\");",
+      "id": "PRRT_kwDOTuzK5c604qnb",
+      "opened": "2026-11-07T17:04:23Z",
+      "path": "docs/assets/views/signals.js",
+      "replies": [
+        {
+          "at": "2026-11-08T05:36:03Z",
+          "body": "Moved the pinned-column lookup and all size measurements and width writes into the resize callback. Scroll handlers now only update edge classes and synchronize offsets.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/474#discussion_r4505176846"
+        }
+      ],
+      "reviewed": "b3d7cf7a2d50b30c8641f6294c779ecb72b14b25",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/474#discussion_r4502845588"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "With the `max-height: 11rem; overflow: hidden` cap gone, the header is as tall as its longest column name, and here it also sticks. The longest names in the committed data are `elasticsearch-java elasticsearch native-instrumentation` (55 characters) and `github.com/emicklei/go-restful/v3 server otelrestful` (52). At 0.7rem monospace that is roughly 370px of header plus the language band, so when a table that fits includes one of these, about half a laptop screen stays covered while scrolling the rows.\n\nCould the names be capped again (the link's `title` and `aria-label` already carry the full name), or the header only stick when it's short enough?",
+      "created": "2026-11-07T16:52:17Z",
+      "hunk": "@@ -780,6 +871,16 @@ td.num {\n   color: var(--ink-3);\n   font-variant-numeric: tabular-nums;\n }\n+/* A table that fits the screen needs no pane of its own, so its header can\n+   stay in view while the page scrolls the rows under it. */\n+.scroll-frame.fits .scroller {\n+  overflow-x: visible;\n+}\n+.scroll-frame.fits .heatmap thead {",
+      "id": "PRRT_kwDOTuzK5c604qng",
+      "opened": "2026-11-07T17:04:23Z",
+      "path": "docs/assets/style.css",
+      "replies": [
+        {
+          "at": "2026-11-08T05:36:03Z",
+          "body": "Capped the header links at 10rem and split the labels into a prominent library name and a muted secondary line, including shortening native-instrumentation to native. Full names remain in tooltips and accessible labels. Headers pin only when they occupy at most one-third of the viewport height and the browser supports CSS view timelines and animation ranges; otherwise they scroll away normally.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/474#discussion_r4505176845"
+        }
+      ],
+      "reviewed": "b3d7cf7a2d50b30c8641f6294c779ecb72b14b25",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/474#discussion_r4502845594"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "With columns fixed at 1.6rem, a language with a single column on a signal leaves about 1rem for its name, so the band shows only a letter or two before the ellipsis. Ruby and .NET have two targets each in the committed data, so this will be common for them. Screen readers still get the whole name, but visually the band's `title` is the only way to read it, and touch users can't reach that.\n\nMaybe use a short code for narrow bands, or let a band set a minimum width for its columns?",
+      "created": "2026-11-07T16:52:17Z",
+      "hunk": "@@ -624,150 +630,235 @@ td.num {\n \n /* --- heatmap ------------------------------------------------------------- */\n \n-/* The heatmap is wider than the screen and longer than it, so it scrolls in\n-   its own pane rather than dragging the page sideways: one scrollbar per axis,\n-   and the header row parks under the controls band instead of behind it. The\n-   fallback is a band with one row of filters; `trackBand` replaces it with the\n-   measured height as soon as the page has one. */\n+/* The heatmap is wider than the screen, so it scrolls sideways in its own pane\n+   rather than dragging the page with it. Down is the page's job, so a swipe\n+   down the table never gets stuck inside it. */\n .scroller {\n-  overflow: auto;\n-  max-height: max(22rem, calc(100vh - var(--controls-h, 7rem) - 9rem));\n+  overflow-x: auto;\n   overscroll-behavior-x: contain;\n+  scrollbar-width: none;\n+}\n+.scroller::-webkit-scrollbar {\n+  display: none;\n+}\n+/* The table's own scrollbar is below its last row, often a screen or more\n+   away, so this one stands in for it: held at the bottom of the screen while\n+   the table is in view, and resting under the last row once that is. */\n+.scroll-rail {\n+  position: sticky;\n+  bottom: 0;\n+  z-index: 5;\n+  min-height: 1rem;\n+  overflow-x: auto;\n+  overflow-y: hidden;\n+  background: var(--bg);\n+}\n+.scroll-rail > div {\n+  height: 1px;\n+}\n+.scroll-frame.fits .scroll-rail {\n+  display: none;\n+}\n+\n+/* The scrollbar only says how far along the table is, so a shadow on each side\n+   that still has columns past it is what says where it goes on. The left one\n+   starts at the pinned attribute column's edge, which `trackEdges` in\n+   `signals.js` publishes as `--pinned-w`. */\n+.scroll-frame {\n+  position: relative;\n+}\n+.scroll-frame::before,\n+.scroll-frame::after {\n+  content: \"\";\n+  position: absolute;\n+  top: 0;\n+  bottom: 0;\n+  width: 1.25rem;\n+  pointer-events: none;\n+  opacity: 0;\n+  transition: opacity 0.15s;\n+  z-index: 4;\n+}\n+.scroll-frame::before {\n+  left: var(--pinned-w, 0);\n+  background: linear-gradient(\n+    to right,\n+    color-mix(in srgb, var(--ink) 16%, transparent),\n+    transparent\n+  );\n+}\n+.scroll-frame::after {\n+  right: 0;\n+  background: linear-gradient(\n+    to left,\n+    color-mix(in srgb, var(--ink) 16%, transparent),\n+    transparent\n+  );\n+}\n+.scroll-frame.more-left::before,\n+.scroll-frame.more-right::after {\n+  opacity: 1;\n }\n \n .heatmap {\n-  width: auto;\n+  width: max-content;\n   font-size: 0.8rem;\n   border-collapse: separate;\n   border-spacing: 0;\n }\n .heatmap th.attr {\n   position: sticky;\n   left: 0;\n-  background: var(--surface);\n   z-index: 2;\n+  background: var(--surface);\n   font-family: var(--mono);\n   font-size: 0.78rem;\n   font-weight: 400;\n   text-transform: none;\n   letter-spacing: 0;\n+  text-align: left;\n   white-space: nowrap;\n   border-right: 1px solid var(--line-strong);\n   color: var(--ink);\n }\n /* The attribute name is the row's label first and a registry link second, so it\n-   keeps the row's colour and only underlines under the pointer. */\n+   keeps the row's colour and only underlines under the pointer. The namespace\n+   is muted, so the part that differs between neighbours stands out. */\n .heatmap th.attr a {\n   color: inherit;\n   text-decoration: none;\n }\n .heatmap th.attr a:hover {\n   text-decoration: underline;\n }\n+.heatmap th.attr .ns {\n+  color: var(--ink-2);\n+}\n .heatmap thead th.attr {\n   z-index: 3;\n+  vertical-align: bottom;\n   background: var(--surface-2);\n }\n-.heatmap thead th.col {\n-  height: 11.5rem;\n-  padding: 0.3rem 0;\n+/* A target's name runs up its column on one line, so the column is only as\n+   wide as a cell. */\n+.heatmap thead th.col,\n+.heatmap thead th.tally {\n+  padding: 0.4rem 0;\n   vertical-align: bottom;\n-  background: var(--surface-2);\n+  text-align: center;\n   text-transform: none;\n   letter-spacing: 0;\n }\n-/* Rotated, and two blocks rather than one string: in vertical writing the block\n-   axis runs across the screen, so the lines sit side by side and the height is\n-   the longer one rather than their sum. `overflow` is a backstop. */\n-.heatmap thead th.col > a {\n-  display: block;\n+.heatmap thead th.col {\n+  width: 1.6rem;\n+  min-width: 1.6rem;\n+  max-width: 1.6rem;\n+  border-left: 1px solid var(--line);\n+}\n+.heatmap thead .upright {\n+  display: inline-block;\n   writing-mode: vertical-rl;\n   transform: rotate(180deg);\n+  white-space: nowrap;\n   font-family: var(--mono);\n+  font-size: 0.7rem;\n+  line-height: 1.25;\n   font-weight: 400;\n-  white-space: nowrap;\n-  max-height: 11rem;\n-  overflow: hidden;\n-  margin: 0 auto;\n   color: var(--ink);\n+  text-decoration: none;\n+}\n+.heatmap thead th.col > a > * + * {\n+  margin-inline-start: 0.5em;\n }\n .heatmap thead th.col b {\n-  display: block;\n-  font-weight: 400;\n-  font-size: 0.74rem;\n+  font-weight: 600;\n+}\n+.heatmap thead th.col span {\n+  color: var(--ink-2);\n }\n .heatmap thead th.col i {\n-  display: block;\n   font-style: normal;\n-  font-size: 0.68rem;\n   color: var(--ink-3);\n-  margin-right: 0.12rem;\n }\n-/* The one horizontal header: a count column reads as a count column, not as\n-   another rotated name. */\n-.heatmap thead th.tally {\n-  vertical-align: bottom;\n-  text-align: right;\n-  white-space: nowrap;\n+.heatmap thead th.col > a:hover,\n+.heatmap thead th.col > a:hover > * {\n+  color: var(--accent);\n+}\n+.heatmap thead th.col > a:hover {\n+  text-decoration: underline;\n+}\n+/* A count column reads as a count column, not as another target. */\n+.heatmap thead th.tally .upright {\n+  color: var(--ink-2);\n+}\n+.heatmap thead tr.band th {\n   background: var(--surface-2);\n-  padding: 0.3rem 0.5rem;\n-  width: 6rem;\n-  min-width: 6rem;\n }\n .heatmap thead tr.band th.band-cell {\n-  height: 1.5rem;\n-  padding: 0 0.3rem;\n-  text-align: center;\n-  background: var(--surface-2);\n+  position: relative;\n+  height: 1.3rem;\n+  padding: 0;\n+  text-align: left;\n   color: var(--ink-2);\n   font-size: 0.7rem;\n   text-transform: uppercase;\n   letter-spacing: 0.05em;\n   border-left: 1px solid var(--line-strong);\n   border-bottom: 1px solid var(--line);\n }\n-/* Two header rows, so the second one has to start where the first one ends. */\n-.heatmap thead th.col,\n-.heatmap thead th.tally,\n-.heatmap thead th.attr {\n-  top: 1.5rem;\n-}\n-.heatmap thead tr.band th {\n-  top: 0;\n+.heatmap thead tr.band th.band-cell > span {\n+  position: absolute;\n+  inset: 0;\n+  padding: 0 0.3rem;\n+  line-height: 1.3rem;\n+  overflow: hidden;\n+  text-overflow: ellipsis;",
+      "id": "PRRT_kwDOTuzK5c604qni",
+      "opened": "2026-11-07T17:04:23Z",
+      "path": "docs/assets/style.css",
+      "replies": [],
+      "reviewed": "b3d7cf7a2d50b30c8641f6294c779ecb72b14b25",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/474#discussion_r4502845602"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "The new `dispose` hook doesn't cover the other observer a view leaves behind. `target.js` still calls `trackBand(controls)`, and until this PR the signals view's own `trackBand` call is what disconnected it. Now going from a target page to a signal leaves `bandSize` observing the detached target band, which keeps that view's DOM alive until the next target page.\n\nIt's small, but now that views have a `dispose` hook, `target.js` could export one that disconnects the band observer (for example, by having `trackBand` return its disconnect function).",
+      "created": "2026-11-07T16:52:17Z",
+      "hunk": "@@ -36,9 +37,13 @@ function render(data) {\n   const { route, argument, params } = resolve();\n   let title = `${route.name} · conformance`;\n   try {\n+    activeView?.dispose?.();",
+      "id": "PRRT_kwDOTuzK5c604qnl",
+      "opened": "2026-11-07T17:04:23Z",
+      "path": "docs/assets/app.js",
+      "replies": [
+        {
+          "at": "2026-11-08T05:39:55Z",
+          "body": "Fixed in db039b20. trackBand now returns cleanup for its own observer, and the target view exports dispose and invokes it before rebuilding. The router releases that observer when leaving the target view. The test harness also disposes both views before restoring its globals, cancelling pending signal measurements.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/474#discussion_r4505184405"
+        }
+      ],
+      "reviewed": "b3d7cf7a2d50b30c8641f6294c779ecb72b14b25",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/474#discussion_r4502845606"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "Nit: this repeats the view's rule for `sided` from `signals.js` instead of sharing it, so if the view's rule changes, this test keeps checking the old one. A small helper in `data.js` (e.g. `columnNames(targets)`) would let the view and the test use the same code.",
+      "created": "2026-11-07T16:52:17Z",
+      "hunk": "@@ -210,10 +178,11 @@ test(\"every committed signal has distinct column labels within each language\", a\n   }));\n   const data = await load();\n   for (const signal of data.signals.values()) {\n-    const labels = distinguish(signal.rows.map((row) => row.target));\n+    const sided =",
+      "id": "PRRT_kwDOTuzK5c604qno",
+      "opened": "2026-11-07T17:04:23Z",
+      "path": "docs/tests/data.test.js",
+      "replies": [
+        {
+          "at": "2026-11-08T05:39:56Z",
+          "body": "Extracted hasMixedSides into data.js in db039b20. The view and committed-data uniqueness test now use the same side-qualifier rule, with the existing naming behavior preserved.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/474#discussion_r4505184409"
+        }
+      ],
+      "reviewed": "b3d7cf7a2d50b30c8641f6294c779ecb72b14b25",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/474#discussion_r4502845611"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "Nit: The text overflowing on the shadow looks a bit weird. I'm not sure what, if anything, to do about it.\n<img width=\"223\" height=\"69\" alt=\"Image\" src=\"https://github.com/user-attachments/assets/0d15581b-6e9b-4f24-addc-54cc7ed8ae33\" />",
+      "created": "2026-11-07T16:58:42Z",
+      "hunk": "",
+      "id": "PRRT_kwDOTuzK5c604viG",
+      "opened": "2026-11-07T17:04:23Z",
+      "path": "docs/assets/style.css",
+      "replies": [
+        {
+          "at": "2026-11-08T05:39:56Z",
+          "body": "Fixed in db039b20 by constraining the sticky heading to the measured attribute-column width and letting it wrap. The complete requirement label and count stay visible without crossing the edge shadow.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/474#discussion_r4505184412"
+        }
+      ],
+      "reviewed": "b3d7cf7a2d50b30c8641f6294c779ecb72b14b25",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/474#discussion_r4502878273"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "Nit: with `overflow: hidden` and no ellipsis, labels longer than the cap stop mid-word with no sign that they're cut. Going by the committed data, that's a few library names like `github.com/emicklei/go-restful/v3`, and about 15 second lines when sides are shown, like `client · otel-instrumentation-net_http` or `postgresql · otel-javaagent`. On the second line the part that gets cut is the distribution, which is what tells neighbouring columns apart.\r\n\r\nClipping each line instead would let it show an ellipsis, something like:\r\n\r\n```css\r\n.heatmap thead th.col b,\r\n.heatmap thead th.col .secondary {\r\n  overflow: hidden;\r\n  text-overflow: ellipsis;\r\n}\r\n```\r\n\r\nWith that we would see:\r\n<img width=\"38\" height=\"159\" alt=\"image\" src=\"https://github.com/user-attachments/assets/4f018a9c-006e-4dae-b840-c8d236decd11\" /> ... <img width=\"35\" height=\"158\" alt=\"image\" src=\"https://github.com/user-attachments/assets/755adbfc-55fc-4a55-a289-24d19d867853\" />\r\n",
+      "created": "2026-11-08T08:30:54Z",
+      "hunk": "@@ -624,150 +630,242 @@ td.num {\n \n /* --- heatmap ------------------------------------------------------------- */\n \n-/* The heatmap is wider than the screen and longer than it, so it scrolls in\n-   its own pane rather than dragging the page sideways: one scrollbar per axis,\n-   and the header row parks under the controls band instead of behind it. The\n-   fallback is a band with one row of filters; `trackBand` replaces it with the\n-   measured height as soon as the page has one. */\n+/* The heatmap is wider than the screen, so it scrolls sideways in its own pane\n+   rather than dragging the page with it. Down is the page's job, so a swipe\n+   down the table never gets stuck inside it. */\n .scroller {\n-  overflow: auto;\n-  max-height: max(22rem, calc(100vh - var(--controls-h, 7rem) - 9rem));\n+  overflow-x: auto;\n   overscroll-behavior-x: contain;\n+  scrollbar-width: none;\n+}\n+.scroller::-webkit-scrollbar {\n+  display: none;\n+}\n+/* The table's own scrollbar is below its last row, often a screen or more\n+   away, so this one stands in for it: held at the bottom of the screen while\n+   the table is in view, and resting under the last row once that is. */\n+.scroll-rail {\n+  position: sticky;\n+  bottom: 0;\n+  z-index: 5;\n+  min-height: 1rem;\n+  overflow-x: auto;\n+  overflow-y: hidden;\n+  background: var(--bg);\n+}\n+.scroll-rail > div {\n+  height: 1px;\n+}\n+.scroll-frame.fits .scroll-rail {\n+  display: none;\n+}\n+\n+/* The scrollbar only says how far along the table is, so a shadow on each side\n+   that still has columns past it is what says where it goes on. The left one\n+   starts at the pinned attribute column's edge, which `trackEdges` in\n+   `signals.js` publishes as `--pinned-w`. */\n+.scroll-frame {\n+  position: relative;\n+}\n+.scroll-frame::before,\n+.scroll-frame::after {\n+  content: \"\";\n+  position: absolute;\n+  top: 0;\n+  bottom: 0;\n+  width: 1.25rem;\n+  pointer-events: none;\n+  opacity: 0;\n+  transition: opacity 0.15s;\n+  z-index: 4;\n+}\n+.scroll-frame::before {\n+  left: var(--pinned-w, 0);\n+  background: linear-gradient(\n+    to right,\n+    color-mix(in srgb, var(--ink) 16%, transparent),\n+    transparent\n+  );\n+}\n+.scroll-frame::after {\n+  right: 0;\n+  background: linear-gradient(\n+    to left,\n+    color-mix(in srgb, var(--ink) 16%, transparent),\n+    transparent\n+  );\n+}\n+.scroll-frame.more-left::before,\n+.scroll-frame.more-right::after {\n+  opacity: 1;\n }\n \n .heatmap {\n-  width: auto;\n+  width: max-content;\n   font-size: 0.8rem;\n   border-collapse: separate;\n   border-spacing: 0;\n }\n .heatmap th.attr {\n   position: sticky;\n   left: 0;\n-  background: var(--surface);\n   z-index: 2;\n+  background: var(--surface);\n   font-family: var(--mono);\n   font-size: 0.78rem;\n   font-weight: 400;\n   text-transform: none;\n   letter-spacing: 0;\n+  text-align: left;\n   white-space: nowrap;\n   border-right: 1px solid var(--line-strong);\n   color: var(--ink);\n }\n /* The attribute name is the row's label first and a registry link second, so it\n-   keeps the row's colour and only underlines under the pointer. */\n+   keeps the row's colour and only underlines under the pointer. The namespace\n+   is muted, so the part that differs between neighbours stands out. */\n .heatmap th.attr a {\n   color: inherit;\n   text-decoration: none;\n }\n .heatmap th.attr a:hover {\n   text-decoration: underline;\n }\n+.heatmap th.attr .ns {\n+  color: var(--ink-2);\n+}\n .heatmap thead th.attr {\n   z-index: 3;\n+  vertical-align: bottom;\n   background: var(--surface-2);\n }\n-.heatmap thead th.col {\n-  height: 11.5rem;\n-  padding: 0.3rem 0;\n+/* Two vertical lines keep the library separate from its qualifier and\n+   distribution, with the secondary line starting a little farther up. */\n+.heatmap thead th.col,\n+.heatmap thead th.tally {\n+  padding: 0.4rem 0;\n   vertical-align: bottom;\n-  background: var(--surface-2);\n+  text-align: center;\n   text-transform: none;\n   letter-spacing: 0;\n }\n-/* Rotated, and two blocks rather than one string: in vertical writing the block\n-   axis runs across the screen, so the lines sit side by side and the height is\n-   the longer one rather than their sum. `overflow` is a backstop. */\n-.heatmap thead th.col > a {\n-  display: block;\n+.heatmap thead th.col {\n+  width: 2.4rem;\n+  min-width: 2.4rem;\n+  max-width: 2.4rem;\n+  border-left: 1px solid var(--line);\n+}\n+.heatmap thead .upright {\n+  display: inline-block;\n   writing-mode: vertical-rl;\n   transform: rotate(180deg);\n+  white-space: nowrap;\n   font-family: var(--mono);\n+  font-size: 0.7rem;\n+  line-height: 1.25;\n   font-weight: 400;\n-  white-space: nowrap;\n-  max-height: 11rem;\n-  overflow: hidden;\n-  margin: 0 auto;\n   color: var(--ink);\n+  text-decoration: none;\n+}\n+.heatmap thead th.col > a {\n+  max-height: 10rem;\n+  overflow: hidden;",
+      "id": "PRRT_kwDOTuzK5c60_IzC",
+      "opened": "2026-11-08T09:32:53Z",
+      "path": "docs/assets/style.css",
+      "replies": [],
+      "reviewed": "db039b20006984adeca161312a4905dcdb2cb5ac",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/474#discussion_r4505571000"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "kamphaus"
+      },
+      "body": "Nit: this part reads more like notes on the implementation (ignoring scroll echoes, releasing observers on dispose) than documentation for someone using or working on the site, and it will drift as the code changes. The code comments already cover it. I'd keep the label format and when headers stay pinned, and drop the rest.",
+      "created": "2026-11-08T08:30:55Z",
+      "hunk": "@@ -25,6 +25,25 @@ The browser compares signals by type and name. If two runners provide conflictin\n declarations, loading fails rather than comparing targets against the wrong\n registry. Coverage interpretation is documented in [`tools/report`](../tools/report).\n \n+Heatmap column labels have two vertical lines: the library, then an indented\n+qualifier and shortened distribution name. Labels are capped at 10rem; tooltips\n+and accessible names retain the full target names.\n+\n+In browsers that support CSS view timelines and animation ranges, headers stay\n+visible while scrolling when they occupy at most one-third of the viewport height,\n+including horizontally scrolling tables. The timeline moves the existing header\n+within its table and stops at the last row, preserving column alignment and\n+accessible table relationships.\n+\n+Taller headers and all headers in unsupported browsers scroll away with the page.\n+There is no JavaScript pinning fallback. The height condition is recalculated when\n+the viewport or table size changes, not while scrolling.\n+\n+The horizontal scrollbar and table ignore matching programmatic scroll echoes\n+while preserving new user input. Requirement-group headings wrap within the\n+pinned attribute column, and emission indicators have accessible status labels.\n+View disposal releases resize observers, pending measurements, and listeners.",
+      "id": "PRRT_kwDOTuzK5c60_IzF",
+      "opened": "2026-11-08T09:32:53Z",
+      "path": "docs/README.md",
+      "replies": [],
+      "reviewed": "db039b20006984adeca161312a4905dcdb2cb5ac",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/474#discussion_r4505571007"
+    }
+  ]
+}

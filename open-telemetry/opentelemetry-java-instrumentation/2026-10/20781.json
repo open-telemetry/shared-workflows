@@ -1,0 +1,25 @@
+{
+  "head": "c43b7e97f935f67108d0373f76dea1dd68d91a07",
+  "merge": "85a977f52f3563d3976165f92e3ba80ef55a3e7f",
+  "merged": "2026-10-21T08:06:46Z",
+  "missing_roots": 0,
+  "number": 20781,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Wondering whether we could use the same approach to replace the experimental `jaxrs.canceled` span attribute. Although the framework specific instrumentation metadata includes that attribute it really seems to be emitted only from the annotation instrumentation.",
+      "created": "2026-10-21T08:05:53Z",
+      "hunk": "@@ -104,6 +104,13 @@ public Integer getHttpResponseStatusCode(\n     return getStatusCode(response.getResponse());\n   }\n \n+  @Nullable\n+  @Override\n+  public String getErrorType(\n+      ServerWebExchange request, @Nullable ServerWebExchange response, @Nullable Throwable error) {\n+    return response == null && error == null ? \"cancelled\" : null;",
+      "id": "PRRT_kwDODJKVX86urNdx",
+      "opened": "2026-10-21T08:05:53Z",
+      "path": "instrumentation/spring/spring-webflux/spring-webflux-5.3/library/src/main/java/io/opentelemetry/instrumentation/spring/webflux/v5_3/WebfluxServerHttpAttributesGetter.java",
+      "replies": [],
+      "reviewed": "c43b7e97f935f67108d0373f76dea1dd68d91a07",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20781#discussion_r4334431396"
+    }
+  ]
+}

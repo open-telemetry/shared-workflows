@@ -1,0 +1,52 @@
+{
+  "head": "8539f6fe3c4a13509d99b896f596abb857095bae",
+  "merge": "8ff60d57650a170dcb7201b43bbe06cb9993e993",
+  "merged": "2026-11-06T05:27:09Z",
+  "missing_roots": 0,
+  "number": 21218,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Remove only the redundant sources { java { setSrcDirs(listOf(\"src/version310Test/java\")) } } block inside the version310Test registration in instrumentation/aws-lambda/aws-lambda-events-common-2.2/library/build.gradle.kts. src/version310Test/java is already this JvmTestSuite's default Java source directory. Keep all dependency inheritance, version selection, execution configuration and check wiring unchanged. Verify the resolved Java source directories and test discovery remain equivalent. Do not modify other AWS modules.\n\nUpdate this existing PR directly on its existing head branch, not a new PR. Keep the PR's current draft/ready state. Preserve behavior, test discovery, dependency graphs, test task names, configuration flags, metadata profiles, JDK/denyUnsafe gates, agent inputs/providers, and check membership except for the explicitly requested removal of redundant wiring or duplicate compilation. Do not edit PR titles or descriptions.\n\nRead applicable repository guidance. Run the narrowest applicable spotlessApply directly before focused verification, never spotlessCheck first. Verify relevant check graphs and task configuration in baseline and testLatestDeps modes without first manually realizing all suites. Run focused existing tests where relevant and feasible, and report exact results or environment blockers in completion evidence. Do not clean, bypass caches, run a whole-repository build, wait for hosted CI, or expand the change into unrelated cleanup. Commit and push the intended changes to this PR's existing head.",
+      "created": "2026-11-06T00:46:12Z",
+      "hunk": "@@ -32,49 +32,39 @@ dependencies {\n   implementation(\"io.opentelemetry.contrib:opentelemetry-aws-xray-propagator\")\n }\n \n-testing {\n-  suites {\n-    named<JvmTestSuite>(\"test\") {\n-      executions {\n-        configureEach {\n-          // required on jdk17\n-          jvmArgs(\"--add-opens=java.base/java.lang=ALL-UNNAMED\")\n-          jvmArgs(\"--add-opens=java.base/java.util=ALL-UNNAMED\")\n-          jvmArgs(\"-XX:+IgnoreUnrecognizedVMOptions\")\n-        }\n+testing.suites {\n+  register<JvmTestSuite>(\"version310Test\") {\n+    sources {\n+      java {\n+        setSrcDirs(listOf(\"src/version310Test/java\"))",
+      "id": "PRRT_kwDODJKVX860VXCE",
+      "opened": "2026-11-06T00:46:12Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-events-common-2.2/library/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-06T00:56:00Z",
+          "body": "Removed the redundant `sources { java { setSrcDirs(...) } }` block in commit `48b87c05`. The `version310Test` suite still compiled the source under `src/version310Test/java` and discovered and passed all 10 `SerializationUtilTest` cases in both baseline and `testLatestDeps` runs.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21218#discussion_r4487861818"
+        }
+      ],
+      "reviewed": "a76f9ca968569c70be5b8dee8ea96b4b698622e5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21218#discussion_r4487797705"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Simplify only instrumentation/aws-sdk/aws-sdk-2.2/library-autoconfigure/build.gradle.kts in this existing AWS Gradle PR. Move its shared tasks.withType<Test>().configureEach property configuration into an unqualified executions { configureEach { ... } } block at the end of the existing testing.suites container, after the testRdsData registration. Import io.opentelemetry.instrumentation.gradle.executions.\n\nMove all five existing systemProperty calls unchanged, preserving their values and types: otel.instrumentation.aws-sdk.experimental-span-attributes, otel.instrumentation.aws-sdk.experimental-record-individual-http-error, otel.instrumentation.common.messaging.headers.included, otel.instrumentation.common.messaging.headers.excluded, and testLatestDeps. Remove the emptied task-wide Test configuration block, but preserve check depending on testing.suites, the testRdsData suite and its dependencies, and baseline/latest behavior. There are no existing execution declarations in this file to overlap.\n\nThis is a scope-only cleanup, not a metadata change. Do not convert these properties to telemetryConfig or add metadata labels. Do not modify the manual builder-call metadata labels in either AWS SDK plain-library module, change production code or shared conventions, add variants, or modify other AWS modules.\n\nUpdate this existing PR directly on its existing head branch, not a new PR. Keep the PR's current draft/ready state. Preserve behavior, test discovery, dependency graphs, test task names, configuration flags, metadata profiles, JDK/denyUnsafe gates, agent inputs/providers, and check membership except for the explicitly requested removal of redundant wiring or duplicate compilation. Do not edit PR titles or descriptions.\n\nRead applicable repository guidance. Run the narrowest applicable spotlessApply directly before focused verification, never spotlessCheck first. Verify relevant check graphs and task configuration in baseline and testLatestDeps modes without first manually realizing all suites. Run focused existing tests where relevant and feasible, and report exact results or environment blockers in completion evidence. Do not clean, bypass caches, run a whole-repository build, wait for hosted CI, or expand the change into unrelated cleanup. Commit and push the intended changes to this PR's existing head.",
+      "created": "2026-11-06T01:24:26Z",
+      "hunk": "@@ -24,15 +24,13 @@ dependencies {\n   testLibrary(\"software.amazon.awssdk:sqs:2.2.0\")\n }\n \n-testing {\n-  suites {\n-    register<JvmTestSuite>(\"testRdsData\") {\n-      dependencies {\n-        implementation(project())\n-        implementation(project(\":instrumentation:aws-sdk:aws-sdk-2.2:testing\"))\n-        val version = baseVersion(\"2.5.54\").orLatest()\n-        implementation(\"software.amazon.awssdk:rdsdata:$version\")\n-      }\n+testing.suites {",
+      "id": "PRRT_kwDODJKVX860V4yk",
+      "opened": "2026-11-06T01:24:26Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library-autoconfigure/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-06T01:33:10Z",
+          "body": "Moved the five unchanged system properties into the unqualified execution `configureEach` block after `testRdsData`, retaining the suite dependencies and `check` wiring. Baseline/latest `check --dry-run` graphs both included `testRdsData`; its tests passed in both modes. Commit: `8539f6fe`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21218#discussion_r4488084558"
+        }
+      ],
+      "reviewed": "48b87c05339d8827759fa215f1b176082748367c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21218#discussion_r4488026690"
+    }
+  ]
+}

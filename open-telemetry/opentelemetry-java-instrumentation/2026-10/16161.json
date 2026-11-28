@@ -1,0 +1,418 @@
+{
+  "head": "8bc626922cdb7bb6bae41ef40b8f77a4fffbc47a",
+  "merge": "c588c17abb8a7ac006ed1c8bc5173cb9c8c987fd",
+  "merged": "2026-10-26T17:44:33Z",
+  "missing_roots": 0,
+  "number": 16161,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "<img width=\"402\" height=\"55\" alt=\"Image\" src=\"https://github.com/user-attachments/assets/d5949b9c-8436-44cb-9173-83e906f6a9d6\" />\n\n🫠 \n\nhow do you feel about depending on [it](https://github.com/grpc/grpc-java/blob/master/api/src/main/java/io/grpc/InternalManagedChannelBuilder.java)?",
+      "created": "2026-02-13T01:17:51Z",
+      "hunk": "@@ -6,15 +6,49 @@\n package io.opentelemetry.instrumentation.grpc.v1_6;\n \n import io.grpc.ClientInterceptor;\n+import io.grpc.ManagedChannelBuilder;\n import io.grpc.ServerInterceptor;\n import io.grpc.Status;\n import io.opentelemetry.api.OpenTelemetry;\n import io.opentelemetry.context.propagation.ContextPropagators;\n import io.opentelemetry.instrumentation.api.instrumenter.Instrumenter;\n+import io.opentelemetry.instrumentation.grpc.v1_6.internal.Internal;\n+import java.lang.reflect.Method;\n+import java.util.logging.Level;\n+import java.util.logging.Logger;\n+import javax.annotation.Nullable;\n \n /** Entrypoint for instrumenting gRPC servers or clients. */\n public final class GrpcTelemetry {\n \n+  private static final Logger logger = Logger.getLogger(GrpcTelemetry.class.getName());\n+\n+  // Reflective access to InternalManagedChannelBuilder.interceptWithTarget (available since gRPC\n+  // 1.64.0). Uses the public static accessor instead of the protected method on\n+  // ManagedChannelBuilder to avoid needing setAccessible(true).\n+  @Nullable private static final Method interceptWithTargetMethod;\n+  @Nullable private static final Class<?> interceptorFactoryClass;\n+\n+  static {\n+    Method method = null;\n+    Class<?> factoryClass = null;\n+    try {\n+      Class<?> internalBuilder = Class.forName(\"io.grpc.InternalManagedChannelBuilder\");",
+      "id": "PRRT_kwDODJKVX85uXsWx",
+      "opened": "2026-02-13T01:17:51Z",
+      "path": "instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/GrpcTelemetry.java",
+      "replies": [
+        {
+          "at": "2026-02-13T15:49:17Z",
+          "body": "Java agent (auto-)instrumentation doesn't rely on it.\r\n\r\nFor library instrumentation, we could ask user to pass in the `target` directly to us to we don't need to rely on it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r2804875494"
+        }
+      ],
+      "reviewed": "c45ee6162b198de2eec882c0f8a33da8838b65ca",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r2801809405"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "could import `java.lang.reflect.Proxy`",
+      "created": "2026-02-17T11:33:52Z",
+      "hunk": "@@ -44,13 +78,50 @@ public static GrpcTelemetryBuilder builder(OpenTelemetry openTelemetry) {\n     this.emitMessageEvents = emitMessageEvents;\n   }\n \n+  /**\n+   * Configures the given {@link ManagedChannelBuilder} with OpenTelemetry tracing instrumentation.\n+   *\n+   * <p>On gRPC 1.64.0+, this method automatically captures the channel's target string for\n+   * populating {@code server.address} and {@code server.port} attributes. On older gRPC versions,\n+   * it falls back to using the channel's authority.\n+   *\n+   * <p>This is the recommended way to instrument a gRPC channel, instead of calling {@link\n+   * #createClientInterceptor()} and adding the interceptor manually.\n+   *\n+   * @param builder the channel builder to configure\n+   */\n+  @SuppressWarnings(\"unchecked\")\n+  public void addClientInterceptor(ManagedChannelBuilder<?> builder) {\n+    if (interceptWithTargetMethod != null && interceptorFactoryClass != null) {\n+      try {\n+        Object factory =\n+            java.lang.reflect.Proxy.newProxyInstance(",
+      "id": "PRRT_kwDODJKVX85vCQUg",
+      "opened": "2026-02-17T11:33:51Z",
+      "path": "instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/GrpcTelemetry.java",
+      "replies": [
+        {
+          "at": "2026-02-17T15:53:20Z",
+          "body": "Plug for\r\n- https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16160",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r2817772767"
+        }
+      ],
+      "reviewed": "ce227897e587dd2dd5c5d0074d95710f6c9e823e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r2816568405"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "perhaps it would be safer to check that the expected method `newInterceptor` is called",
+      "created": "2026-02-17T11:38:02Z",
+      "hunk": "@@ -44,13 +78,50 @@ public static GrpcTelemetryBuilder builder(OpenTelemetry openTelemetry) {\n     this.emitMessageEvents = emitMessageEvents;\n   }\n \n+  /**\n+   * Configures the given {@link ManagedChannelBuilder} with OpenTelemetry tracing instrumentation.\n+   *\n+   * <p>On gRPC 1.64.0+, this method automatically captures the channel's target string for\n+   * populating {@code server.address} and {@code server.port} attributes. On older gRPC versions,\n+   * it falls back to using the channel's authority.\n+   *\n+   * <p>This is the recommended way to instrument a gRPC channel, instead of calling {@link\n+   * #createClientInterceptor()} and adding the interceptor manually.\n+   *\n+   * @param builder the channel builder to configure\n+   */\n+  @SuppressWarnings(\"unchecked\")\n+  public void addClientInterceptor(ManagedChannelBuilder<?> builder) {\n+    if (interceptWithTargetMethod != null && interceptorFactoryClass != null) {\n+      try {\n+        Object factory =\n+            java.lang.reflect.Proxy.newProxyInstance(\n+                ManagedChannelBuilder.class.getClassLoader(),\n+                new Class<?>[] {interceptorFactoryClass},\n+                (proxy, method, args) -> {\n+                  String target = (String) args[0];",
+      "id": "PRRT_kwDODJKVX85vCUBP",
+      "opened": "2026-02-17T11:38:02Z",
+      "path": "instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/GrpcTelemetry.java",
+      "replies": [],
+      "reviewed": "ce227897e587dd2dd5c5d0074d95710f6c9e823e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r2816589189"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "perhaps it would be better to just invoke other methods on the original instance\n```suggestion\n                  return method.invoke(builder, args);\n```",
+      "created": "2026-02-25T07:57:20Z",
+      "hunk": "@@ -44,13 +79,53 @@ public static GrpcTelemetryBuilder builder(OpenTelemetry openTelemetry) {\n     this.emitMessageEvents = emitMessageEvents;\n   }\n \n+  /**\n+   * Configures the given {@link ManagedChannelBuilder} with OpenTelemetry tracing instrumentation.\n+   *\n+   * <p>On gRPC 1.64.0+, this method automatically captures the channel's target string for\n+   * populating {@code server.address} and {@code server.port} attributes. On older gRPC versions,\n+   * it falls back to using the channel's authority.\n+   *\n+   * <p>This is the recommended way to instrument a gRPC channel, instead of calling {@link\n+   * #createClientInterceptor()} and adding the interceptor manually.\n+   *\n+   * @param builder the channel builder to configure\n+   */\n+  @SuppressWarnings(\"unchecked\")\n+  public void addClientInterceptor(ManagedChannelBuilder<?> builder) {\n+    if (interceptWithTargetMethod != null && interceptorFactoryClass != null) {\n+      try {\n+        Object factory =\n+            Proxy.newProxyInstance(\n+                ManagedChannelBuilder.class.getClassLoader(),\n+                new Class<?>[] {interceptorFactoryClass},\n+                (proxy, method, args) -> {\n+                  if (\"newInterceptor\".equals(method.getName())) {\n+                    String target = (String) args[0];\n+                    return newTracingClientInterceptor(target);\n+                  }\n+                  return null;",
+      "id": "PRRT_kwDODJKVX85wmlsA",
+      "opened": "2026-02-25T07:57:20Z",
+      "path": "instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/GrpcTelemetry.java",
+      "replies": [],
+      "reviewed": "605fb39919a84283acd4317278a552ec6dd42f5b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r2851446150"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "In the proxy invocation handler, non-\"newInterceptor\" calls are forwarded to the ManagedChannelBuilder instance (method.invoke(builder, ...)). For Object methods this changes proxy semantics (e.g., proxy.equals(builder) can become true via builder.equals(builder)) and can cause surprising behavior if gRPC ever calls equals/hashCode on the factory. Handle Object methods explicitly (identity-based equals/hashCode/toString), and avoid invoking factory-interface methods on the builder instance.\n",
+      "created": "2026-05-12T01:58:29Z",
+      "hunk": "@@ -44,13 +80,53 @@ public static GrpcTelemetryBuilder builder(OpenTelemetry openTelemetry) {\n     this.emitMessageEvents = emitMessageEvents;\n   }\n \n+  /**\n+   * Configures the given {@link ManagedChannelBuilder} with OpenTelemetry tracing instrumentation.\n+   *\n+   * <p>On gRPC 1.64.0+, this method automatically captures the channel's target string for\n+   * populating {@code server.address} and {@code server.port} attributes. On older gRPC versions,\n+   * it falls back to using the channel's authority.\n+   *\n+   * <p>This is the recommended way to instrument a gRPC channel, instead of calling {@link\n+   * #createClientInterceptor()} and adding the interceptor manually.\n+   *\n+   * @param builder the channel builder to configure\n+   */\n+  @SuppressWarnings(\"unchecked\")\n+  public void addClientInterceptor(ManagedChannelBuilder<?> builder) {\n+    if (interceptWithTargetMethod != null && interceptorFactoryClass != null) {\n+      try {\n+        Object factory =\n+            Proxy.newProxyInstance(\n+                ManagedChannelBuilder.class.getClassLoader(),\n+                new Class<?>[] {interceptorFactoryClass},\n+                (proxy, method, args) -> {\n+                  if (\"newInterceptor\".equals(method.getName())) {\n+                    String target = (String) args[0];\n+                    return newTracingClientInterceptor(target);\n+                  }\n+                  return method.invoke(builder, args);",
+      "id": "PRRT_kwDODJKVX86BRWCR",
+      "opened": "2026-05-12T01:58:29Z",
+      "path": "instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/GrpcTelemetry.java",
+      "replies": [
+        {
+          "at": "2026-05-12T02:38:23Z",
+          "body": "Fixed in 3c7ab54fc0157a127cbf1bc886ca2dfb9820ceda — `Object` methods (`equals`/`hashCode`/`toString`) now use identity semantics rather than being forwarded to the `ManagedChannelBuilder` instance.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r3223363382"
+        }
+      ],
+      "reviewed": "ba101bb2f766cc55b87b4483c3cbd78e3d2fe83e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r3223232102"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The authority parsing helpers split on the first ':' which breaks IPv6 authorities like \"[::1]:8080\" (host becomes \"[\" and port parse fails). Since this code is now the fallback path when a target isn't available, it will produce incorrect server.address/server.port for IPv6 endpoints. Consider reusing the bracket-aware parsing logic from GrpcTargetParser (or implement equivalent handling here).",
+      "created": "2026-05-12T01:58:29Z",
+      "hunk": "@@ -97,4 +155,32 @@ public Long getResponseSize() {\n   public void setResponseSize(Long responseSize) {\n     this.responseSize = responseSize;\n   }\n+\n+  @Nullable\n+  private static String hostFromAuthority(@Nullable String authority) {\n+    if (authority == null) {\n+      return null;\n+    }\n+    int index = authority.indexOf(':');\n+    if (index == -1) {\n+      return authority;\n+    }\n+    return authority.substring(0, index);\n+  }\n+\n+  @Nullable\n+  private static Integer portFromAuthority(@Nullable String authority) {\n+    if (authority == null) {\n+      return null;\n+    }\n+    int index = authority.indexOf(':');\n+    if (index == -1) {\n+      return null;\n+    }\n+    try {\n+      return Integer.parseInt(authority.substring(index + 1));\n+    } catch (NumberFormatException e) {\n+      return null;\n+    }",
+      "id": "PRRT_kwDODJKVX86BRWCu",
+      "opened": "2026-05-12T01:58:29Z",
+      "path": "instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/GrpcRequest.java",
+      "replies": [
+        {
+          "at": "2026-05-12T02:38:29Z",
+          "body": "Fixed in 96342415fe235fc6f9ef33c220d184cf704afff5 — promoted the bracket-aware parser in `GrpcTargetParser` to a `parseAuthority(...)` helper and routed both the client fallback and `createServerRequest` through it, so authority and target parsing share a single source of truth.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r3223363699"
+        }
+      ],
+      "reviewed": "ba101bb2f766cc55b87b4483c3cbd78e3d2fe83e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r3223232144"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`parseHostPort(\"\")` currently returns a `ParsedTarget` with an empty-string address. That can lead to emitting `server.address=\"\"` (empty) on spans when the target/authority endpoint is empty (e.g., `dns:///`). Consider returning `null` for empty input (and letting callers treat it as unavailable) to avoid setting invalid semconv attributes.",
+      "created": "2026-05-12T02:46:43Z",
+      "hunk": "@@ -0,0 +1,159 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.grpc.v1_6.internal;\n+\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Parses gRPC target strings into server address and port per the <a\n+ * href=\"https://grpc.github.io/grpc/core/md_doc_naming.html\">gRPC Name Resolution spec</a> and <a\n+ * href=\"https://github.com/open-telemetry/semantic-conventions/pull/3317\">semantic conventions</a>.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class GrpcTargetParser {\n+\n+  private GrpcTargetParser() {}\n+\n+  @Nullable\n+  public static ParsedTarget parse(@Nullable String target) {\n+    if (target == null || target.isEmpty()) {\n+      return null;\n+    }\n+\n+    int schemeEnd = target.indexOf(\"://\");\n+    if (schemeEnd == -1) {\n+      // Check for single-colon scheme like \"dns:endpoint\" or \"unix:/path\"\n+      int colonIndex = target.indexOf(':');\n+      if (colonIndex == -1) {\n+        // No scheme, no port — just a host name\n+        return new ParsedTarget(target, null);\n+      }\n+\n+      String potentialScheme = target.substring(0, colonIndex);\n+      if (isKnownScheme(potentialScheme)) {\n+        return parseSingleColonScheme(potentialScheme, target.substring(colonIndex + 1));\n+      }\n+\n+      // No known scheme — treat as \"host:port\"\n+      return parseHostPort(target);\n+    }\n+\n+    String scheme = target.substring(0, schemeEnd);\n+    String rest = target.substring(schemeEnd + 3); // after \"://\"\n+\n+    if (\"dns\".equals(scheme)) {\n+      return parseDnsScheme(rest);\n+    }\n+\n+    if (\"unix\".equals(scheme) || \"unix-abstract\".equals(scheme)) {\n+      // unix://authority/path — the path (after authority) is the address\n+      int slashIndex = rest.indexOf('/');\n+      if (slashIndex != -1) {\n+        return new ParsedTarget(rest.substring(slashIndex), null);\n+      }\n+      return new ParsedTarget(rest, null);\n+    }\n+\n+    // Unknown scheme with \"://\" — use full target string as address, no port\n+    return new ParsedTarget(target, null);\n+  }\n+\n+  /**\n+   * Parses an HTTP/2 authority of the form {@code host}, {@code host:port}, or {@code\n+   * [ipv6]:port} into address and port. Returns {@code null} for {@code null}/empty input.\n+   */\n+  @Nullable\n+  public static ParsedTarget parseAuthority(@Nullable String authority) {\n+    if (authority == null || authority.isEmpty()) {\n+      return null;\n+    }\n+    return parseHostPort(authority);\n+  }\n+\n+  private static ParsedTarget parseSingleColonScheme(String scheme, String rest) {\n+    if (\"dns\".equals(scheme)) {\n+      return parseHostPort(rest);\n+    }\n+\n+    if (\"unix\".equals(scheme) || \"unix-abstract\".equals(scheme)) {\n+      return new ParsedTarget(rest, null);\n+    }\n+\n+    // ipv4:, ipv6:, or other — full target as address\n+    return new ParsedTarget(scheme + \":\" + rest, null);\n+  }\n+\n+  private static ParsedTarget parseDnsScheme(String rest) {\n+    int slashIndex = rest.indexOf('/');\n+    String endpoint;\n+    if (slashIndex != -1) {\n+      endpoint = rest.substring(slashIndex + 1);\n+    } else {\n+      endpoint = rest;\n+    }\n+    return parseHostPort(endpoint);\n+  }\n+\n+  private static ParsedTarget parseHostPort(String hostPort) {\n+    if (hostPort.isEmpty()) {\n+      return new ParsedTarget(hostPort, null);\n+    }",
+      "id": "PRRT_kwDODJKVX86BRxJT",
+      "opened": "2026-05-12T02:46:44Z",
+      "path": "instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/internal/GrpcTargetParser.java",
+      "replies": [
+        {
+          "at": "2026-05-12T03:07:35Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161/commits/5264e1e26f3",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r3223445926"
+        }
+      ],
+      "reviewed": "96342415fe235fc6f9ef33c220d184cf704afff5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r3223386336"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "When the input is `host:port` but the port is missing/invalid (e.g., `\"myhost:\"` or `\"myhost:abc\"`), `parseHostPort` returns the full original string as the address. This regresses the previous behavior (host extracted, port omitted) and can result in `server.address` incorrectly containing a colon/port fragment. Consider returning `host` with a null port when `parsePort(...)` fails (and add a unit test for this case).\n",
+      "created": "2026-05-12T02:46:43Z",
+      "hunk": "@@ -0,0 +1,159 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.grpc.v1_6.internal;\n+\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Parses gRPC target strings into server address and port per the <a\n+ * href=\"https://grpc.github.io/grpc/core/md_doc_naming.html\">gRPC Name Resolution spec</a> and <a\n+ * href=\"https://github.com/open-telemetry/semantic-conventions/pull/3317\">semantic conventions</a>.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class GrpcTargetParser {\n+\n+  private GrpcTargetParser() {}\n+\n+  @Nullable\n+  public static ParsedTarget parse(@Nullable String target) {\n+    if (target == null || target.isEmpty()) {\n+      return null;\n+    }\n+\n+    int schemeEnd = target.indexOf(\"://\");\n+    if (schemeEnd == -1) {\n+      // Check for single-colon scheme like \"dns:endpoint\" or \"unix:/path\"\n+      int colonIndex = target.indexOf(':');\n+      if (colonIndex == -1) {\n+        // No scheme, no port — just a host name\n+        return new ParsedTarget(target, null);\n+      }\n+\n+      String potentialScheme = target.substring(0, colonIndex);\n+      if (isKnownScheme(potentialScheme)) {\n+        return parseSingleColonScheme(potentialScheme, target.substring(colonIndex + 1));\n+      }\n+\n+      // No known scheme — treat as \"host:port\"\n+      return parseHostPort(target);\n+    }\n+\n+    String scheme = target.substring(0, schemeEnd);\n+    String rest = target.substring(schemeEnd + 3); // after \"://\"\n+\n+    if (\"dns\".equals(scheme)) {\n+      return parseDnsScheme(rest);\n+    }\n+\n+    if (\"unix\".equals(scheme) || \"unix-abstract\".equals(scheme)) {\n+      // unix://authority/path — the path (after authority) is the address\n+      int slashIndex = rest.indexOf('/');\n+      if (slashIndex != -1) {\n+        return new ParsedTarget(rest.substring(slashIndex), null);\n+      }\n+      return new ParsedTarget(rest, null);\n+    }\n+\n+    // Unknown scheme with \"://\" — use full target string as address, no port\n+    return new ParsedTarget(target, null);\n+  }\n+\n+  /**\n+   * Parses an HTTP/2 authority of the form {@code host}, {@code host:port}, or {@code\n+   * [ipv6]:port} into address and port. Returns {@code null} for {@code null}/empty input.\n+   */\n+  @Nullable\n+  public static ParsedTarget parseAuthority(@Nullable String authority) {\n+    if (authority == null || authority.isEmpty()) {\n+      return null;\n+    }\n+    return parseHostPort(authority);\n+  }\n+\n+  private static ParsedTarget parseSingleColonScheme(String scheme, String rest) {\n+    if (\"dns\".equals(scheme)) {\n+      return parseHostPort(rest);\n+    }\n+\n+    if (\"unix\".equals(scheme) || \"unix-abstract\".equals(scheme)) {\n+      return new ParsedTarget(rest, null);\n+    }\n+\n+    // ipv4:, ipv6:, or other — full target as address\n+    return new ParsedTarget(scheme + \":\" + rest, null);\n+  }\n+\n+  private static ParsedTarget parseDnsScheme(String rest) {\n+    int slashIndex = rest.indexOf('/');\n+    String endpoint;\n+    if (slashIndex != -1) {\n+      endpoint = rest.substring(slashIndex + 1);\n+    } else {\n+      endpoint = rest;\n+    }\n+    return parseHostPort(endpoint);\n+  }\n+\n+  private static ParsedTarget parseHostPort(String hostPort) {\n+    if (hostPort.isEmpty()) {\n+      return new ParsedTarget(hostPort, null);\n+    }\n+\n+    // Handle IPv6 in brackets: [::1]:8080\n+    if (hostPort.startsWith(\"[\")) {\n+      int closeBracket = hostPort.indexOf(']');\n+      if (closeBracket != -1) {\n+        String host = hostPort.substring(1, closeBracket);\n+        if (closeBracket + 1 < hostPort.length() && hostPort.charAt(closeBracket + 1) == ':') {\n+          Integer port = parsePort(hostPort.substring(closeBracket + 2));\n+          return new ParsedTarget(host, port);\n+        }\n+        return new ParsedTarget(host, null);\n+      }\n+    }\n+\n+    int lastColon = hostPort.lastIndexOf(':');\n+    if (lastColon == -1) {\n+      return new ParsedTarget(hostPort, null);\n+    }\n+\n+    // Multiple colons — likely bare IPv6, use as-is\n+    int firstColon = hostPort.indexOf(':');\n+    if (firstColon != lastColon) {\n+      return new ParsedTarget(hostPort, null);\n+    }\n+\n+    String host = hostPort.substring(0, lastColon);\n+    Integer port = parsePort(hostPort.substring(lastColon + 1));\n+    if (port != null) {\n+      return new ParsedTarget(host, port);\n+    }\n+    return new ParsedTarget(hostPort, null);",
+      "id": "PRRT_kwDODJKVX86BRxJh",
+      "opened": "2026-05-12T02:46:44Z",
+      "path": "instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/internal/GrpcTargetParser.java",
+      "replies": [
+        {
+          "at": "2026-05-12T03:07:37Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161/commits/b7f3c9131c8",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r3223445989"
+        }
+      ],
+      "reviewed": "96342415fe235fc6f9ef33c220d184cf704afff5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r3223386353"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`GrpcRequest.createClientRequest(...)` / `createServerRequest(...)` are `public` but appear to be used only internally by this instrumentation. Exposing them expands the public API surface of `GrpcRequest` and makes future refactors harder; consider making these factories package-private unless there is an explicit external use case.",
+      "created": "2026-05-12T02:46:44Z",
+      "hunk": "@@ -15,40 +17,67 @@ public final class GrpcRequest {\n   private final MethodDescriptor<?, ?> method;\n \n   @Nullable private volatile Metadata metadata;\n-\n-  @Nullable private volatile String logicalHost;\n-  private volatile int logicalPort = -1;\n+  @Nullable private final String serverAddress;\n+  @Nullable private final Integer serverPort;\n   @Nullable private volatile SocketAddress peerSocketAddress;\n \n   @Nullable private volatile Long requestSize;\n   @Nullable private volatile Long responseSize;\n \n-  GrpcRequest(\n+  /**\n+   * Creates a client-side gRPC request.\n+   *\n+   * @param method the gRPC method descriptor\n+   * @param authority the channel authority (host:port)\n+   * @param parsedTarget the pre-parsed gRPC target (from {@link\n+   *     io.opentelemetry.instrumentation.grpc.v1_6.internal.GrpcTargetParser#parse}), or {@code\n+   *     null} if unavailable\n+   */\n+  public static GrpcRequest createClientRequest(\n+      MethodDescriptor<?, ?> method,\n+      @Nullable String authority,\n+      @Nullable ParsedTarget parsedTarget) {\n+    ParsedTarget effective =\n+        parsedTarget != null ? parsedTarget : GrpcTargetParser.parseAuthority(authority);\n+    if (effective == null) {\n+      return new GrpcRequest(method, null, null, null, null);\n+    }\n+    return new GrpcRequest(method, null, null, effective.getAddress(), effective.getPort());\n+  }",
+      "id": "PRRT_kwDODJKVX86BRxJp",
+      "opened": "2026-05-12T02:46:44Z",
+      "path": "instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/GrpcRequest.java",
+      "replies": [
+        {
+          "at": "2026-05-12T03:07:38Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161/commits/5bc9c5844f3",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r3223446064"
+        }
+      ],
+      "reviewed": "96342415fe235fc6f9ef33c220d184cf704afff5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r3223386362"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`parseHostPort` can return a `ParsedTarget` with an empty `address` for inputs like \":8080\" or \":\" (host part empty). That would result in emitting `server.address=\"\"`, which is not a valid value for semconv. Consider treating an empty host as unavailable (return `null`) and add a unit test covering this case.",
+      "created": "2026-05-12T03:33:44Z",
+      "hunk": "@@ -0,0 +1,159 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.grpc.v1_6.internal;\n+\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Parses gRPC target strings into server address and port per the <a\n+ * href=\"https://grpc.github.io/grpc/core/md_doc_naming.html\">gRPC Name Resolution spec</a> and <a\n+ * href=\"https://github.com/open-telemetry/semantic-conventions/pull/3317\">semantic conventions</a>.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class GrpcTargetParser {\n+\n+  private GrpcTargetParser() {}\n+\n+  @Nullable\n+  public static ParsedTarget parse(@Nullable String target) {\n+    if (target == null || target.isEmpty()) {\n+      return null;\n+    }\n+\n+    int schemeEnd = target.indexOf(\"://\");\n+    if (schemeEnd == -1) {\n+      // Check for single-colon scheme like \"dns:endpoint\" or \"unix:/path\"\n+      int colonIndex = target.indexOf(':');\n+      if (colonIndex == -1) {\n+        // No scheme, no port — just a host name\n+        return new ParsedTarget(target, null);\n+      }\n+\n+      String potentialScheme = target.substring(0, colonIndex);\n+      if (isKnownScheme(potentialScheme)) {\n+        return parseSingleColonScheme(potentialScheme, target.substring(colonIndex + 1));\n+      }\n+\n+      // No known scheme — treat as \"host:port\"\n+      return parseHostPort(target);\n+    }\n+\n+    String scheme = target.substring(0, schemeEnd);\n+    String rest = target.substring(schemeEnd + 3); // after \"://\"\n+\n+    if (\"dns\".equals(scheme)) {\n+      return parseDnsScheme(rest);\n+    }\n+\n+    if (\"unix\".equals(scheme) || \"unix-abstract\".equals(scheme)) {\n+      // unix://authority/path — the path (after authority) is the address\n+      int slashIndex = rest.indexOf('/');\n+      if (slashIndex != -1) {\n+        return new ParsedTarget(rest.substring(slashIndex), null);\n+      }\n+      return new ParsedTarget(rest, null);\n+    }\n+\n+    // Unknown scheme with \"://\" — use full target string as address, no port\n+    return new ParsedTarget(target, null);\n+  }\n+\n+  /**\n+   * Parses an HTTP/2 authority of the form {@code host}, {@code host:port}, or {@code [ipv6]:port}\n+   * into address and port. Returns {@code null} for {@code null}/empty input.\n+   */\n+  @Nullable\n+  public static ParsedTarget parseAuthority(@Nullable String authority) {\n+    if (authority == null || authority.isEmpty()) {\n+      return null;\n+    }\n+    return parseHostPort(authority);\n+  }\n+\n+  @Nullable\n+  private static ParsedTarget parseSingleColonScheme(String scheme, String rest) {\n+    if (\"dns\".equals(scheme)) {\n+      return parseHostPort(rest);\n+    }\n+\n+    if (\"unix\".equals(scheme) || \"unix-abstract\".equals(scheme)) {\n+      return new ParsedTarget(rest, null);\n+    }\n+\n+    // ipv4:, ipv6:, or other — full target as address\n+    return new ParsedTarget(scheme + \":\" + rest, null);\n+  }\n+\n+  @Nullable\n+  private static ParsedTarget parseDnsScheme(String rest) {\n+    int slashIndex = rest.indexOf('/');\n+    String endpoint;\n+    if (slashIndex != -1) {\n+      endpoint = rest.substring(slashIndex + 1);\n+    } else {\n+      endpoint = rest;\n+    }\n+    return parseHostPort(endpoint);\n+  }\n+\n+  @Nullable\n+  private static ParsedTarget parseHostPort(String hostPort) {\n+    if (hostPort.isEmpty()) {\n+      return null;\n+    }\n+\n+    // Handle IPv6 in brackets: [::1]:8080\n+    if (hostPort.startsWith(\"[\")) {\n+      int closeBracket = hostPort.indexOf(']');\n+      if (closeBracket != -1) {\n+        String host = hostPort.substring(1, closeBracket);\n+        if (closeBracket + 1 < hostPort.length() && hostPort.charAt(closeBracket + 1) == ':') {\n+          Integer port = parsePort(hostPort.substring(closeBracket + 2));\n+          return new ParsedTarget(host, port);\n+        }\n+        return new ParsedTarget(host, null);\n+      }\n+    }\n+\n+    int lastColon = hostPort.lastIndexOf(':');\n+    if (lastColon == -1) {\n+      return new ParsedTarget(hostPort, null);\n+    }\n+\n+    // Multiple colons — likely bare IPv6, use as-is\n+    int firstColon = hostPort.indexOf(':');\n+    if (firstColon != lastColon) {\n+      return new ParsedTarget(hostPort, null);\n+    }\n+\n+    String host = hostPort.substring(0, lastColon);\n+    Integer port = parsePort(hostPort.substring(lastColon + 1));\n+    return new ParsedTarget(host, port);\n+  }",
+      "id": "PRRT_kwDODJKVX86BSKeE",
+      "opened": "2026-05-12T03:33:45Z",
+      "path": "instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/internal/GrpcTargetParser.java",
+      "replies": [
+        {
+          "at": "2026-05-12T04:01:31Z",
+          "body": "Fixed in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161/commits/1be97271398 — `parseHostPort` now returns `null` when the host is empty (including `[]:port`), and `parse()` routes bracketed inputs through it. Added tests for `:8080`, `:`, `[]:8080`, and `[]`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r3223606645"
+        }
+      ],
+      "reviewed": "85306df2b1a7b3fbcfa6960ce4128fcfee4ec86e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r3223523864"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "In the unix/unix-abstract `://` parsing branch, `rest` can be empty (e.g., `unix://` or `unix-abstract://`), and this code will return a ParsedTarget with an empty address. That can lead to emitting `server.address=\"\"`, which is invalid/undesirable. Consider returning `null` when the parsed endpoint is empty (similar to `parseHostPort`), and add a unit test covering the empty-endpoint unix cases (including the single-colon form handled in `parseSingleColonScheme`).",
+      "created": "2026-05-12T14:37:24Z",
+      "hunk": "@@ -0,0 +1,169 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.grpc.v1_6.internal;\n+\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Parses gRPC target strings into server address and port per the <a\n+ * href=\"https://grpc.github.io/grpc/core/md_doc_naming.html\">gRPC Name Resolution spec</a> and <a\n+ * href=\"https://github.com/open-telemetry/semantic-conventions/pull/3317\">semantic conventions</a>.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class GrpcTargetParser {\n+\n+  private GrpcTargetParser() {}\n+\n+  @Nullable\n+  public static ParsedTarget parse(@Nullable String target) {\n+    if (target == null || target.isEmpty()) {\n+      return null;\n+    }\n+\n+    int schemeEnd = target.indexOf(\"://\");\n+    if (schemeEnd == -1) {\n+      // Bracketed IPv6 like \"[::1]\" or \"[::1]:8080\"\n+      if (target.startsWith(\"[\")) {\n+        return parseHostPort(target);\n+      }\n+      // Check for single-colon scheme like \"dns:endpoint\" or \"unix:/path\"\n+      int colonIndex = target.indexOf(':');\n+      if (colonIndex == -1) {\n+        // No scheme, no port — just a host name\n+        return new ParsedTarget(target, null);\n+      }\n+\n+      String potentialScheme = target.substring(0, colonIndex);\n+      if (isKnownScheme(potentialScheme)) {\n+        return parseSingleColonScheme(potentialScheme, target.substring(colonIndex + 1));\n+      }\n+\n+      // No known scheme — treat as \"host:port\"\n+      return parseHostPort(target);\n+    }\n+\n+    String scheme = target.substring(0, schemeEnd);\n+    String rest = target.substring(schemeEnd + 3); // after \"://\"\n+\n+    if (\"dns\".equals(scheme)) {\n+      return parseDnsScheme(rest);\n+    }\n+\n+    if (\"unix\".equals(scheme) || \"unix-abstract\".equals(scheme)) {\n+      // unix://authority/path — the path (after authority) is the address\n+      int slashIndex = rest.indexOf('/');\n+      if (slashIndex != -1) {\n+        return new ParsedTarget(rest.substring(slashIndex), null);\n+      }\n+      return new ParsedTarget(rest, null);",
+      "id": "PRRT_kwDODJKVX86Bc4lH",
+      "opened": "2026-05-12T14:37:25Z",
+      "path": "instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/internal/GrpcTargetParser.java",
+      "replies": [
+        {
+          "at": "2026-08-10T19:14:34Z",
+          "body": "Addressed in 6cc763416d751114fc3ac83a83974e295bafbe44.\n\nAnalysis: Both Unix parsing branches could construct ParsedTarget with an empty address. A shared Unix parser now rejects empty endpoints while preserving authority/path extraction.\n\nUpsides: Prevents invalid empty server.address values and covers both Unix schemes in single-colon and :// forms.\n\nDownsides: Empty Unix targets no longer produce ParsedTarget instances; no valid endpoint is lost.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r3752604362"
+        }
+      ],
+      "reviewed": "1be97271398c54fa8e98455cb8f737eb1a10ed49",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r3227307201"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`addClientInterceptor()` has a gRPC 1.64+ code path that uses reflective `InternalManagedChannelBuilder.interceptWithTarget(...)` and a proxy interceptor factory, but the library module tests are pinned to gRPC 1.6.0 so this path is currently untested. Please add coverage that exercises the interceptWithTarget path (e.g., by providing a minimal test-scope `io.grpc.InternalManagedChannelBuilder` stub on the test classpath, or by adding a separate test configuration that runs against gRPC >= 1.64) to prevent regressions in target capture.\n",
+      "created": "2026-05-12T14:37:25Z",
+      "hunk": "@@ -43,13 +79,66 @@ public static GrpcTelemetryBuilder builder(OpenTelemetry openTelemetry) {\n     this.emitMessageEvents = emitMessageEvents;\n   }\n \n+  /**\n+   * Configures the given {@link ManagedChannelBuilder} with OpenTelemetry tracing instrumentation.\n+   *\n+   * <p>On gRPC 1.64.0+, this method automatically captures the channel's target string for\n+   * populating {@code server.address} and {@code server.port} attributes. On older gRPC versions,\n+   * it falls back to using the channel's authority.\n+   *\n+   * <p>This is the recommended way to instrument a gRPC channel, instead of calling {@link\n+   * #createClientInterceptor()} and adding the interceptor manually.\n+   *\n+   * @param builder the channel builder to configure\n+   */\n+  @SuppressWarnings(\"unchecked\")\n+  public void addClientInterceptor(ManagedChannelBuilder<?> builder) {\n+    if (interceptWithTargetMethod != null && interceptorFactoryClass != null) {\n+      try {\n+        interceptWithTargetMethod.invoke(null, builder, newInterceptorFactory());\n+        return;\n+      } catch (Exception e) {\n+        logger.log(FINE, \"Failed to use interceptWithTarget, falling back\", e);\n+      }\n+    }\n+\n+    // Fallback for gRPC < 1.64.0: add interceptor without target info\n+    builder.intercept(newTracingClientInterceptor(null));\n+  }\n+\n+  private Object newInterceptorFactory() {\n+    // Proxies InternalManagedChannelBuilder$InternalInterceptorFactory, whose only declared\n+    // method is newInterceptor(String target). Object methods get identity semantics — we have\n+    // no natural delegate to forward them to.\n+    return Proxy.newProxyInstance(\n+        ManagedChannelBuilder.class.getClassLoader(),\n+        new Class<?>[] {interceptorFactoryClass},\n+        (proxy, method, args) -> {\n+          if (\"newInterceptor\".equals(method.getName())) {\n+            return newTracingClientInterceptor((String) args[0]);\n+          }\n+          switch (method.getName()) {\n+            case \"equals\":\n+              return proxy == args[0];\n+            case \"hashCode\":\n+              return System.identityHashCode(proxy);\n+            case \"toString\":\n+              return \"GrpcInterceptorFactory\";\n+            default:\n+              throw new UnsupportedOperationException(method.toString());\n+          }\n+        });\n+  }\n+",
+      "id": "PRRT_kwDODJKVX86Bc4mf",
+      "opened": "2026-05-12T14:37:25Z",
+      "path": "instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/GrpcTelemetry.java",
+      "replies": [
+        {
+          "at": "2026-08-10T19:14:35Z",
+          "body": "No code change.\n\nAnalysis: This module already has separate latest-dependency coverage. The library/testLibrary convention replaces gRPC 1.6.0 with the pinned latest release (currently 1.81.0) when `-PtestLatestDeps=true`. Existing `GrpcTest.successBlockingStub` calls `addClientInterceptor()` and asserts the captured client `server.address` and `server.port`, so that mode exercises `interceptWithTarget` and its proxy factory.\n\nUpsides: Retains coverage against both the minimum supported gRPC version and the real current gRPC API without a duplicate stub or test configuration.\n\nDownsides: The newer-path coverage remains part of the repository-wide latest-dependency job rather than the default minimum-version test run.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r3752604575"
+        }
+      ],
+      "reviewed": "1be97271398c54fa8e98455cb8f737eb1a10ed49",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r3227307324"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This introduces a public API deprecation, but the PR does not include the required entry in the `Unreleased` section of `CHANGELOG.md`. Please add it as required by `CONTRIBUTING.md:34-45` so users see the migration from `getLogicalHost()`/`getLogicalPort()` to the new getters.",
+      "created": "2026-08-23T15:39:49Z",
+      "hunk": "@@ -64,13 +93,45 @@ void setMetadata(Metadata metadata) {\n     this.metadata = metadata;\n   }\n \n+  /**\n+   * Returns the server address.\n+   *\n+   * <p>When a target string is available (from gRPC channel configuration), the server address is\n+   * extracted per the <a href=\"https://grpc.github.io/grpc/core/md_doc_naming.html\">gRPC Name\n+   * Resolution spec</a>. Otherwise, falls back to the authority (host portion).\n+   */\n+  @Nullable\n+  public String getServerAddress() {\n+    return serverAddress;\n+  }\n+\n+  /**\n+   * Returns the server port.\n+   *\n+   * <p>When a target string is available (from gRPC channel configuration), the server port is\n+   * extracted per the <a href=\"https://grpc.github.io/grpc/core/md_doc_naming.html\">gRPC Name\n+   * Resolution spec</a>. Otherwise, falls back to the authority (port portion).\n+   */\n+  @Nullable\n+  public Integer getServerPort() {\n+    return serverPort;\n+  }\n+\n+  /**\n+   * @deprecated Use {@link #getServerAddress()} instead. Will be removed in a future release.\n+   */\n+  @Deprecated // will be removed in a future release",
+      "id": "PRRT_kwDODJKVX86bgSqH",
+      "opened": "2026-08-23T15:39:49Z",
+      "path": "instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/GrpcRequest.java",
+      "replies": [
+        {
+          "at": "2026-08-23T15:49:51Z",
+          "body": "Addressed in 598a967bfffa2695a580f1da5b81ec4a8c95f541.\n\nAnalysis: GrpcRequest is part of the published gRPC library API. The pull request deprecates getLogicalHost() and getLogicalPort(), so CONTRIBUTING.md requires an Unreleased changelog entry. The new entry names both replacements and links to this pull request.\n\nUpsides: Users scanning the next release notes can find the deprecated methods and migrate to getServerAddress() and getServerPort().\n\nDownsides: No material downside identified.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r3838922189"
+        }
+      ],
+      "reviewed": "a689869b4500351b149794e68afcc2e1d9f7a481",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r3838900189"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] gRPC scheme lookup is case-insensitive, but these comparisons only recognize lowercase schemes. A valid target such as `DNS:///host:443` is accepted by gRPC (its resolver registry lowercases the scheme) yet is treated here as unknown, so `server.address` becomes the entire target and `server.port` is omitted. Normalize schemes for every comparison (while preserving the original target when it must be emitted) and cover uppercase DNS/Unix targets.",
+      "created": "2026-08-23T15:39:49Z",
+      "hunk": "@@ -0,0 +1,197 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.grpc.v1_6.internal;\n+\n+import java.net.URI;\n+import java.net.URISyntaxException;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Parses gRPC target strings into server address and port per the <a\n+ * href=\"https://grpc.github.io/grpc/core/md_doc_naming.html\">gRPC Name Resolution spec</a> and <a\n+ * href=\"https://github.com/open-telemetry/semantic-conventions/pull/3317\">semantic conventions</a>.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public class GrpcTargetParser {\n+\n+  @Nullable\n+  public static ParsedTarget parse(@Nullable String target) {\n+    if (target == null || target.isEmpty()) {\n+      return null;\n+    }\n+\n+    int schemeEnd = target.indexOf(\"://\");\n+    if (schemeEnd == -1) {\n+      // Bracketed IPv6 like \"[::1]\" or \"[::1]:8080\"\n+      if (target.startsWith(\"[\")) {\n+        return parseHostPort(target);\n+      }\n+      // Check for single-colon scheme like \"dns:endpoint\" or \"unix:/path\"\n+      int colonIndex = target.indexOf(':');\n+      if (colonIndex == -1) {\n+        // No scheme, no port — just a host name\n+        return new ParsedTarget(target, null);\n+      }\n+\n+      String potentialScheme = target.substring(0, colonIndex);\n+      if (isKnownScheme(potentialScheme)) {\n+        return parseSingleColonScheme(potentialScheme, target.substring(colonIndex + 1));\n+      }\n+\n+      // No known scheme — treat as \"host:port\"\n+      return parseHostPort(target);\n+    }\n+\n+    String scheme = target.substring(0, schemeEnd);\n+\n+    if (\"dns\".equals(scheme)) {",
+      "id": "PRRT_kwDODJKVX86bgSqN",
+      "opened": "2026-08-23T15:39:49Z",
+      "path": "instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/internal/GrpcTargetParser.java",
+      "replies": [
+        {
+          "at": "2026-08-23T15:49:52Z",
+          "body": "Addressed in 4707d7ae3da80c7721ebb5a0080c9f3e11dc3016.\n\nAnalysis: The parser used the target's original scheme for every known-scheme comparison, while gRPC treats resolver schemes without regard to case. The parser now normalizes only the extracted scheme with Locale.ROOT. It still passes the original target to DNS and Unix parsing and stores the original target for schemes such as IPv4 and xDS. Tests cover uppercase DNS and Unix forms through both URI and single-colon paths, plus uppercase preserved schemes.\n\nUpsides: Targets accepted by gRPC now produce the same server address and port regardless of scheme case. Schemes emitted as the server address keep the spelling supplied by the caller.\n\nDownsides: Parsing may allocate a lowercase scheme string. This runs once when the target-aware client interceptor is created, not for each RPC.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r3838922236"
+        }
+      ],
+      "reviewed": "a689869b4500351b149794e68afcc2e1d9f7a481",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r3838900197"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[API] This library is published as an alpha artifact, so its deprecation notice should state the repository's alpha removal window rather than the ambiguous “future release.” Use “May be removed in the next minor release” in both the Javadoc and annotation comment so consumers know the actual compatibility guarantee.\n\nThis issue also appears on line 129 of the same file.",
+      "created": "2026-09-20T04:10:07Z",
+      "hunk": "@@ -64,13 +93,45 @@ void setMetadata(Metadata metadata) {\n     this.metadata = metadata;\n   }\n \n+  /**\n+   * Returns the server address.\n+   *\n+   * <p>When a target string is available (from gRPC channel configuration), the server address is\n+   * extracted per the <a href=\"https://grpc.github.io/grpc/core/md_doc_naming.html\">gRPC Name\n+   * Resolution spec</a>. Otherwise, falls back to the authority (host portion).\n+   */\n+  @Nullable\n+  public String getServerAddress() {\n+    return serverAddress;\n+  }\n+\n+  /**\n+   * Returns the server port.\n+   *\n+   * <p>When a target string is available (from gRPC channel configuration), the server port is\n+   * extracted per the <a href=\"https://grpc.github.io/grpc/core/md_doc_naming.html\">gRPC Name\n+   * Resolution spec</a>. Otherwise, falls back to the authority (port portion).\n+   */\n+  @Nullable\n+  public Integer getServerPort() {\n+    return serverPort;\n+  }\n+\n+  /**\n+   * @deprecated Use {@link #getServerAddress()} instead. Will be removed in a future release.\n+   */\n+  @Deprecated // will be removed in a future release",
+      "id": "PRRT_kwDODJKVX86kG1jc",
+      "opened": "2026-09-20T04:10:07Z",
+      "path": "instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/GrpcRequest.java",
+      "replies": [
+        {
+          "at": "2026-09-20T04:24:07Z",
+          "body": "Addressed in 09217f5cc44c4ee22b9c2b9b3cc2d695d7092238.\n\nFixed in the verified source changes 09217f5cc44c4ee22b9c2b9b3cc2d695d7092238.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r4056102342"
+        }
+      ],
+      "reviewed": "02ad2ba216cdc6ef2f3f3768f7c5bc700ed62eac",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r4056065582"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] `URI.getAuthority()` includes userinfo, while Armeria strips userinfo before resolving the endpoint. For a supported URI such as `gproto+http://user:password@host:8080`, this passes the credentials into `GrpcTargetParser` and records them in `server.address` (and also loses the port because of the extra colon). Strip everything through the last `@` before creating the interceptor so telemetry matches Armeria's endpoint and cannot expose URI credentials.",
+      "created": "2026-09-20T10:31:36Z",
+      "hunk": "@@ -34,8 +37,14 @@ public void transform(TypeTransformer transformer) {\n   public static class BuildAdvice {\n \n     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n-    public static void onEnter(@Advice.This GrpcClientBuilder builder) {\n-      builder.intercept(GrpcTelemetry.create(GlobalOpenTelemetry.get()).createClientInterceptor());\n+    public static void onEnter(\n+        @Advice.This GrpcClientBuilder builder, @Advice.FieldValue(\"uri\") @Nullable URI uri) {\n+      String target = null;\n+      if (uri != null) {\n+        target = uri.getAuthority();\n+      }",
+      "id": "PRRT_kwDODJKVX86kIjd_",
+      "opened": "2026-09-20T10:31:36Z",
+      "path": "instrumentation/armeria/armeria-grpc-1.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/armeria/grpc/v1_14/ArmeriaGrpcClientBuilderInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-29T03:39:20Z",
+          "body": "Addressed in 36e7393db935da0facf4def183d4f7bd1d25c0d2, 19fe220c6ac5f2564364283398e169f5341611ba.\n\nFixed in the verified source changes 36e7393db935da0facf4def183d4f7bd1d25c0d2, 19fe220c6ac5f2564364283398e169f5341611ba.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r4129380246"
+        }
+      ],
+      "reviewed": "08b422a8bd204e193ac26a786c24ed3a7f8859d3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r4056733342"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] A valid custom resolver target with a numeric opaque path, such as `consul:1234`, is classified as bare `host:port` here. gRPC accepts single-colon custom-scheme targets, so this emits `server.address=\"consul\"` and `server.port=1234`; for an unrecognized scheme the RPC convention calls for preserving the whole target and omitting the port. Please distinguish authority-like inputs from actual target URIs (for example at the caller/API boundary) so numeric custom endpoints are preserved just like the existing `consul:orders` case.",
+      "created": "2026-09-29T03:46:16Z",
+      "hunk": "@@ -0,0 +1,223 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.grpc.v1_6.internal;\n+\n+import java.net.URI;\n+import java.net.URISyntaxException;\n+import java.util.Locale;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Parses gRPC target strings into server address and port per the <a\n+ * href=\"https://grpc.github.io/grpc/core/md_doc_naming.html\">gRPC Name Resolution spec</a> and <a\n+ * href=\"https://github.com/open-telemetry/semantic-conventions/pull/3317\">semantic conventions</a>.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public class GrpcTargetParser {\n+\n+  @Nullable\n+  public static ParsedTarget parse(@Nullable String target) {\n+    if (target == null || target.isEmpty()) {\n+      return null;\n+    }\n+\n+    int schemeEnd = target.indexOf(\"://\");\n+    if (schemeEnd == -1) {\n+      // Bracketed IPv6 like \"[::1]\" or \"[::1]:8080\"\n+      if (target.startsWith(\"[\")) {\n+        return parseHostPort(target);\n+      }\n+      // Check for single-colon scheme like \"dns:endpoint\" or \"unix:/path\"\n+      int colonIndex = target.indexOf(':');\n+      if (colonIndex == -1) {\n+        // No scheme, no port — just a host name\n+        return new ParsedTarget(target, null);\n+      }\n+\n+      String originalScheme = target.substring(0, colonIndex);\n+      String scheme = originalScheme.toLowerCase(Locale.ROOT);\n+      if (isKnownScheme(scheme)) {\n+        return parseSingleColonScheme(scheme, target);\n+      }\n+\n+      Integer port = parsePort(target.substring(colonIndex + 1));\n+      if (!originalScheme.isEmpty() && port != null) {\n+        return new ParsedTarget(originalScheme, port);",
+      "id": "PRRT_kwDODJKVX86m811k",
+      "opened": "2026-09-29T03:46:17Z",
+      "path": "instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/internal/GrpcTargetParser.java",
+      "replies": [
+        {
+          "at": "2026-09-29T03:58:37Z",
+          "body": "Addressed in 8de56a6789eafe589883f053564d434f4b1c77b0.\n\nFixed in the verified source changes 8de56a6789eafe589883f053564d434f4b1c77b0.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r4129480589"
+        }
+      ],
+      "reviewed": "19fe220c6ac5f2564364283398e169f5341611ba",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r4129415830"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] This treats any letter-prefixed `host:port` as an opaque resolver target, but the javaagent passes the builder's raw target here. For `ManagedChannelBuilder.forTarget(\"localhost:50051\")`, gRPC finds no `localhost` resolver and resolves it as `dns:///localhost:50051`; this branch instead emits `server.address=\"localhost:50051\"`, omits `server.port`, and prevents the authority fallback. Armeria also passes URI authorities into this parser, so hostname authorities have the same failure. Please distinguish authority inputs at those call sites and mirror gRPC's resolver selection for raw builder targets (or capture the computed target).",
+      "created": "2026-09-29T04:05:27Z",
+      "hunk": "@@ -0,0 +1,219 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.grpc.v1_6.internal;\n+\n+import java.net.URI;\n+import java.net.URISyntaxException;\n+import java.util.Locale;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Parses gRPC target strings into server address and port per the <a\n+ * href=\"https://grpc.github.io/grpc/core/md_doc_naming.html\">gRPC Name Resolution spec</a> and <a\n+ * href=\"https://github.com/open-telemetry/semantic-conventions/pull/3317\">semantic conventions</a>.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public class GrpcTargetParser {\n+\n+  @Nullable\n+  public static ParsedTarget parse(@Nullable String target) {\n+    if (target == null || target.isEmpty()) {\n+      return null;\n+    }\n+\n+    int schemeEnd = target.indexOf(\"://\");\n+    if (schemeEnd == -1) {\n+      // Bracketed IPv6 like \"[::1]\" or \"[::1]:8080\"\n+      if (target.startsWith(\"[\")) {\n+        return parseHostPort(target);\n+      }\n+      // Check for single-colon scheme like \"dns:endpoint\" or \"unix:/path\"\n+      int colonIndex = target.indexOf(':');\n+      if (colonIndex == -1) {\n+        // No scheme, no port — just a host name\n+        return new ParsedTarget(target, null);\n+      }\n+\n+      String originalScheme = target.substring(0, colonIndex);\n+      String scheme = originalScheme.toLowerCase(Locale.ROOT);\n+      if (isKnownScheme(scheme)) {\n+        return parseSingleColonScheme(scheme, target);\n+      }\n+\n+      if (isValidScheme(originalScheme)) {\n+        return new ParsedTarget(target, null);",
+      "id": "PRRT_kwDODJKVX86m9FF-",
+      "opened": "2026-09-29T04:05:28Z",
+      "path": "instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/internal/GrpcTargetParser.java",
+      "replies": [
+        {
+          "at": "2026-09-29T04:22:42Z",
+          "body": "Addressed in d0bef303151527450b5d57409e7248a2f5215d88, f6e6430c135670e003fe3d143d8781086cf5c4f8.\n\nFixed in the verified source changes d0bef303151527450b5d57409e7248a2f5215d88, f6e6430c135670e003fe3d143d8781086cf5c4f8.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r4129598922"
+        }
+      ],
+      "reviewed": "8de56a6789eafe589883f053564d434f4b1c77b0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r4129515214"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] For an IPv6 URI such as `http://[::1]:8080`, this constructs `dns:///[::1]:8080`. `java.net.URI` rejects raw brackets in a path, so `GrpcTargetParser` preserves that whole string and omits the port instead of emitting address `::1` and port `8080`. Use the raw authority (to retain escapes such as zone IDs) and percent-encode the IPv6 brackets before passing it as a DNS target.",
+      "created": "2026-09-29T04:30:59Z",
+      "hunk": "@@ -34,8 +37,21 @@ public void transform(TypeTransformer transformer) {\n   public static class BuildAdvice {\n \n     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n-    public static void onEnter(@Advice.This GrpcClientBuilder builder) {\n-      builder.intercept(GrpcTelemetry.create(GlobalOpenTelemetry.get()).createClientInterceptor());\n+    public static void onEnter(\n+        @Advice.This GrpcClientBuilder builder, @Advice.FieldValue(\"uri\") @Nullable URI uri) {\n+      String target = null;\n+      if (uri != null) {\n+        target = uri.getAuthority();\n+        if (target != null) {\n+          int userInfoEnd = target.lastIndexOf('@');\n+          if (userInfoEnd >= 0) {\n+            target = target.substring(userInfoEnd + 1);\n+          }\n+          target = \"dns:///\" + target;",
+      "id": "PRRT_kwDODJKVX86m9YZl",
+      "opened": "2026-09-29T04:31:00Z",
+      "path": "instrumentation/armeria/armeria-grpc-1.14/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/armeria/grpc/v1_14/ArmeriaGrpcClientBuilderInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-09-29T04:50:13Z",
+          "body": "Addressed in 23b9882a84b5358c509f618eae14be437f00cec8, 314dc486804c108890b3c4d2586a4db6f9e0a5ed, 2e6a21436e5c7d091c551ccf3c501f2ac8ba44ad, 6d2da18b851c25bd26c26c3987972ec369ac6a61.\n\nFixed in the verified source changes 23b9882a84b5358c509f618eae14be437f00cec8, 314dc486804c108890b3c4d2586a4db6f9e0a5ed, 2e6a21436e5c7d091c551ccf3c501f2ac8ba44ad, 6d2da18b851c25bd26c26c3987972ec369ac6a61.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r4129738474"
+        }
+      ],
+      "reviewed": "f6e6430c135670e003fe3d143d8781086cf5c4f8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r4129639758"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Resolver selection is taken from the global registry, but gRPC's target-aware interceptor receives a target computed with the individual builder's resolver. With a per-builder custom resolver and target `consul:1234`, there is no global `consul` provider here, so this falls through to host/port parsing and emits `server.address=\"consul\"` plus port `1234` instead of preserving the custom target and omitting the port. Distinguish computed targets from raw targets, or carry the builder's resolver selection into parsing.",
+      "created": "2026-09-29T04:31:00Z",
+      "hunk": "@@ -0,0 +1,274 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.grpc.v1_6.internal;\n+\n+import java.lang.reflect.InvocationTargetException;\n+import java.lang.reflect.Method;\n+import java.net.URI;\n+import java.net.URISyntaxException;\n+import java.util.Locale;\n+import javax.annotation.Nullable;\n+\n+/**\n+ * Parses gRPC target strings into server address and port per the <a\n+ * href=\"https://grpc.github.io/grpc/core/md_doc_naming.html\">gRPC Name Resolution spec</a> and <a\n+ * href=\"https://github.com/open-telemetry/semantic-conventions/pull/3317\">semantic conventions</a>.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public class GrpcTargetParser {\n+\n+  @Nullable private static final Method getDefaultRegistryMethod;\n+  @Nullable private static final Method getDefaultSchemeMethod;\n+  @Nullable private static final Method getProviderForSchemeMethod;\n+\n+  static {\n+    Method defaultRegistryMethod = null;\n+    Method defaultSchemeMethod = null;\n+    Method providerForSchemeMethod = null;\n+    try {\n+      Class<?> registryClass = Class.forName(\"io.grpc.NameResolverRegistry\");\n+      defaultRegistryMethod = registryClass.getMethod(\"getDefaultRegistry\");\n+      defaultSchemeMethod = registryClass.getMethod(\"getDefaultScheme\");\n+      providerForSchemeMethod = registryClass.getMethod(\"getProviderForScheme\", String.class);\n+    } catch (ClassNotFoundException | NoSuchMethodException ignored) {\n+      // NameResolverRegistry is available since gRPC 1.21\n+    }\n+    getDefaultRegistryMethod = defaultRegistryMethod;\n+    getDefaultSchemeMethod = defaultSchemeMethod;\n+    getProviderForSchemeMethod = providerForSchemeMethod;\n+  }\n+\n+  @Nullable\n+  public static ParsedTarget parse(@Nullable String target) {\n+    if (target == null || target.isEmpty()) {\n+      return null;\n+    }\n+\n+    int schemeEnd = target.indexOf(\"://\");\n+    if (schemeEnd == -1) {\n+      // Bracketed IPv6 like \"[::1]\" or \"[::1]:8080\"\n+      if (target.startsWith(\"[\")) {\n+        return parseHostPort(target);\n+      }\n+      // Check for single-colon scheme like \"dns:endpoint\" or \"unix:/path\"\n+      int colonIndex = target.indexOf(':');\n+      if (colonIndex == -1) {\n+        // No scheme, no port — just a host name\n+        return new ParsedTarget(target, null);\n+      }\n+\n+      String originalScheme = target.substring(0, colonIndex);\n+      String scheme = originalScheme.toLowerCase(Locale.ROOT);\n+      if (isKnownScheme(scheme)) {\n+        return parseSingleColonScheme(scheme, target);\n+      }\n+\n+      if (isValidScheme(originalScheme)) {\n+        ResolverSelection resolverSelection = getResolverSelection(scheme);\n+        if (resolverSelection.hasProvider) {\n+          return new ParsedTarget(target, null);",
+      "id": "PRRT_kwDODJKVX86m9YZ8",
+      "opened": "2026-09-29T04:31:00Z",
+      "path": "instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/internal/GrpcTargetParser.java",
+      "replies": [
+        {
+          "at": "2026-09-29T04:50:14Z",
+          "body": "Addressed in 23b9882a84b5358c509f618eae14be437f00cec8, 314dc486804c108890b3c4d2586a4db6f9e0a5ed, 2e6a21436e5c7d091c551ccf3c501f2ac8ba44ad, 6d2da18b851c25bd26c26c3987972ec369ac6a61.\n\nFixed in the verified source changes 23b9882a84b5358c509f618eae14be437f00cec8, 314dc486804c108890b3c4d2586a4db6f9e0a5ed, 2e6a21436e5c7d091c551ccf3c501f2ac8ba44ad, 6d2da18b851c25bd26c26c3987972ec369ac6a61.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r4129738644"
+        }
+      ],
+      "reviewed": "f6e6430c135670e003fe3d143d8781086cf5c4f8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/16161#discussion_r4129639790"
+    }
+  ]
+}

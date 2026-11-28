@@ -1,0 +1,78 @@
+{
+  "head": "3b1233ca29d80a36fed30436382f5e743288b7af",
+  "merge": "8dfbe9e8c527137a7d3324b7b8c7a9d531ff7350",
+  "merged": "2026-10-19T06:42:48Z",
+  "missing_roots": 0,
+  "number": 20697,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Keep this existing PR focused on the indy migration by removing optional coverage additions. Remove the newly added exceptionalContactPointMutationDoesNotSuppressAnotherBuilder test from CassandraClientTest. Remove the newly added assertions that the helper class-loader class name ends with InstrumentationModuleClassLoader in CassandraClientTest.assertConfiguredTarget and CassandraTest.responsePeerComesFromTheChannel; these assertions add coverage rather than adapt an existing test.\n\nKeep all production indy conversions and the necessary reflection-based test adaptations that instantiate the actual isolated TracingSession and access TracingCqlSession and CassandraResponsePeers through the real helper loader. Retain the helperClassLoader variable and other code needed for those adaptations. Do not remove pre-existing exceptional-path tests or other baseline coverage, and do not add new coverage, refactors, or production changes. Preserve this PR's draft state, validate with appropriate existing targeted checks, and update its description only if it still claims the removed coverage. This request applies only to this PR, not the other migration PRs or the tracking issue.",
+      "created": "2026-10-19T00:19:01Z",
+      "hunk": "@@ -264,11 +264,24 @@ void exceptionalPartialContactPointMutationDropsTarget() {\n     assertConfiguredTarget(configuredCluster, null, null);\n   }\n \n+  @Test\n+  void exceptionalContactPointMutationDoesNotSuppressAnotherBuilder() {",
+      "id": "PRRT_kwDODJKVX86twDqY",
+      "opened": "2026-10-19T00:19:01Z",
+      "path": "instrumentation/cassandra/cassandra-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/cassandra/v3_0/CassandraClientTest.java",
+      "replies": [
+        {
+          "at": "2026-10-19T00:28:02Z",
+          "body": "Removed the requested optional test and loader-name assertions while preserving the baseline exceptional-path test and isolated-loader reflection adaptations. Targeted Cassandra 3.0 and 4.0 tests passed. Commit: `ed00ec87`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20697#discussion_r4309424439"
+        }
+      ],
+      "reviewed": "d75194c7c99acc2ac01dc6daa2c06cd530abcd32",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20697#discussion_r4309395118"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Redesign this PR's tests to remove instrumentation-internal access from agent-backed integration tests. This user-directed request supersedes the earlier instruction to retain the reflection-based isolated-helper adaptations. Preserve the production Cassandra 3.0/4.0 indy migration, supported versions, and existing draft state. This assignment is only for PR #20697.\n\nIn Cassandra 3.0 CassandraClientTest, failureWithoutCoordinatorUsesConfiguredTarget is a synthetic wrapper test: it constructs a mock Session that throws before execution and currently opens a real session only to discover and reflectively construct its isolated TracingSession class. Move this synthetic case into the existing cassandra-3.0/javaagent-unit-tests project, using direct helper calls there, and remove its reflection-dependent integration version. Preserve the assertions for the exact propagated failure, configured logical server target, error status/exception, request attributes, and absence of coordinator/network-peer attributes. Unit setup may directly establish CassandraServerTarget capture/store state, because without an installed agent simply calling Cluster.builder() will not populate its VirtualFields. Use the repository's existing SDK/test-extension pattern for exported-telemetry assertions rather than adding production test hooks. Keep the real agent-backed configured-target and synchronous/asynchronous failure coverage using public Cluster/Session operations; unit coverage is not a replacement for those live instrumentation paths.\n\nIn Cassandra 4.0 CassandraTest.responsePeerComesFromTheChannel, remove helper-class-loader discovery, reflective TracingCqlSession.wrapSession/CassandraResponsePeers calls, tracing-proxy unwrapping/getDelegate, and private Node.endPoint mutation/setEndPoint. Keep a real query through the publicly obtained instrumented CqlSession and assertions on exported span and operation-duration metric peer attributes. Preserve the distinguishing synthetic regression that a recorded response-channel peer wins over different coordinator metadata in the existing cassandra-4.0/javaagent-unit-tests boundary. Existing CassandraResponsePeerTest already covers frame/channel-to-ExecutionInfo correlation, and CassandraEndpointAttributesTest covers response-peer precedence and emitted network attributes; reuse those suites, adding only any missing equivalent assertion instead of duplicating their cases. If full synthetic wrapper/telemetry assertions are needed, exercise the ordinary helpers directly in that unit project, not through reflection in an agent-backed test. Do not weaken the precedence regression to an assertion that would also pass when the coordinator is incorrectly used. Do not introduce a custom EndPoint/topology fixture merely to avoid reflection: the driver's default topology monitor recreates DefaultEndPoint instances, so custom contact points alone do not establish that test condition.\n\nRemove imports/helpers/dependencies made unused by moving these cases. Keep directly related coverage and supported baseline/latest runtime versions, but do not restore the optional exceptional-builder or helper-loader-type assertions removed earlier. No production behavior changes, exposed APIs, new test hooks, extra containers/fixed-port servers, Cassandra 4.4 changes, shared tooling changes, or unrelated refactors. Run narrowly scoped spotlessApply directly before relevant existing unit and agent-backed integration checks where feasible. Correct the PR description's stale claim about exceptional-builder coverage and describe the current test boundary accurately; preserve its template and draft state. Do not change other migration PRs or the tracking issue.",
+      "created": "2026-10-19T01:01:46Z",
+      "hunk": "@@ -737,15 +737,19 @@ void failureTelemetry(Consumer<Session> execute) {\n   }\n \n   @Test\n-  void failureWithoutCoordinatorUsesConfiguredTarget() {\n+  void failureWithoutCoordinatorUsesConfiguredTarget() throws ReflectiveOperationException {\n     Cluster configuredCluster =\n         Cluster.builder().addContactPoint(\"LOCALHOST\").withPort(4242).build();\n     cleanup.deferCleanup(configuredCluster);\n     Session delegate = mock(Session.class);\n     when(delegate.getCluster()).thenReturn(configuredCluster);\n     RuntimeException failure = new RuntimeException(\"failed before execution\");\n     when(delegate.execute(\"invalid\")).thenThrow(failure);\n-    Session session = new TracingSession(delegate);\n+    Session instrumentedSession = cluster.connect();\n+    cleanup.deferCleanup(instrumentedSession);\n+    Session session =\n+        (Session)\n+            instrumentedSession.getClass().getConstructor(Session.class).newInstance(delegate);",
+      "id": "PRRT_kwDODJKVX86twZVm",
+      "opened": "2026-10-19T01:01:46Z",
+      "path": "instrumentation/cassandra/cassandra-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/cassandra/v3_0/CassandraClientTest.java",
+      "replies": [
+        {
+          "at": "2026-10-19T01:21:00Z",
+          "body": "Implemented the test-boundary changes in `3b1233ca`. The targeted Cassandra 3.0/4.0 unit and integration tests pass. The PR remains draft. I can’t edit the PR body with the available tools; the stale regression-coverage bullet should be replaced with: “Keep public-driver behavior in agent tests; cover the synthetic pre-execution failure and response-peer correlation/precedence through direct-helper unit tests.”",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20697#discussion_r4309609262"
+        },
+        {
+          "at": "2026-10-19T01:21:12Z",
+          "body": "Implemented the test-boundary changes in `3b1233ca`. The targeted Cassandra 3.0/4.0 unit and integration tests pass. The PR remains draft. I can’t edit the PR body with the available tools; the stale regression-coverage bullet should be replaced with: “Keep public-driver behavior in agent tests; cover the synthetic pre-execution failure and response-peer correlation/precedence through direct-helper unit tests.”",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20697#discussion_r4309609855"
+        }
+      ],
+      "reviewed": "ed00ec877c0f9159098d09477a884ba2a5e63a00",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20697#discussion_r4309539023"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This session uses the same address and port for the coordinator and channel. If either migrated response-peer advice stops capturing state, `CassandraSqlAttributesGetter.getNetworkPeerFallback()` still supplies the expected peer attributes, so these assertions pass. The direct-helper tests call advice explicitly and do not verify agent transformation or helper-class isolation. Add an agent-backed scenario or assertion that requires captured channel state, so a broken capture path fails the test; this need not restore private coordinator mutation.",
+      "created": "2026-10-19T01:57:36Z",
+      "hunk": "@@ -99,45 +91,12 @@ void configuredContactPointsRemainSeparateFromTheCoordinator() {\n   }\n \n   @Test\n-  void responsePeerComesFromTheChannel() throws ReflectiveOperationException {\n-    CqlSession instrumentedSession = getSession(null);\n-    CqlSession delegate = getDelegate(instrumentedSession);\n-    InetSocketAddress coordinatorAddress = new InetSocketAddress(\"127.0.0.2\", 19042);\n-    CqlSession mutatingDelegate =\n-        (CqlSession)\n-            Proxy.newProxyInstance(\n-                delegate.getClass().getClassLoader(),\n-                new Class<?>[] {CqlSession.class},\n-                (proxy, method, args) -> {\n-                  Object result = method.invoke(delegate, args);\n-                  if (\"execute\".equals(method.getName())\n-                      && method.getParameterCount() == 1\n-                      && PEER_QUERY.equals(args[0])) {\n-                    ResultSet resultSet = (ResultSet) result;\n-                    setEndPoint(\n-                        resultSet.getExecutionInfo().getCoordinator(),\n-                        new DefaultEndPoint(coordinatorAddress));\n-                  }\n-                  return result;\n-                });\n-    CqlSession session = TracingCqlSession.wrapSession(mutatingDelegate, emptySet());\n+  void responsePeerComesFromTheChannel() {\n+    CqlSession session = getSession(null);\n     cleanup.deferCleanup(session);\n-    Node node = delegate.getMetadata().getNodes().values().iterator().next();\n-    EndPoint originalEndPoint = node.getEndPoint();\n-    ResultSet result;\n-    try {\n-      result = session.execute(PEER_QUERY);\n-    } finally {\n-      setEndPoint(node, originalEndPoint);\n-    }\n+    session.execute(PEER_QUERY);",
+      "id": "PRRT_kwDODJKVX86tw4Lh",
+      "opened": "2026-10-19T01:57:37Z",
+      "path": "instrumentation/cassandra/cassandra-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/cassandra/v4_0/CassandraTest.java",
+      "replies": [
+        {
+          "at": "2026-10-19T02:42:22Z",
+          "body": "Adding a good test for this is too painful, not worth it",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20697#discussion_r4309906604"
+        }
+      ],
+      "reviewed": "3b1233ca29d80a36fed30436382f5e743288b7af",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20697#discussion_r4309741066"
+    }
+  ]
+}

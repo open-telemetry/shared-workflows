@@ -1,0 +1,120 @@
+{
+  "head": "e485b230a7aee20a9d7d767ccd9679333d0d2c8f",
+  "merge": "e331f1496e5373640658253089077dcd849da296",
+  "merged": "2026-11-04T02:11:37Z",
+  "missing_roots": 0,
+  "number": 132,
+  "repo": "open-telemetry/semantic-conventions-conformance",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This health check does not actually enforce yellow readiness. Elasticsearch returns HTTP 200 with `\"timed_out\": true` when `wait_for_status=yellow` expires, so `curl --fail` exits successfully and `ExecWaitStrategy` can proceed while the cluster is still red. Pipe the response through a check for `\"timed_out\":false` (or a yellow/green status), and update the readiness test to assert that command.",
+      "created": "2026-08-29T18:45:37Z",
+      "hunk": "@@ -0,0 +1,62 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+\"\"\"Elasticsearch backend definition.\"\"\"\n+\n+from __future__ import annotations\n+\n+from testcontainers.core.container import DockerContainer\n+\n+from ._container import BackendSpec, DatabaseContainer\n+\n+ELASTICSEARCH_INDEX = \"conformance\"\n+ELASTICSEARCH_PORT = 9200\n+ELASTICSEARCH_TRANSPORT_PORT = 9300\n+# renovate: datasource=docker depName=docker.elastic.co/elasticsearch/elasticsearch versioning=docker\n+ELASTICSEARCH_IMAGE = \"docker.elastic.co/elasticsearch/elasticsearch:7.17.29@sha256:3f55a7f6f29b95345dc33808d6e914f81d125d4ca90a414e26c81a3521400980\"\n+\n+ELASTICSEARCH = BackendSpec(\n+    name=\"Elasticsearch\",\n+    image=ELASTICSEARCH_IMAGE,\n+    port=ELASTICSEARCH_PORT,\n+    database=ELASTICSEARCH_INDEX,\n+    user=\"\",\n+    password=\"\",\n+    environment=(\n+        (\"discovery.type\", \"single-node\"),\n+        (\"xpack.security.enabled\", \"false\"),\n+        (\"ES_JAVA_OPTS\", \"-Xms256m -Xmx256m\"),\n+    ),\n+    ready_command=(\n+        \"curl\",\n+        \"--fail\",\n+        \"--silent\",\n+        \"http://127.0.0.1:9200/_cluster/health?wait_for_status=yellow&timeout=1s\",",
+      "id": "PRRT_kwDOTuzK5c6db4cu",
+      "opened": "2026-08-29T18:45:37Z",
+      "path": "tools/database/runner/src/database_conformance/_elasticsearch.py",
+      "replies": [
+        {
+          "at": "2026-08-29T20:55:27Z",
+          "body": "Fixed in e6ce5d3. The readiness command now pipes the health response through `grep --quiet '\"timed_out\":false'`, so HTTP 200 responses that timed out before reaching yellow continue polling. The readiness test asserts the full command.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/132#discussion_r3887659168"
+        }
+      ],
+      "reviewed": "f4f0863250303eb0c42481ca4fc4ae754229a78c",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/132#discussion_r3887369129"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The transport span does not carry these network attributes, so this expectation will fail. The committed coverage for this same scenario records only `db.operation.name` on `db.elasticsearch.client` (`data.json:3-5`), and the pinned agent's Elasticsearch transport instrumenter installs only its database attribute extractor. Remove these assertions (the network attributes are currently observed on the duration metric instead).",
+      "created": "2026-08-29T21:00:09Z",
+      "hunk": "@@ -0,0 +1,33 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+runner: database-conformance\n+instrumented_library: elasticsearch-transport\n+instrumentation_library: io.opentelemetry.javaagent:opentelemetry-javaagent\n+\n+env:\n+  OTEL_SEMCONV_STABILITY_OPT_IN: database\n+  OTEL_INSTRUMENTATION_RUNTIME_TELEMETRY_ENABLED: \"false\"\n+\n+weaver:\n+  config: ../../../weaver.toml\n+\n+setup: otel-conformance-java prepare shared:elasticsearch:transport-javaagent\n+\n+scenarios:\n+  search:\n+    run: otel-conformance-java run --agent shared:elasticsearch:transport-javaagent ElasticsearchTransportScenario\n+    spans:\n+      - match:\n+          attributes:\n+            db.system.name: elasticsearch\n+        expect:\n+          count: 1\n+          attributes:\n+            db.operation.name: SearchAction\n+            network.peer.address: {present: true}\n+            network.peer.port: {present: true}",
+      "id": "PRRT_kwDOTuzK5c6dcp3U",
+      "opened": "2026-08-29T21:00:09Z",
+      "path": "scenarios/database/java/elasticsearch/transport/opentelemetry-javaagent/conformance.yaml",
+      "replies": [
+        {
+          "at": "2026-08-29T21:11:42Z",
+          "body": "Fixed in ec2d266. I removed the transport span's network attribute assertions while preserving the duration metric expectation, where the recorded coverage shows those attributes. The focused transport scenario now passes against the pinned Elasticsearch image and agent.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/132#discussion_r3887693305"
+        }
+      ],
+      "reviewed": "e6ce5d3b9776dc288944f7ec342ee553bbfaac06",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/132#discussion_r3887668493"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The `<8` guard only applies to the node image, but `elasticsearch-rest-client` shares the `elasticsearch-clients` version reference with the Transport Client artifacts in `libs.versions.toml:20-22`. Renovate can therefore bump that shared reference to an 8.x/9.x REST client release, leaving the transport artifacts at nonexistent coordinates and breaking dependency resolution. Apply the same guard to the REST client (or split and pin the version references).",
+      "created": "2026-08-31T01:00:41Z",
+      "hunk": "@@ -80,6 +80,24 @@\n       ],\n       \"allowedVersions\": \"<10.3\"\n     },\n+    {\n+      // The Elasticsearch Java API Client carries its own OpenTelemetry\n+      // instrumentation from 7.17.20 on. Keep it below that so the scenario\n+      // measures the Java agent instead.\n+      \"matchPackageNames\": [\n+        \"co.elastic.clients:elasticsearch-java\"\n+      ],\n+      \"allowedVersions\": \"<7.17.20\"\n+    },\n+    {\n+      // Elasticsearch 8 dropped the transport protocol the Transport Client\n+      // speaks, and `org.elasticsearch.client:transport` ends at 7.17, so the\n+      // node this suite runs against has to stay on that line too.\n+      \"matchPackageNames\": [\n+        \"docker.elastic.co/elasticsearch/elasticsearch\"\n+      ],",
+      "id": "PRRT_kwDOTuzK5c6dlcMJ",
+      "opened": "2026-08-31T01:00:41Z",
+      "path": ".github/renovate.json5",
+      "replies": [
+        {
+          "at": "2026-08-31T01:03:45Z",
+          "body": "Addressed in d5b3cae12597d4e87d7f6d133065354a2773924b.\n\nAnalysis: Renovate updates the shared `elasticsearch-clients` version through the REST Client because that artifact continues past 7.17. Applying the existing `<8` rule to the REST Client prevents that shared reference from moving beyond the Transport Client artifacts' final release line.\n\nUpsides: Renovate can still update all three clients together within 7.x, but it cannot select an 8.x or 9.x REST Client version that breaks Transport Client dependency resolution.\n\nDownsides: The shared client version must remain on 7.x until the Transport Client scenarios are removed or the version references are split.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/132#discussion_r3891080693"
+        }
+      ],
+      "reviewed": "1bbed93475d54400121cdbb292fe52b589c2302f",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/132#discussion_r3891072432"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Layout differs from the other packages: they use `<system>/<library>/<instrumentation>` with `shared/` mirroring that path (`redis/lettuce/opentelemetry-library` + `shared/redis/lettuce/opentelemetry-library`, contract `redis-lettuce.yaml`). Something like `elasticsearch/elasticsearch-java/native-instrumentation` + `shared/elasticsearch/elasticsearch-java/native-instrumentation` would match `instrumented_library` and keep discovery consistent.",
+      "created": "2026-11-03T06:18:23Z",
+      "hunk": "@@ -0,0 +1,21 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+runner: database-conformance\n+runner_config:\n+  backend: elasticsearch\n+instrumented_library: elasticsearch-java\n+instrumentation_library: co.elastic.clients:elasticsearch-java\n+scenario_contract: ../../../../contracts/elasticsearch-api-client.yaml\n+\n+env:\n+  OTEL_SEMCONV_STABILITY_OPT_IN: database\n+\n+weaver:\n+  config: ../../../../../../tools/java/weaver.toml\n+\n+setup: otel-conformance-java prepare shared:elasticsearch:api-client-native",
+      "id": "PRRT_kwDOTuzK5c6zADp3",
+      "opened": "2026-11-03T06:31:50Z",
+      "path": "scenarios/database/java/elasticsearch/api-client/native-instrumentation/conformance.yaml",
+      "replies": [
+        {
+          "at": "2026-11-03T17:19:30Z",
+          "body": "607cffbfd6af606933beb51919151b240f450782",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/132#discussion_r4458116379"
+        },
+        {
+          "at": "2026-11-03T21:18:40Z",
+          "body": "also https://github.com/open-telemetry/semantic-conventions-conformance/issues/449",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/132#discussion_r4460556911"
+        }
+      ],
+      "reviewed": "2eed0734fc0ff9ffa9d11d01ec722db7307ab625",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/132#discussion_r4451496465"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`http.response.status_code` isn't part of the Elasticsearch span convention - it uses `db.response.status_code` (conditionally required), and the index goes to `db.collection.name`. data.json shows the client emits neither, so asserting the HTTP attribute locks in non-semconv behavior. Maybe drop it and let the gap show up?\n\n```suggestion\n            db.operation.parameter.index: conformance\n            http.request.method: POST\n```",
+      "created": "2026-11-03T06:18:23Z",
+      "hunk": "@@ -0,0 +1,25 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+scenarios:\n+  search:\n+    spans:\n+      - match:\n+          kind: CLIENT\n+          attributes:\n+            db.system.name: elasticsearch\n+        expect:\n+          count: 1\n+          instrumentation_scope:\n+            name: elasticsearch-api\n+            version: {present: true}\n+          attributes:\n+            db.operation.name: search\n+            db.operation.parameter.index: conformance\n+            http.request.method: POST\n+            http.response.status_code: 200",
+      "id": "PRRT_kwDOTuzK5c6zADpy",
+      "opened": "2026-11-03T06:31:50Z",
+      "path": "scenarios/database/contracts/elasticsearch-api-client.yaml",
+      "replies": [
+        {
+          "at": "2026-11-03T17:10:14Z",
+          "body": "c7adc1ab0a68ba458c2281a43bb82a4a7d4ea9ab",
+          "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/132#discussion_r4458011530"
+        }
+      ],
+      "reviewed": "2eed0734fc0ff9ffa9d11d01ec722db7307ab625",
+      "url": "https://github.com/open-telemetry/semantic-conventions-conformance/pull/132#discussion_r4451496459"
+    }
+  ]
+}

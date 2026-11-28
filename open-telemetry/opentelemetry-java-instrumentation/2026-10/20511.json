@@ -1,0 +1,78 @@
+{
+  "head": "cf9f463e6f3db6e3ab839bf7cd55aca722abbcb8",
+  "merge": "a8710b896a8ad9ae4699341603841ec5d2ded534",
+  "merged": "2026-10-14T09:06:40Z",
+  "missing_roots": 0,
+  "number": 20511,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Please change the assertions instead of opting these smoke tests into thread details. Remove this environment variable and explicitly assert that `thread.id` and `thread.name` are absent on both `GET /greeting` and `WebController.withSpan`, so the regular and AOT Spring Boot smoke tests exercise the new default-off behavior. The new autoconfiguration test already covers explicit opt-in; any additional installed-agent opt-in coverage should live in a focused test rather than the shared Spring Boot setup.",
+      "created": "2026-10-12T04:51:18Z",
+      "hunk": "@@ -24,6 +24,7 @@ protected void configure(SmokeTestOptions<Integer> options) {\n         .springBoot()\n         .setServiceName(false)\n         .env(\"OTEL_METRICS_EXPORTER\", \"otlp\")\n+        .env(\"OTEL_JAVAAGENT_ADD_THREAD_DETAILS\", \"true\")",
+      "id": "PRRT_kwDODJKVX86rVQc-",
+      "opened": "2026-10-12T04:51:18Z",
+      "path": "smoke-tests/src/test/java/io/opentelemetry/smoketest/AbstractSpringBootSmokeTest.java",
+      "replies": [
+        {
+          "at": "2026-10-12T05:04:12Z",
+          "body": "Removed the shared thread-details environment override and added absence assertions for `thread.id` and `thread.name` on both spans. The focused Spring Boot smoke tests pass. Commit: `ea06541d`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20511#discussion_r4244814677"
+        },
+        {
+          "at": "2026-10-12T05:30:46Z",
+          "body": "@copilot Please revise my earlier request and fix commit `ea06541def024e9e24da31fa9018842ab7a15a64`: remove both `doesNotContainKeys(THREAD_ID, THREAD_NAME)` assertion blocks from `AbstractSpringBootSmokeTest`, along with the unused thread-attribute imports. Keep the shared `OTEL_JAVAAGENT_ADD_THREAD_DETAILS` override removed; do not restore the old presence assertions or opt these smoke tests into thread details.\n\nThese general Spring Boot tests should not gain historical-absence checks merely because attributes previously emitted by default are now opt-in. This follows the intent of the supported-behavior testing guidance merged in #20438. Keep the focused `ThreadDetailsCustomizerProviderTest` cases for the changed default and explicit true/false settings: that remains supported configuration behavior. Leave production behavior and the rest of this PR unchanged; any clarification of the review rule belongs in a separate PR.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20511#discussion_r4244927195"
+        }
+      ],
+      "reviewed": "a45c93752443ed6acc0784aa21faa96a1fda72ae",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20511#discussion_r4244766560"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "recently was debugging something where the only clue was the thread name that indicated that it was a virtual thread",
+      "created": "2026-10-13T08:49:07Z",
+      "hunk": "@@ -4,6 +4,11 @@\n \n ### ⚠️ Breaking changes\n \n+- Process command resource attributes are now disabled by default. Set\n+  `otel.instrumentation.resources.experimental.process-command-attributes.enabled=true` to capture\n+  `process.command_args` and `process.command_line`.\n+  The Java agent also disables thread details by default; set `otel.javaagent.add-thread-details=true`\n+  to capture `thread.id` and `thread.name` on spans.",
+      "id": "PRRT_kwDODJKVX86rx5Fj",
+      "opened": "2026-10-13T08:49:07Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-10-14T02:45:27Z",
+          "body": "split this out to a separate PR\r\n- https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20575",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20511#discussion_r4266237790"
+        }
+      ],
+      "reviewed": "a9ea95be8b725411c78d8ad5895d15713bbc5582",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20511#discussion_r4256570313"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] The title and description also promise that `otel.javaagent.add-thread-details` becomes default-off independently of v3 preview, but the production path still defaults it with `!v3Preview` in `AgentDistributionConfig.java:237`; without preview, thread details therefore remain enabled. Please either implement that default change with its flat-config coverage and migration note, or remove thread details from this PR's stated scope.",
+      "created": "2026-10-13T15:57:30Z",
+      "hunk": "@@ -4,6 +4,9 @@\n \n ### ⚠️ Breaking changes\n \n+- Process command resource attributes are now disabled by default. Set\n+  `otel.instrumentation.resources.experimental.process-command-attributes.enabled=true` to capture\n+  `process.command_args` and `process.command_line`.",
+      "id": "PRRT_kwDODJKVX86r8kvM",
+      "opened": "2026-10-13T15:57:31Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-10-14T03:14:38Z",
+          "body": "No code change.\n\nAgentDistributionConfig.java:224-237 does retain !v3Preview as the thread-details default, exactly as intentionally restored by ancestor 611259ad597414f2289dc5e859290cd924792f89. That commit also removed the thread-details claim from CHANGELOG.md and restored supported thread telemetry in smoke tests; these files have no net change against the frozen merge commit's main parent. The current frozen PR body already removes thread details from scope. ProcessResourceProvider.java:25-26 independently defaults process-command capture to false, with existing absent/true/false coverage in ProcessResourceProviderTest.java:26-52. Focused resource and distribution-configuration tests pass. Reintroducing thread-details default-off would undo the evidenced scope split solely to satisfy the stale title. The title-only mismatch is recorded in diagnostics; this source-task protocol requires any proposal to retain the original title, and the body is already accurate.\n\n<!-- copilot-loop:ec75c63a35d509ceada76d4c001f013637d8f5f71d2ed452e7e899356366c5b1:4260952223:725b8113e34e48e28b5c4bf7f224164b -->",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20511#discussion_r4266388227"
+        }
+      ],
+      "reviewed": "98e13aa63d8bc98cb6cd0f866389893110c5f34d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20511#discussion_r4260952223"
+    }
+  ]
+}

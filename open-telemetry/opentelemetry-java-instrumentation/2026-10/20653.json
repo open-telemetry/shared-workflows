@@ -1,0 +1,46 @@
+{
+  "head": "db5cda674e411e0adfe3bf60ec90888b996a19de",
+  "merge": "c2c3f08a08b783c90f742307f8359db5e5d2d506",
+  "merged": "2026-10-17T05:41:19Z",
+  "missing_roots": 0,
+  "number": 20653,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n    register<JvmTestSuite>(\"version5Test\") {\n```",
+      "created": "2026-10-17T00:41:49Z",
+      "hunk": "@@ -20,6 +20,20 @@ dependencies {\n   testLibrary(\"org.apache.rocketmq:rocketmq-client-java:5.0.2\")\n }\n \n+testing {\n+  suites {\n+    register<JvmTestSuite>(\"client500Test\") {",
+      "id": "PRRT_kwDODJKVX86tbCY-",
+      "opened": "2026-10-17T00:41:49Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-5.0/javaagent/build.gradle.kts",
+      "replies": [],
+      "reviewed": "ddf49e87369c0aa2ba4e258df2575cd3330db874",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20653#discussion_r4300536528"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The new `ProducerSettings` match is not exercised by the installed-agent tests: `javaagent/build.gradle.kts:20` uses 5.0.2, while the 5.0.0 dependency is used only for unit tests. Neither those unit tests nor Muzzle checks verify that constructor advice captures the submission parent. Add a focused installed-agent regression test against 5.0.0 that submits under context A, executes deferred send work under context B, and asserts that the producer span remains a child of A. Retain coverage for the existing `PublishingSettings` path; a focused version-specific test avoids moving the full integration suite onto the older client versions noted as flaky in the build file.",
+      "created": "2026-10-17T01:32:42Z",
+      "hunk": "@@ -42,7 +42,12 @@ public void transform(TypeTransformer transformer) {\n             .and(takesArgument(0, named(\"org.apache.rocketmq.client.apis.message.Message\")))\n             .and(\n                 takesArgument(\n-                    1, named(\"org.apache.rocketmq.client.java.impl.producer.PublishingSettings\")))\n+                    1,\n+                    // The constructor declares ProducerSettings in 5.0.0 and\n+                    // PublishingSettings in 5.0.1+.\n+                    namedOneOf(\n+                        \"org.apache.rocketmq.client.java.impl.producer.ProducerSettings\",",
+      "id": "PRRT_kwDODJKVX86tbg_a",
+      "opened": "2026-10-17T01:32:43Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rocketmqclient/v5_0/PublishingMessageImplInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-10-17T01:46:07Z",
+          "body": "Ended up being a little weird to test, doesn't seem worth it for the old border case",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20653#discussion_r4300783302"
+        }
+      ],
+      "reviewed": "db5cda674e411e0adfe3bf60ec90888b996a19de",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20653#discussion_r4300740747"
+    }
+  ]
+}

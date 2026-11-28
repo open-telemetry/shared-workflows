@@ -1,0 +1,45 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "8b31fe76e9a30b01b9dfa7f572e9df20d575e2b6d74c257843f8598adbde8525",
+  "input_digest": "c4f7eef2cf4253e10ce8ad4ce397d20782fb5c63a5f231bc4ff77bdaf18e7174",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/30ff7aed22228f27bba8bbb52c89f86259a30139/instrumentation/jetty-httpclient/jetty-httpclient-12.0/library/src/main/java/io/opentelemetry/instrumentation/jetty/httpclient/v12_0/internal/JettyClientWrapUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/30ff7aed22228f27bba8bbb52c89f86259a30139/instrumentation/jetty-httpclient/jetty-httpclient-12.0/library/src/main/java/io/opentelemetry/instrumentation/jetty/httpclient/v12_0/TracingHttpRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7e73a2b95174a13104cf1807772d4d0246863207/instrumentation/jetty-httpclient/jetty-httpclient-12.0/library/src/main/java/io/opentelemetry/instrumentation/jetty/httpclient/v12_0/TracingHttpRequest.java"
+      ],
+      "id": "PRRT_kwDODJKVX860Wdut",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/30ff7aed22228f27bba8bbb52c89f86259a30139/instrumentation/jetty-httpclient/jetty-httpclient-12.0/library/src/main/java/io/opentelemetry/instrumentation/jetty/httpclient/v12_0/TracingHttpRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7e73a2b95174a13104cf1807772d4d0246863207/instrumentation/jetty-httpclient/jetty-httpclient-12.0/library/src/main/java/io/opentelemetry/instrumentation/jetty/httpclient/v12_0/TracingHttpRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/5fe148a5dc2874e1d203fee0c02f2403016957b0"
+      ],
+      "id": "PRRT_kwDODJKVX860XJxp",
+      "kind": "improvement",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5fe148a5dc2874e1d203fee0c02f2403016957b0/instrumentation/jetty-httpclient/jetty-httpclient-12.0/library/src/main/java/io/opentelemetry/instrumentation/jetty/httpclient/v12_0/TracingHttpRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7e73a2b95174a13104cf1807772d4d0246863207/instrumentation/jetty-httpclient/jetty-httpclient-12.0/library/src/main/java/io/opentelemetry/instrumentation/jetty/httpclient/v12_0/TracingHttpRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1f34f879cfdccb8545eeb830128c2fe6dcbd6468"
+      ],
+      "id": "PRRT_kwDODJKVX860XbDU",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

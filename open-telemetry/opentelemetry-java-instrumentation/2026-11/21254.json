@@ -1,0 +1,67 @@
+{
+  "head": "22bbd15e0e820542aee168196a9467706ace40bd",
+  "merge": "66e632d1c63dfc16296f385d448a1e456ed08b87",
+  "merged": "2026-11-09T07:10:55Z",
+  "missing_roots": 0,
+  "number": 21254,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This maintenance branch still runs `vaadin14LatestTest` through the Selenium/webpack path in `AbstractVaadinTest`; the browserless prerequisite from #21023 is absent. Removing the Node 22 pin exposes that suite to the `http_parser` incompatibility documented in the deleted comment when the runner supplies Node 24. Retain the Node 22 setup until the browserless changes are also backported.",
+      "created": "2026-11-08T17:50:03Z",
+      "hunk": "@@ -48,19 +48,6 @@ jobs:\n         run: |\n           sed -i \"s/org.gradle.jvmargs=/org.gradle.jvmargs=-Xmx3g /\" gradle.properties\n \n-      # Vaadin 14's webpack tooling uses http_parser, which was removed in Node 24.\n-      - name: Set up Node\n-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0\n-        with:\n-          node-version: '22'\n-\n-      # vaadin tests use pnpm\n-      - name: Cache pnpm modules\n-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0\n-        with:\n-          path: ~/.pnpm-store\n-          key: ${{ runner.os }}-test-latest-cache-pnpm-modules\n-\n       - name: Start deadlock detector",
+      "id": "PRRT_kwDODJKVX861C7SD",
+      "opened": "2026-11-08T17:50:03Z",
+      "path": ".github/workflows/reusable-test-latest-deps.yml",
+      "replies": [
+        {
+          "at": "2026-11-08T18:26:34Z",
+          "body": "Backported the browserless prerequisite from #21023 in 22bbd15e0e820542aee168196a9467706ace40bd. The legacy Vaadin 14 suites now exercise real Flow routing and RPC in production mode without Selenium or webpack. Selenium remains scoped to the modern Vaadin suite, so removing the Node 22 setup no longer exposes the legacy tests to frontend compilation.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21254#discussion_r4507287980"
+        }
+      ],
+      "reviewed": "76c3dc84f9a036b793bb960e56bde6314edb8bd4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21254#discussion_r4507179292"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly in open-telemetry/opentelemetry-java-instrumentation on its verified head branch copilot/backport-21047-remove-node-setup. The user explicitly selected: \"Backport prerequisite #21023 into the same PR, then keep the Node removal\". Keep the branch assigned by GitHub Copilot cloud agent; do not rename it or create a replacement branch. Keep any platform-assigned follow-up branch if GitHub creates one.\n\nBackport the browserless Vaadin prerequisite from main PR #21023, merge commit 606bb31b494cb2b8d3e909c07b266a22c14a94b1, into the current maintenance/v2.x backport. Preserve this PR's removal of unnecessary Node setup and pnpm caches from both workflows. Read the complete source PR diff and relevant repository instructions, then adapt the source change to maintenance rather than taking main files wholesale. Include the complete prerequisite test migration and associated fixtures, dependencies, resource cleanup and task/metadata wiring. Preserve maintenance dependency compatibility and unrelated settings. Changes to settings rendered obsolete by the browserless prerequisite are part of this authorized migration.\n\nCopilot review 5818961075, comment 4507179292, identified a real issue: maintenance still wires vaadin14LatestTest to Selenium and webpack through AbstractVaadinTest, but main #21047 removed the Node 22 pin only after #21023 eliminated legacy frontend compilation. The current PR therefore exposes the legacy suite to Node 24's http_parser incompatibility. The prerequisite uses installed-agent HTTP tests with real Flow routing/RPC for legacy Vaadin 14 and retains browser-to-server coverage for modern Vaadin. Backport that supported arrangement, including the source PR's suite changes, so Node removal is actually safe. Do not merely restore the pin, disable tests to hide failures, upgrade Node or gh-aw, change Renovate configuration, or make unrelated production changes.\n\nRun the narrowest relevant formatter and behavior validation, covering default and latest-dependency suite selection. Exercise legacy browserless behavior without relying on preinstalled Node 22 or pnpm; report genuine environment limitations accurately. Acceptance criteria: the same PR continues targeting maintenance/v2.x and remains in its current ready-for-review state; the prerequisite from #21023 is present and legacy Vaadin tests no longer invoke Selenium/webpack; modern browser integration coverage remains; the original Node/pnpm CI cleanup remains; tests, fixtures and task wiring are consistent. Do not reply to or resolve review threads, create another requested PR, or change unrelated branches.",
+      "created": "2026-11-08T17:53:35Z",
+      "hunk": "@@ -48,19 +48,6 @@ jobs:\n         run: |\n           sed -i \"s/org.gradle.jvmargs=/org.gradle.jvmargs=-Xmx3g /\" gradle.properties\n \n-      # Vaadin 14's webpack tooling uses http_parser, which was removed in Node 24.\n-      - name: Set up Node",
+      "id": "PRRT_kwDODJKVX861C9GZ",
+      "opened": "2026-11-08T17:53:35Z",
+      "path": ".github/workflows/reusable-test-latest-deps.yml",
+      "replies": [],
+      "reviewed": "76c3dc84f9a036b793bb960e56bde6314edb8bd4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21254#discussion_r4507190967"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Every Vaadin test task still forces `otel.instrumentation.common.controller-telemetry.enabled=true` in `javaagent/build.gradle.kts:91`. Consequently, the new controller-disabled assertions in both the HTTP and Selenium suites never run in CI, leaving the default behavior unchecked. Run the normal suites with the flag off and retain controller-enabled coverage in separately wired test variants.",
+      "created": "2026-11-08T18:30:28Z",
+      "hunk": "@@ -5,102 +5,68 @@\n \n package io.opentelemetry.javaagent.instrumentation.vaadin.v14_2;\n \n-import static io.opentelemetry.instrumentation.testing.junit.code.SemconvCodeStabilityUtil.codeFunctionAssertions;\n import static io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.assertThat;\n-import static java.util.Objects.requireNonNull;\n-import static org.awaitility.Awaitility.await;\n \n import com.vaadin.flow.server.Version;\n import com.vaadin.flow.spring.annotation.EnableVaadin;\n-import io.opentelemetry.api.trace.SpanKind;\n import io.opentelemetry.instrumentation.testing.internal.AutoCleanupExtension;\n import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n import io.opentelemetry.instrumentation.testing.junit.http.AbstractHttpServerUsingTest;\n import io.opentelemetry.instrumentation.testing.junit.http.HttpServerInstrumentationExtension;\n import io.opentelemetry.sdk.trace.data.SpanData;\n import java.io.File;\n-import java.io.IOException;\n-import java.io.InputStream;\n import java.net.URI;\n-import java.net.URISyntaxException;\n-import java.nio.file.Files;\n-import java.nio.file.Path;\n-import java.time.Duration;\n import java.util.HashMap;\n import java.util.List;\n import java.util.Map;\n import org.junit.jupiter.api.BeforeAll;\n-import org.junit.jupiter.api.Test;\n import org.junit.jupiter.api.extension.RegisterExtension;\n-import org.openqa.selenium.By;\n-import org.openqa.selenium.chrome.ChromeOptions;\n-import org.openqa.selenium.remote.RemoteWebDriver;\n-import org.slf4j.Logger;\n-import org.slf4j.LoggerFactory;\n import org.springframework.boot.SpringApplication;\n import org.springframework.boot.autoconfigure.SpringBootApplication;\n import org.springframework.context.ConfigurableApplicationContext;\n-import org.testcontainers.Testcontainers;\n-import org.testcontainers.containers.output.Slf4jLogConsumer;\n-import org.testcontainers.selenium.BrowserWebDriverContainer;\n \n public abstract class AbstractVaadinTest\n     extends AbstractHttpServerUsingTest<ConfigurableApplicationContext> {\n \n-  private static final Logger logger = LoggerFactory.getLogger(AbstractVaadinTest.class);\n+  private static final String INSTRUMENTATION_SCOPE = \"io.opentelemetry.vaadin-14.2\";\n+  private static final boolean CONTROLLER_TELEMETRY_ENABLED =\n+      Boolean.getBoolean(\"otel.instrumentation.common.controller-telemetry.enabled\");",
+      "id": "PRRT_kwDODJKVX861DNau",
+      "opened": "2026-11-08T18:30:28Z",
+      "path": "instrumentation/vaadin-14.2/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/vaadin/v14_2/AbstractVaadinTest.java",
+      "replies": [
+        {
+          "at": "2026-11-08T18:32:38Z",
+          "body": "Keeping the maintenance branch's existing controller-enabled test selection for this backport. This PR changes the test transport and frontend setup, not controller-telemetry configuration, defaults, or instrumentation behavior. The source fixtures also handle disabled telemetry, but adding a new mode matrix is a separate coverage improvement; it is not needed to preserve the routing/RPC coverage exercised by the existing suites.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21254#discussion_r4507305516"
+        }
+      ],
+      "reviewed": "22bbd15e0e820542aee168196a9467706ace40bd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21254#discussion_r4507299284"
+    }
+  ]
+}

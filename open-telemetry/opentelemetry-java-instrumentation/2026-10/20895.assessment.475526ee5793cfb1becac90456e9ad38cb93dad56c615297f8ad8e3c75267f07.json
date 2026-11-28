@@ -1,0 +1,53 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "910ea8b044556c47393866bc6206873f056624ca21dea6a6cc1a9188bfc32b4d",
+  "input_digest": "475526ee5793cfb1becac90456e9ad38cb93dad56c615297f8ad8e3c75267f07",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/11e6e0e8a5c71de66140e2b97a96987a0e023309/instrumentation/guava-10.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/60f314dfbc6b144fd5e35123e648acba7cc3279c/instrumentation/guava-10.0/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86veepL",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ea893834b4b1c5f983d8c97836cf46231c5c51d3/dependencyManagement/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ea893834b4b1c5f983d8c97836cf46231c5c51d3/instrumentation/cassandra/cassandra-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v3_0/TracingSession.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ea893834b4b1c5f983d8c97836cf46231c5c51d3/instrumentation/grpc-1.6/testing/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/AbstractGrpcTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/60f314dfbc6b144fd5e35123e648acba7cc3279c/dependencyManagement/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/60f314dfbc6b144fd5e35123e648acba7cc3279c/instrumentation/cassandra/cassandra-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/cassandra/v3_0/TracingSession.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/60f314dfbc6b144fd5e35123e648acba7cc3279c/instrumentation/grpc-1.6/testing/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/AbstractGrpcTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/405da5285f4ed0be22adc757fbd4ef23590d7a71"
+      ],
+      "id": "PRRT_kwDODJKVX86vfK3d",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86vq3VA",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86vfK3d",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/405da5285f4ed0be22adc757fbd4ef23590d7a71/instrumentation/guava-10.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/60f314dfbc6b144fd5e35123e648acba7cc3279c/instrumentation/guava-10.0/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86wsA4s",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

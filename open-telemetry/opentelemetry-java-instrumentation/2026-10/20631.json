@@ -1,0 +1,104 @@
+{
+  "head": "0aada44c6694a3f46ccce507447993fb54cf752b",
+  "merge": "34eb14ae9c6a8024043d77f093e3191e5fd1e246",
+  "merged": "2026-10-21T21:41:01Z",
+  "missing_roots": 0,
+  "number": 20631,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I think technically both name and version are required on the entity?",
+      "created": "2026-10-16T16:02:53Z",
+      "hunk": "@@ -40,15 +44,17 @@ static Resource buildResource() {\n               + \" \"\n               + System.getProperty(\"java.vm.version\");\n \n-      return Resource.create(\n-          Attributes.of(\n-              PROCESS_RUNTIME_NAME,\n-              name,\n-              PROCESS_RUNTIME_VERSION,\n-              version,\n-              PROCESS_RUNTIME_DESCRIPTION,\n-              description),\n-          SchemaUrls.V1_24_0);\n+      Attributes descriptive = Attributes.of(PROCESS_RUNTIME_DESCRIPTION, description);\n+      Attributes id = Attributes.of(PROCESS_RUNTIME_NAME, name, PROCESS_RUNTIME_VERSION, version);\n+      if (id.isEmpty()) {",
+      "id": "PRRT_kwDODJKVX86tRyg2",
+      "opened": "2026-10-16T16:02:52Z",
+      "path": "instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/ProcessRuntimeResource.java",
+      "replies": [
+        {
+          "at": "2026-10-16T20:26:56Z",
+          "body": "Both are recommended right now: https://github.com/open-telemetry/semantic-conventions/blob/main/docs/registry/entities/process.md#process-runtime\r\n\r\nSo the absence of both produces an empty id, which is not allowed, and then we skip producing an entity.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20631#discussion_r4299018654"
+        },
+        {
+          "at": "2026-10-17T00:05:29Z",
+          "body": "> Both are recommended right now: https://github.com/open-telemetry/semantic-conventions/blob/main/docs/registry/entities/process.md#process-runtime\r\n\r\nAh, I think that's a bug currently in the semantic conventions that is being fixed as schema v2 is rolled out.\r\n\r\nsee the [entity spec](https://opentelemetry.io/docs/specs/otel/entities/data-model/#identifying-attributes):\r\n\r\n> If an observer cannot reliably obtain one or more identifying attributes, it MUST NOT emit telemetry using that entity type.\r\n\r\nand [weaver schema v2](https://github.com/open-telemetry/weaver/blob/main/schemas/semconv-syntax.v2.md#entities-definition):\r\n\r\n> `identity` - Required. List of [attribute references](#attribute-reference) that form the identity of the entity. These attributes uniquely identify an instance of the entity and are always required (`requirement_level` cannot be set on `identity` attributes).",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20631#discussion_r4300395363"
+        },
+        {
+          "at": "2026-10-21T18:31:25Z",
+          "body": "Ah got it. Addressed in 8d0a6cfe87",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20631#discussion_r4340492009"
+        }
+      ],
+      "reviewed": "5a1913d84d08c9f1f1f3e8d9d0aca6df6a877473",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20631#discussion_r4296653712"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "breedx-splk"
+      },
+      "body": "We don't have these constants yet from the java semconv repo, right? Next release?",
+      "created": "2026-10-16T21:14:21Z",
+      "hunk": "@@ -40,15 +44,17 @@ static Resource buildResource() {\n               + \" \"\n               + System.getProperty(\"java.vm.version\");\n \n-      return Resource.create(\n-          Attributes.of(\n-              PROCESS_RUNTIME_NAME,\n-              name,\n-              PROCESS_RUNTIME_VERSION,\n-              version,\n-              PROCESS_RUNTIME_DESCRIPTION,\n-              description),\n-          SchemaUrls.V1_24_0);\n+      Attributes descriptive = Attributes.of(PROCESS_RUNTIME_DESCRIPTION, description);\n+      Attributes id = Attributes.of(PROCESS_RUNTIME_NAME, name, PROCESS_RUNTIME_VERSION, version);\n+      if (id.isEmpty()) {\n+        return Resource.create(descriptive, SchemaUrls.V1_24_0);\n+      }\n+      return EntityUtil.createResource(\n+          singletonList(\n+              Entity.builder(\"process.runtime\", id)",
+      "id": "PRRT_kwDODJKVX86tYYqw",
+      "opened": "2026-10-16T21:14:21Z",
+      "path": "instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/ProcessRuntimeResource.java",
+      "replies": [
+        {
+          "at": "2026-10-16T21:22:48Z",
+          "body": "Yup - just merged https://github.com/open-telemetry/semantic-conventions-java/pull/593\r\n\r\nNo release yet!",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20631#discussion_r4299465395"
+        }
+      ],
+      "reviewed": "5a1913d84d08c9f1f1f3e8d9d0aca6df6a877473",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20631#discussion_r4299404651"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This guard requires both identifiers, but the PR promises an entity when either name or version is available. For example, a runtime name with no version produces only unassociated attributes. The linked entity definition marks both identifiers as Recommended, not Required. Fall back only when both are absent, emit the entity using the available identifier, and update the single-missing-identifier test cases to expect that entity.",
+      "created": "2026-10-21T18:36:10Z",
+      "hunk": "@@ -40,15 +45,25 @@ static Resource buildResource() {\n               + \" \"\n               + System.getProperty(\"java.vm.version\");\n \n-      return Resource.create(\n-          Attributes.of(\n-              PROCESS_RUNTIME_NAME,\n-              name,\n-              PROCESS_RUNTIME_VERSION,\n-              version,\n-              PROCESS_RUNTIME_DESCRIPTION,\n-              description),\n-          SchemaUrls.V1_24_0);\n+      if (name == null || version == null) {",
+      "id": "PRRT_kwDODJKVX86u5rEL",
+      "opened": "2026-10-21T18:36:10Z",
+      "path": "instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/ProcessRuntimeResource.java",
+      "replies": [
+        {
+          "at": "2026-10-21T18:39:33Z",
+          "body": "Updated PR description to match code, which is correct",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20631#discussion_r4340569527"
+        }
+      ],
+      "reviewed": "8d0a6cfe87db113a5fbf701f36045fb6efa4b61d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20631#discussion_r4340536981"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "copilot was supposed to flag these null checks as unnecessary https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20817",
+      "created": "2026-10-21T20:41:43Z",
+      "hunk": "@@ -40,15 +45,25 @@ static Resource buildResource() {\n               + \" \"\n               + System.getProperty(\"java.vm.version\");\n \n-      return Resource.create(\n-          Attributes.of(\n-              PROCESS_RUNTIME_NAME,\n-              name,\n-              PROCESS_RUNTIME_VERSION,\n-              version,\n-              PROCESS_RUNTIME_DESCRIPTION,\n-              description),\n-          SchemaUrls.V1_24_0);\n+      if (name == null || version == null) {\n+        AttributesBuilder attributes =\n+            Attributes.builder().put(PROCESS_RUNTIME_DESCRIPTION, description);\n+        if (name != null) {\n+          attributes.put(PROCESS_RUNTIME_NAME, name);\n+        }\n+        if (version != null) {\n+          attributes.put(PROCESS_RUNTIME_VERSION, version);\n+        }",
+      "id": "PRRT_kwDODJKVX86u8fTc",
+      "opened": "2026-10-21T20:41:51Z",
+      "path": "instrumentation/resources/library/src/main/java/io/opentelemetry/instrumentation/resources/ProcessRuntimeResource.java",
+      "replies": [
+        {
+          "at": "2026-10-21T20:47:14Z",
+          "body": "👍 makes sense, fixed in 0aada44c66",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20631#discussion_r4341791524"
+        }
+      ],
+      "reviewed": "8d0a6cfe87db113a5fbf701f36045fb6efa4b61d",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20631#discussion_r4341741405"
+    }
+  ]
+}

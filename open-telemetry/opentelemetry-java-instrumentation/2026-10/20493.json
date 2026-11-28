@@ -1,0 +1,61 @@
+{
+  "head": "3867b42e6e74326f43010029730c81f0d0200889",
+  "merge": "1149968bf2a65a508f37d515ee66f6aab5c6d3f8",
+  "merged": "2026-10-29T08:04:03Z",
+  "missing_roots": 0,
+  "number": 20493,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n  ending in `:prod` becomes `:42`.\n```",
+      "created": "2026-10-11T19:24:43Z",
+      "hunk": "@@ -4,6 +4,10 @@\n \n ### ⚠️ Breaking changes\n \n+- AWS Lambda invocation spans now replace alias suffixes in `cloud.resource_id` with the resolved\n+  function version when available, as required by the FaaS semantic conventions. For example, an ARN\n+  ending in `:prod` becomes `:42`. Update telemetry queries and dashboards that match alias-qualified\n+  ARNs to use version-qualified ARNs.",
+      "id": "PRRT_kwDODJKVX86rQuW0",
+      "opened": "2026-10-11T19:24:43Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "eae01e004ba2937625ad797bc573cc638b3a1b03",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20493#discussion_r4242892022"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This catch parameter is unused; repository Java conventions require `ignored` for unused catch parameters.",
+      "created": "2026-10-11T19:28:52Z",
+      "hunk": "@@ -45,6 +46,16 @@ public final class AwsLambdaFunctionAttributesExtractor\n       getFunctionArn = null;\n     }\n     GET_FUNCTION_ARN = getFunctionArn;\n+\n+    MethodHandle getFunctionVersion;\n+    try {\n+      getFunctionVersion =\n+          lookup.findVirtual(\n+              Context.class, \"getFunctionVersion\", MethodType.methodType(String.class));\n+    } catch (NoSuchMethodException | IllegalAccessException e) {",
+      "id": "PRRT_kwDODJKVX86rQwmr",
+      "opened": "2026-10-11T19:28:52Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-core-1.0/library/src/main/java/io/opentelemetry/instrumentation/awslambdacore/v1_0/internal/AwsLambdaFunctionAttributesExtractor.java",
+      "replies": [],
+      "reviewed": "212eec928fdd677fd2eb51b546b21156c14589c3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20493#discussion_r4242906059"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This leaves alias resolution disabled on supported `aws-lambda-java-core` versions where `Context` does not declare `getFunctionVersion` (the module supports `[1.0.0,)`). In an actual Lambda runtime, `AWS_LAMBDA_FUNCTION_VERSION` still contains the resolved version, so this path emits the alias even though the version is available. Fall back to that environment variable when the optional method is absent, fails, or returns no value.",
+      "created": "2026-10-14T03:20:02Z",
+      "hunk": "@@ -82,6 +93,48 @@ private static String getFunctionArn(Context awsContext) {\n     }\n   }\n \n+  @Nullable\n+  private static String getFunctionVersion(Context awsContext) {\n+    if (GET_FUNCTION_VERSION == null) {\n+      return null;\n+    }\n+    try {\n+      return (String) GET_FUNCTION_VERSION.invoke(awsContext);\n+    } catch (Throwable ignored) {\n+      return null;\n+    }\n+  }",
+      "id": "PRRT_kwDODJKVX86sJkOV",
+      "opened": "2026-10-14T03:20:03Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-core-1.0/library/src/main/java/io/opentelemetry/instrumentation/awslambdacore/v1_0/internal/AwsLambdaFunctionAttributesExtractor.java",
+      "replies": [
+        {
+          "at": "2026-10-18T02:37:41Z",
+          "body": "`getFunctionVersion()` and `getInvokedFunctionArn()` were both added in `aws-lambda-java-core` 1.1.0. Version 1.0.0 has neither method, so the existing ARN lookup already returns null and no `cloud.resource_id` is emitted. An environment-variable fallback for the version would not help because there is no ARN to rewrite.\n\nThe older-version scenario therefore does not leave an alias unresolved. Preserving the invoked ARN when version information is unavailable is intentional, and no supported runtime failure path has been identified that requires the proposed fallback. Resolving as a false positive.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20493#discussion_r4305443396"
+        }
+      ],
+      "reviewed": "44d3b1d09233ec69ea56fcebfd8135875c3f92f9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20493#discussion_r4266417101"
+    }
+  ]
+}

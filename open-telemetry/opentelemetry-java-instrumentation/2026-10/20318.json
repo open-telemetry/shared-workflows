@@ -1,0 +1,41 @@
+{
+  "head": "125a76fb219544d280f61b06096a0b3ace2f58d0",
+  "merge": "9994f0e27b45c6f701d9d06b63c3b1329ef66ec2",
+  "merged": "2026-10-01T07:52:42Z",
+  "missing_roots": 0,
+  "number": 20318,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Does this also cover test classpath? We had the same issue with testing-commons dependency. There we worked around this by replacing the usual project dependency with `io.opentelemetry.javaagent:opentelemetry-testing-common` and dependency substitute it with `project(\":testing-common:with-shaded-dependencies\")`. If this works well I’d imagine we could get rid of that too.",
+      "created": "2026-09-29T15:32:35Z",
+      "hunk": "@@ -103,6 +102,17 @@ tasks.withType<JavaCompile>().configureEach {\n   }\n }\n \n+// Compile against project jars rather than class directories. Several projects add shaded classes\n+// to their main output via sourceSets.main.output.dir(...), which is packaged into the jar but is\n+// not part of the \"classes\" variant that java-library would otherwise select.\n+sourceSets.configureEach {\n+  configurations.named(compileClasspathConfigurationName) {",
+      "id": "PRRT_kwDODJKVX86nLYNS",
+      "opened": "2026-09-29T15:32:35Z",
+      "path": "conventions/src/main/kotlin/otel.java-conventions.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-09-29T16:40:43Z",
+          "body": "yes it does cover the test classpath. Removing that old workaround caused intellij to no longer recognize some of the armeria classes, so i needed to add [this](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20318/changes#diff-32fae187af6b6c32f8e4aaa3725e1ddf644d6c46ca6383f5f547b1d58f240205R23)",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20318#discussion_r4135982355"
+        },
+        {
+          "at": "2026-09-29T18:09:11Z",
+          "body": "That might not work with test suites, if it doesn't then might be better to keep the workaround.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20318#discussion_r4136757412"
+        },
+        {
+          "at": "2026-09-29T21:15:51Z",
+          "body": "it does apply to test suites too, but i ran into some other side effects. the quarkus BOM (applied with enforcedPlatform) forced opentelemetry-api 1.23.1 onto the Quarkus test classpaths, and I think the file dependency change to make IntelliJ work added some build heap pressure. I reverted back to just the plugin change for now",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20318#discussion_r4138407582"
+        }
+      ],
+      "reviewed": "c18c5da569a2d85263619d0d19c8dfe305b1fe19",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20318#discussion_r4135306918"
+    }
+  ]
+}

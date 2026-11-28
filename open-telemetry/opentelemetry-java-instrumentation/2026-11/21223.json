@@ -1,0 +1,300 @@
+{
+  "head": "8995afa242a093db1568f0f67cef5798784721b1",
+  "merge": "8b26b1cd2ee1941dfd1f7c78a8229a3d808895c1",
+  "merged": "2026-11-09T09:37:13Z",
+  "missing_roots": 0,
+  "number": 21223,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The reentrancy test logs from the MDC getter, so it does not verify that enrichment stays suppressed during synchronous `LogRecordProcessor.onEmit()` processing. Restoring the flag between mapping and SDK emission would still pass this suite. Add an installed-agent test with a synchronous processor that reads the originating event's MDC and logs a nested message, checking original MDC during processing, enrichment in nested application appenders, and restoration afterward.",
+      "created": "2026-11-06T04:46:24Z",
+      "hunk": "@@ -40,20 +42,36 @@ public void transform(TypeTransformer transformer) {\n   public static class CallAppendersAdvice {\n \n     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n-    public static CallDepth methodEnter(@Advice.Argument(0) ILoggingEvent event) {\n+    public static CallDepth methodEnter(@Advice.Argument(0) ILoggingEvent event) throws Throwable {\n       // need to track call depth across all loggers in order to avoid double capture when one\n       // logging framework delegates to another\n       CallDepth callDepth = CallDepth.forClass(LoggerProvider.class);\n-      if (callDepth.getAndIncrement() == 0) {\n-        mapper()\n-            .emit(GlobalOpenTelemetry.get().getLogsBridge(), event, Thread.currentThread().getId());\n+      int depth = callDepth.getAndIncrement();\n+      try {\n+        if (depth == 0) {\n+          Boolean previous = currentExportRead().set(true);",
+      "id": "PRRT_kwDODJKVX860Ybbt",
+      "opened": "2026-11-06T04:46:25Z",
+      "path": "instrumentation/logback/logback-appender-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/logback/appender/v1_0/LogbackInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-11-06T05:15:48Z",
+          "body": "Added the synchronous processor-emission regression coverage in commit `3c54f032`; it checks original MDC before and after nested logging, nested and outer appender enrichment, and subsequent logging.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21223#discussion_r4489281601"
+        },
+        {
+          "at": "2026-11-06T05:59:43Z",
+          "body": "Covered in `3c54f032` and strengthened in `0255661d`. The installed-agent test primes the originating event before measuring synchronous processor emission, checks original MDC before and after nested logging, and verifies enrichment in nested and outer application appenders plus subsequent log capture.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21223#discussion_r4489513440"
+        }
+      ],
+      "reviewed": "8063c24e6dbf044b47c583b9fb87837a8cce3d72",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21223#discussion_r4489120228"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the missing installed-agent regression coverage identified in review https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21223#discussion_r4489120228. The implementation is delivered, but the existing nestedLoggingFromMdcGetterStillEnrichesApplicationAppender test exercises recursion during mapping, not synchronous SDK processing after mapping.\r\n\r\nAdd a focused test using a synchronous LogRecordProcessor.onEmit callback during real Java-agent Logback capture. Have that callback read the originating event's MDC and verify that it still contains only the original application values, without injected trace, resource, or baggage values. Trigger a nested Logback message inside the callback and verify that its normal application appender receives MDC enrichment. After the nested call, verify that the enclosing processor still sees the unenriched original event MDC; after outer export, verify normal application-appender enrichment and subsequent logging. The regression should fail if suppression is restored between mapping and SDK emission, even though the getter-based reentrancy test would pass.\r\n\r\nKeep the current production behavior and Java-agent-only scope. Use the existing module's test infrastructure or its usual test-only processor registration pattern, without changing Logback library appenders, the shared LoggingEventMapper, Spring Boot, or other instrumentations. Keep the existing application-owned-key, selector, baggage-processor, and exception-cleanup tests. Run the focused baseline and latest-dependency suites where feasible. Work on this PR's existing cloud branch and commit the test changes; do not stop at a plan, wait for a separate branch, or create another PR.\r\n",
+      "created": "2026-11-06T04:48:51Z",
+      "hunk": "@@ -40,20 +42,36 @@ public void transform(TypeTransformer transformer) {\n   public static class CallAppendersAdvice {\n \n     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n-    public static CallDepth methodEnter(@Advice.Argument(0) ILoggingEvent event) {\n+    public static CallDepth methodEnter(@Advice.Argument(0) ILoggingEvent event) throws Throwable {\n       // need to track call depth across all loggers in order to avoid double capture when one\n       // logging framework delegates to another\n       CallDepth callDepth = CallDepth.forClass(LoggerProvider.class);\n-      if (callDepth.getAndIncrement() == 0) {\n-        mapper()\n-            .emit(GlobalOpenTelemetry.get().getLogsBridge(), event, Thread.currentThread().getId());\n+      int depth = callDepth.getAndIncrement();\n+      try {\n+        if (depth == 0) {\n+          Boolean previous = currentExportRead().set(true);",
+      "id": "PRRT_kwDODJKVX860YdLU",
+      "opened": "2026-11-06T04:48:51Z",
+      "path": "instrumentation/logback/logback-appender-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/logback/appender/v1_0/LogbackInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-11-06T05:15:48Z",
+          "body": "Added the installed-agent synchronous `LogRecordProcessor.onEmit()` regression coverage and committed it as `3c54f032`. The baseline and latest-dependency suites pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21223#discussion_r4489281584"
+        }
+      ],
+      "reviewed": "8063c24e6dbf044b47c583b9fb87837a8cce3d72",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21223#discussion_r4489131993"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Make the synchronous processor regression deterministic with respect to advice ordering, updating this PR directly. The new nestedLoggingFromSynchronousProcessorKeepsExportSuppressionUntilEmissionCompletes test creates a fresh LoggingEvent and immediately emits it with the processor callback installed. LoggingEventInstrumentation returns the original MDC whenever CONTEXT.get(event) is null. With the supported appender-first advice ordering that motivated #21193, the callback can therefore see raw MDC even if export suppression has already been incorrectly restored before SDK emission. Merely checking raw MDC for a fresh event does not reliably establish the required suppression boundary.\r\n\r\nBefore the measured processor emission, ensure that this same originating event has a captured OpenTelemetry Context, independently of module installation order. For example, prime the event through a normal Logback call under the intended context before installing the processor callback, synchronizing and discarding the warmup log before measuring the actual emission. Preserve the existing checks for raw original MDC both before and after the nested log, enriched nested and outer application appenders, and subsequent logging. Do not solve this by adding an order() override, relying on service-loader order, or exposing a production testing hook.\r\n\r\nVerify that this regression fails under a temporary negative control that restores suppression after mapping but before synchronous SDK emission, then restore the intended production implementation and run the focused baseline and latest-dependency suites where feasible. Do not commit the negative-control mutation. Keep the final change test-only and retain the established Java-agent-only production behavior; do not change library appenders, the shared LoggingEventMapper, Spring Boot, or other instrumentations. Continue on this PR's current branch, commit the focused correction, and do not create another PR.\r\n",
+      "created": "2026-11-06T05:27:47Z",
+      "hunk": "@@ -40,20 +42,36 @@ public void transform(TypeTransformer transformer) {\n   public static class CallAppendersAdvice {\n \n     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n-    public static CallDepth methodEnter(@Advice.Argument(0) ILoggingEvent event) {\n+    public static CallDepth methodEnter(@Advice.Argument(0) ILoggingEvent event) throws Throwable {\n       // need to track call depth across all loggers in order to avoid double capture when one\n       // logging framework delegates to another\n       CallDepth callDepth = CallDepth.forClass(LoggerProvider.class);\n-      if (callDepth.getAndIncrement() == 0) {\n-        mapper()\n-            .emit(GlobalOpenTelemetry.get().getLogsBridge(), event, Thread.currentThread().getId());\n+      int depth = callDepth.getAndIncrement();\n+      try {\n+        if (depth == 0) {\n+          Boolean previous = currentExportRead().set(true);",
+      "id": "PRRT_kwDODJKVX860Y9bz",
+      "opened": "2026-11-06T05:27:47Z",
+      "path": "instrumentation/logback/logback-appender-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/logback/appender/v1_0/LogbackInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-11-06T05:40:01Z",
+          "body": "Primed the same event through Logback before the measured emission, then synchronized and cleared the warmup output. The temporary restore-before-processor negative control failed on injected MDC as expected. Focused baseline and latest-dependency suites pass. Commit: `0255661d`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21223#discussion_r4489408126"
+        }
+      ],
+      "reviewed": "3c54f032ae2f818f45fefbae2c54cfc64f99e343",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21223#discussion_r4489344788"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n  resource, or baggage values.\n```",
+      "created": "2026-11-06T22:37:13Z",
+      "hunk": "@@ -363,6 +363,9 @@\n \n ### ⚠️ Breaking changes to non-stable APIs\n \n+- Java agent Logback MDC capture exports only application-owned MDC values, not agent-added trace,\n+  resource, or baggage values. Use `otel.java.experimental.log-attributes.copy-from-baggage.include`\n+  for baggage log attributes without the `baggage.` prefix.",
+      "id": "PRRT_kwDODJKVX860uEmh",
+      "opened": "2026-11-06T22:37:13Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "1c510696fa2c0c260e322e22a9eb138d937fcb84",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21223#discussion_r4498344648"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly by simplifying the Logback MDC regression tests to assert observable exported telemetry and application-appender MDC. Remove the test-only global synchronous-processor callback and its sequence-dependent event-priming test. Do not replace the global callback with a ContextKey, ThreadLocal, or another callback handoff.\n\nIn LogbackMdcExportTest, remove nestedLoggingFromSynchronousProcessorKeepsExportSuppressionUntilEmissionCompletes, SET_PROCESSOR_CALLBACK, the reflective callback setup, setProcessorCallback, and imports made unused by this removal. Remove SynchronousLogRecordProcessorCustomizerProvider and its AutoConfigurationCustomizerProvider service registration under src/mdcExportTestAgent. Remove the now-unused mdcExportTestAgent source set and its dedicated compile classpath, dependency, and testInstrumentation wiring from the module build.gradle.kts. Preserve the mdcExportTest suite and its remaining required dependencies and configuration.\n\nKeep the installed-agent coverage that asserts exported application-owned MDC attributes and the MDC actually observed by application appenders: application-owned enrichment-key collisions, selector behavior, nested logging from the MDC getter with enriched nested/outer appender output and correct outer exported attributes, null MDC, exception cleanup, and independent baggage export. Use the existing waitAndAssertLogRecords style. Do not introduce new testing hooks, reflection, global callbacks, or artificial source-event reads inside SDK processing. Earlier review requests to inspect the originating event from inside a synchronous processor are intentionally superseded by this observable-behavior-focused cleanup.\n\nKeep production behavior unchanged, including the suppression boundary and restoration logic. Do not change the shared LoggingEventMapper, library appenders, Spring Boot, or other instrumentations. Apply the narrowest relevant spotlessApply task directly before behavioral validation, and run the focused baseline and latest-dependency mdcExportTest suites where feasible. Commit the focused cleanup on this PR's existing branch; do not create another PR.",
+      "created": "2026-11-06T22:45:15Z",
+      "hunk": "@@ -0,0 +1,51 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.logback.appender.v1_0;\n+\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.sdk.autoconfigure.spi.AutoConfigurationCustomizer;\n+import io.opentelemetry.sdk.autoconfigure.spi.AutoConfigurationCustomizerProvider;\n+import io.opentelemetry.sdk.common.CompletableResultCode;\n+import io.opentelemetry.sdk.logs.LogRecordProcessor;\n+import io.opentelemetry.sdk.logs.ReadWriteLogRecord;\n+\n+public class SynchronousLogRecordProcessorCustomizerProvider\n+    implements AutoConfigurationCustomizerProvider {\n+\n+  private static volatile Runnable callback;\n+\n+  public static void setCallback(Runnable callback) {",
+      "id": "PRRT_kwDODJKVX860uNv8",
+      "opened": "2026-11-06T22:45:15Z",
+      "path": "instrumentation/logback/logback-appender-1.0/javaagent/src/mdcExportTestAgent/java/io/opentelemetry/instrumentation/logback/appender/v1_0/SynchronousLogRecordProcessorCustomizerProvider.java",
+      "replies": [
+        {
+          "at": "2026-11-06T22:55:11Z",
+          "body": "Removed the processor callback test/provider and its source-set wiring while retaining the observable MDC export coverage. Baseline and latest-dependency `mdcExportTest` suites passed. Commit: `98b2afc7`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21223#discussion_r4498473914"
+        }
+      ],
+      "reviewed": "1020f456882536ee47de8cf6726003c17a568788",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21223#discussion_r4498407190"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with two behavior-preserving simplifications.\n\nSimplify the MDC export assertions in instrumentation/logback/logback-appender-1.0/javaagent/src/mdcExportTest/java/io/opentelemetry/instrumentation/logback/appender/v1_0/LogbackMdcExportTest.java. Keep automatic thread and code attribute capture disabled for the dedicated mdcExportTest suite and all its execution variants, while preserving the existing settings for every other suite. Change assertExportedMdc to accept expected Attributes and assert the complete exported attributes through the existing SDK assertion API. Update its callers and remove assertMdcAttributes, including its prefix filtering and String casts. Do not ignore arbitrary thread.* or code.* keys, because those could also be application-owned MDC.\n\nFlatten CallAppendersAdvice.methodEnter in instrumentation/logback/logback-appender-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/logback/appender/v1_0/LogbackInstrumentation.java by returning callDepth immediately when callDepth.getAndIncrement() is nonzero. Remove the depth local and the enclosing depth == 0 conditional. Preserve the existing export-state try/finally, catch-and-rethrow call-depth cleanup, nullable enter result handling, and exit decrement. Nested calls must still increment on entry and decrement on exit.\n\nKeep the dedicated mdcExportTest suite and all existing observable-behavior coverage, including application-owned enrichment-key collisions, selectors, nested getter logging with enriched application appenders, null MDC, exception cleanup, and independent baggage export. Preserve the export suppression boundary across the entire mapper emit call, including synchronous SDK processing, and the nested-logging reset and restoration. Do not add callback hooks, reflection, new state mechanisms, or new test suites. Do not change the shared LoggingEventMapper, library appenders, Spring Boot, other instrumentations, or user-facing behavior.\n\nApply the narrowest relevant spotlessApply task directly before behavioral validation. Run the focused baseline and latest-dependency mdcExportTest suites and their relevant execution variants where feasible, and ensure the existing Logback appender suites retain their thread/code capture settings. Commit these focused changes on this PR's existing branch; do not create another PR.",
+      "created": "2026-11-06T23:21:54Z",
+      "hunk": "@@ -40,20 +42,36 @@ public void transform(TypeTransformer transformer) {\n   public static class CallAppendersAdvice {\n \n     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n-    public static CallDepth methodEnter(@Advice.Argument(0) ILoggingEvent event) {\n+    public static CallDepth methodEnter(@Advice.Argument(0) ILoggingEvent event) throws Throwable {\n       // need to track call depth across all loggers in order to avoid double capture when one\n       // logging framework delegates to another\n       CallDepth callDepth = CallDepth.forClass(LoggerProvider.class);\n-      if (callDepth.getAndIncrement() == 0) {\n-        mapper()\n-            .emit(GlobalOpenTelemetry.get().getLogsBridge(), event, Thread.currentThread().getId());\n+      int depth = callDepth.getAndIncrement();",
+      "id": "PRRT_kwDODJKVX860u0VF",
+      "opened": "2026-11-06T23:21:54Z",
+      "path": "instrumentation/logback/logback-appender-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/logback/appender/v1_0/LogbackInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-11-06T23:35:06Z",
+          "body": "Applied the requested behavior-preserving simplifications in `d706b70f`. Baseline Logback appender suites and the baseline/latest-dependency MDC export suites passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21223#discussion_r4498753425"
+        }
+      ],
+      "reviewed": "98b2afc789fbef851aa5e7c9d86972cebffb6d1a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21223#discussion_r4498669941"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Make one focused follow-up to the simplifications delivered in d706b70fef015e5142630f831db19280fb2cd3b3, updating this PR directly.\n\nThe requested behavior and direct Attributes assertions are delivered, but the new if (!name.startsWith(\"mdcExportTest\")) condition in instrumentation/logback/logback-appender-1.0/javaagent/build.gradle.kts uses task-name-based configuration. The repository's .github/instructions/instrumentation-gradle.instructions.md requires suite-scoped execution configuration rather than rebuilding common settings with suite-name checks, and one executions declaration per suite including shared selectors.\n\nReplace that task-name-prefix condition with explicit suite-scoped configuration using the existing execution blocks. Preserve automatic thread/code capture for the test, slf4j2ApiTest, logstashMarkerTest, and logstashStructuredArgsTest suites and all their execution variants, while keeping it disabled for mdcExportTest and both its variants. A small shared helper applied from the existing execution blocks is acceptable if needed to avoid duplicating the shared configuration. Keep genuinely cross-suite marker capture shared. Do not introduce task/suite name checks, duplicate executions declarations for the same suite, extra suites, or changes in dependency coverage.\n\nKeep the direct complete-Attributes assertions, all observable MDC coverage, and the flattened production advice unchanged. Do not change production behavior, the shared LoggingEventMapper, library appenders, Spring Boot, or other instrumentations. Apply the narrowest relevant spotlessApply task directly before behavioral validation. Verify baseline and latest-dependency mdcExportTest execution variants and the configuration of the other suites where feasible. Commit the focused Gradle correction on this PR's existing branch; do not create another PR.",
+      "created": "2026-11-06T23:44:28Z",
+      "hunk": "@@ -196,12 +214,36 @@ testing.suites {\n       systemProperty(\"testLogstashStructuredArgsConfiguration\", \"none\")\n     }\n   }\n+  executions(\"mdcExportTest\") {\n+    configureEach {\n+      jvmArgs(\"-Dotel.instrumentation.logback-mdc.add-baggage=true\")\n+      jvmArgs(\"-Dotel.instrumentation.common.mdc.resource-attributes=service.name\")\n+      jvmArgs(\"-Dotel.instrumentation.logback-appender.experimental.mdc-attributes.included=*\")\n+      jvmArgs(\"-Dotel.instrumentation.logback-appender.experimental.mdc-attributes.excluded=secret\")\n+      jvmArgs(\"-Dotel.service.name=mdc-export-test\")\n+    }\n+\n+    register(\"LoggingKeys\") {\n+      jvmArgs(\"-Dotel.instrumentation.common.logging.trace-id-key=custom_trace_id\")\n+      jvmArgs(\"-Dotel.instrumentation.common.logging.span-id-key=custom_span_id\")\n+      jvmArgs(\"-Dotel.instrumentation.common.logging.trace-flags-key=custom_trace_flags\")\n+    }\n+\n+    register(\"BaggageProcessor\") {\n+      filter.includeTestsMatching(\"*exportsBaggageIndependently\")\n+      systemProperty(\"test.baggageProcessor\", \"true\")\n+      jvmArgs(\"-Dotel.instrumentation.logback-appender.experimental.mdc-attributes.excluded=*\")\n+      jvmArgs(\"-Dotel.java.experimental.log-attributes.copy-from-baggage.include=tenant\")\n+    }\n+  }\n }\n \n tasks.withType<Test>().configureEach {\n   // TODO run tests both with and without experimental log attributes\n-  jvmArgs(\"-Dotel.instrumentation.logback-appender.experimental-log-attributes=true\")\n-  jvmArgs(\"-Dotel.instrumentation.logback-appender.experimental.capture-code-attributes=true\")\n+  if (!name.startsWith(\"mdcExportTest\")) {",
+      "id": "PRRT_kwDODJKVX860vIkZ",
+      "opened": "2026-11-06T23:44:28Z",
+      "path": "instrumentation/logback/logback-appender-1.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-06T23:55:20Z",
+          "body": "Moved automatic thread/code capture flags into the existing execution blocks for `test`, `slf4j2ApiTest`, `logstashMarkerTest`, and `logstashStructuredArgsTest`; marker capture remains shared. Baseline suites and variants, and baseline/latest-dependency MDC export executions pass. Commit: `f560f1f4`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21223#discussion_r4498869911"
+        }
+      ],
+      "reviewed": "d706b70fef015e5142630f831db19280fb2cd3b3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21223#discussion_r4498810801"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly by combining a narrowly scoped MDC-reader callback with event-specific suppression named suppressMdcEnrichment.\n\nLoggingEventMapper currently calls loggingEvent.getMDCPropertyMap() directly, while the Java-agent CallAppendersAdvice wraps the entire mapper.emit(...) call in a scoped Boolean currentExportRead. Replace this with a configurable MDC-reader function on the internal LoggingEventMapper builder, defaulting to ILoggingEvent::getMDCPropertyMap so standalone library appenders keep their existing behavior and have no dependency on agent bootstrap classes. Configure the Java-agent mapper in LogbackSingletons with a reader that sets suppressMdcEnrichment to the exact event, calls event.getMDCPropertyMap(), and restores the previous value in finally. Keep that scope limited to the getter invocation, not the rest of mapping or LogRecordBuilder.emit().\n\nReplace the shared LogbackMdcState Boolean holder and currentExportRead accessor with event-specific scoped state exposed as suppressMdcEnrichment(). The bootstrap holder can use Object to avoid a dependency on Logback. In LoggingEventInstrumentation.GetMdcAdvice, skip agent enrichment only when suppressMdcEnrichment().get() == event, using identity rather than equals, and preserve the null-to-empty-map behavior for that raw MDC read.\n\nRemove the export-state wrapper from the appender instrumentation's CallAppendersAdvice. Remove the clearing/restoration of export state in the MDC instrumentation's LoggerInstrumentation.CallAppendersAdvice, retaining its event-context capture. Preserve logging call-depth ownership and exception cleanup. A nested log from a custom MDC getter has a different event, so its ordinary application appenders must still get normal trace/resource/baggage enrichment without resetting the outer event's suppression. Restore scoped state even when a getter throws.\n\nThis request intentionally supersedes earlier instructions to preserve suppression across the entire mapper emit call and synchronous SDK processing, and the earlier restriction against changing the shared mapper. Do not retain or reintroduce the removed global synchronous-processor callback/priming tests or add unrelated testing hooks. Preserve standalone library behavior, existing MDC selectors and application-owned enrichment-key values, event-name handling, null MDC, independent baggage export, and normal enriched application-appender output.\n\nKeep the change focused on the Logback mapper and its Java-agent integration. Use the existing test infrastructure to cover the callback's default behavior and Java-agent-only use, nested getter logging with enriched nested/outer appender output and correct exported attributes, and exception restoration. Preserve all existing observable MDC regression coverage. Apply the narrowest relevant spotlessApply tasks directly before behavioral validation, and run the relevant focused library tests and baseline/latest-dependency mdcExportTest suites and their execution variants where feasible. Commit the changes to this PR's existing branch; do not create another PR.",
+      "created": "2026-11-07T01:41:32Z",
+      "hunk": "@@ -40,20 +42,34 @@ public void transform(TypeTransformer transformer) {\n   public static class CallAppendersAdvice {\n \n     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n-    public static CallDepth methodEnter(@Advice.Argument(0) ILoggingEvent event) {\n+    public static CallDepth methodEnter(@Advice.Argument(0) ILoggingEvent event) throws Throwable {\n       // need to track call depth across all loggers in order to avoid double capture when one\n       // logging framework delegates to another\n       CallDepth callDepth = CallDepth.forClass(LoggerProvider.class);\n-      if (callDepth.getAndIncrement() == 0) {\n-        mapper()\n-            .emit(GlobalOpenTelemetry.get().getLogsBridge(), event, Thread.currentThread().getId());\n+      if (callDepth.getAndIncrement() != 0) {\n+        return callDepth;\n+      }\n+      try {\n+        Boolean previous = currentExportRead().set(true);",
+      "id": "PRRT_kwDODJKVX860wh7n",
+      "opened": "2026-11-07T01:41:31Z",
+      "path": "instrumentation/logback/logback-appender-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/logback/appender/v1_0/LogbackInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-11-07T01:55:20Z",
+          "body": "Implemented event-identity-scoped MDC suppression in `5e63725a`. The mapper defaults to `ILoggingEvent::getMDCPropertyMap`; the Java agent supplies the scoped reader. Focused library and installed-agent MDC export tests passed with baseline and latest dependencies.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21223#discussion_r4499468127"
+        }
+      ],
+      "reviewed": "f560f1f430925049aa2e1c180ad3fb560b4101ce",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21223#discussion_r4499414656"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n                  // Suppress enrichment only for this event, so nested logs from a custom MDC\n                  // getter still receive enrichment.\n                  Object previous = suppressMdcEnrichment().set(event);\n```",
+      "created": "2026-11-07T02:17:13Z",
+      "hunk": "@@ -41,6 +43,15 @@ public class LogbackSingletons {\n         LoggingEventMapper.builder()\n             .setCaptureExperimentalAttributes(captureExperimentalAttributes)\n             .setMdcAttributes(mdcAttributes)\n+            .setMdcReader(\n+                event -> {\n+                  Object previous = suppressMdcEnrichment().set(event);",
+      "id": "PRRT_kwDODJKVX860w5Wv",
+      "opened": "2026-11-07T02:17:13Z",
+      "path": "instrumentation/logback/logback-appender-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/logback/appender/v1_0/LogbackSingletons.java",
+      "replies": [],
+      "reviewed": "5e63725ace80e812f563d3e6c031e25f28adfe4f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21223#discussion_r4499569018"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n                  // Read application-owned MDC without exporting agent-added values.\n                  // Suppress enrichment only for this event, so nested logs from a custom MDC\n```",
+      "created": "2026-11-07T02:21:20Z",
+      "hunk": "@@ -41,6 +43,17 @@ public class LogbackSingletons {\n         LoggingEventMapper.builder()\n             .setCaptureExperimentalAttributes(captureExperimentalAttributes)\n             .setMdcAttributes(mdcAttributes)\n+            .setMdcReader(\n+                event -> {\n+                  // Suppress enrichment only for this event, so nested logs from a custom MDC",
+      "id": "PRRT_kwDODJKVX860w7th",
+      "opened": "2026-11-07T02:21:20Z",
+      "path": "instrumentation/logback/logback-appender-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/logback/appender/v1_0/LogbackSingletons.java",
+      "replies": [],
+      "reviewed": "eeb14bd8401f4eb0ba2a0cb839a5b04485cf7c2f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21223#discussion_r4499585797"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-11-07T02:23:33Z",
+      "hunk": "@@ -14,6 +14,9 @@ Baggage entries are exposed with a `baggage.` prefix, to avoid clashes with exis\n baggage entry named `clientId` is therefore available as `baggage.clientId`, for example\n `%mdc{baggage.clientId}` in a Logback pattern.\n \n+This setting does not enable baggage export as OTLP log attributes. See the\n+[Logback appender settings](../../logback-appender-1.0/javaagent/README.md) for independent baggage export.\n+",
+      "id": "PRRT_kwDODJKVX860w9UE",
+      "opened": "2026-11-07T02:23:33Z",
+      "path": "instrumentation/logback/logback-mdc-1.0/javaagent/README.md",
+      "replies": [],
+      "reviewed": "69163ad1bb42ca8531b00360eb142d0ec3026bac",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21223#discussion_r4499596928"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly by removing only the unrelated cleanup in instrumentation/logback/logback-mdc-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/logback/mdc/v1_0/LoggerInstrumentation.java. Restore that file to the PR base version, including the AssignReturned and ToArgument imports, @AssignReturned.ToArguments(@ToArgument(0)), ILoggingEvent return type, and return event after CONTEXT.set(event, Context.current()). The final PR diff must contain no change to this file.\n\nThe user wants this redundant-argument-reassignment cleanup in a separate independent PR, not mixed into #21223. That separate deliverable is being dispatched independently; do not implement it here or create another PR. Preserve every other current change in #21223, including event-identity suppressMdcEnrichment, the getter-scoped MDC reader, tests, and any explanatory comments already on the live head. Do not reintroduce the old Boolean flag or advice-level suppression clearing.\n\nTarget the verified live head repository open-telemetry/opentelemetry-java-instrumentation and branch copilot/java-agent-logback-change. Keep the branch assigned by GitHub Copilot cloud agent; do not rename it or create a replacement branch. If GitHub creates a platform-assigned follow-up branch, keep that branch. Commit the focused restoration, apply the narrowest applicable spotlessApply task directly before behavioral validation, and run the relevant focused Logback MDC/appender regression tests where feasible.",
+      "created": "2026-11-07T02:23:52Z",
+      "hunk": "@@ -39,11 +37,9 @@ public void transform(TypeTransformer transformer) {\n   @SuppressWarnings(\"unused\")\n   public static class CallAppendersAdvice {\n \n-    @AssignReturned.ToArguments(@ToArgument(0))\n     @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n-    public static ILoggingEvent onEnter(@Advice.Argument(0) ILoggingEvent event) {\n+    public static void onEnter(@Advice.Argument(0) ILoggingEvent event) {",
+      "id": "PRRT_kwDODJKVX860w9iO",
+      "opened": "2026-11-07T02:23:52Z",
+      "path": "instrumentation/logback/logback-mdc-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/logback/mdc/v1_0/LoggerInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-11-07T02:33:19Z",
+          "body": "Restored `LoggerInstrumentation.java` to the PR-base version; the file no longer appears in the PR diff. Commit: `0d5ac4fb`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21223#discussion_r4499638331"
+        }
+      ],
+      "reviewed": "69163ad1bb42ca8531b00360eb142d0ec3026bac",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21223#discussion_r4499598382"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly by moving the Logback-specific shared MDC suppression state out of javaagent-extension-api into a focused Logback bootstrap module.\n\nLogbackMdcState currently lives at javaagent-extension-api/src/main/java/io/opentelemetry/javaagent/bootstrap/internal/LogbackMdcState.java. Both logback-appender-1.0 and logback-mdc-1.0 Java-agent instrumentations need the same bootstrap-loaded state, but this Logback-specific coordination does not belong in the general extension API. Use the repository's existing instrumentation-specific bootstrap pattern, for example instrumentation/kafka/kafka-clients/kafka-clients-0.11/bootstrap and its consumers. Create a suitable shared module under instrumentation/logback using the otel.javaagent-bootstrap plugin, register it in settings.gradle.kts, and wire both Java-agent consumers through bootstrap(project(...)). Move the holder into an appropriate Logback bootstrap package and update all references. The final PR diff must no longer add LogbackMdcState to javaagent-extension-api.\n\nKeep this a behavior-preserving packaging change. Preserve the single shared ScopedThreadValue<Object>, the suppressMdcEnrichment accessor, event-identity comparison, getter-only suppression scope, nested getter logging behavior, null MDC handling, and exception restoration. Standalone library appenders must remain independent of agent bootstrap classes. Keep the existing mapper callback, selectors, application-owned enrichment-key values, baggage export, and regression coverage unchanged. Do not broaden this into API redesign, other logging frameworks, or unrelated cleanup.\n\nFollow the applicable repository instructions and existing bootstrap dependency conventions. Apply the narrowest applicable spotlessApply tasks directly before behavioral validation, and run the relevant focused Logback baseline/latest-dependency MDC export suites and execution variants where feasible. Verify that both instrumentation modules resolve the same bootstrap holder rather than per-module copies.\n\nTarget the verified live head repository open-telemetry/opentelemetry-java-instrumentation and branch copilot/java-agent-logback-change, updating this PR directly rather than creating a separate PR. Keep the branch assigned by GitHub Copilot cloud agent; do not rename it or create a replacement branch. If GitHub creates a platform-assigned follow-up branch, keep that branch.",
+      "created": "2026-11-07T02:52:26Z",
+      "hunk": "@@ -0,0 +1,25 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.bootstrap.internal;\n+\n+import io.opentelemetry.instrumentation.api.internal.ScopedThreadValue;\n+\n+/**\n+ * Coordinates original-MDC reads during Java agent log export.\n+ *\n+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change\n+ * at any time.\n+ */\n+public final class LogbackMdcState {",
+      "id": "PRRT_kwDODJKVX860xQ1s",
+      "opened": "2026-11-07T02:52:25Z",
+      "path": "instrumentation/logback/bootstrap/src/main/java/io/opentelemetry/javaagent/bootstrap/logback/LogbackMdcState.java",
+      "replies": [
+        {
+          "at": "2026-11-07T03:03:12Z",
+          "body": "Moved `LogbackMdcState` into the new `instrumentation/logback/bootstrap` module and wired both Java-agent consumers through `bootstrap(project(...))`. Baseline and latest-dependency MDC suites/variants pass. Commit: `da8296a1`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21223#discussion_r4499765192"
+        }
+      ],
+      "reviewed": "850cd697c2fbc1b783ac3243b9416c2787496bdd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21223#discussion_r4499723093"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-11-07T03:19:45Z",
+      "hunk": "@@ -20,6 +20,22 @@ Captured MDC, structured, logger context, Logstash marker, and Logstash structur\n attributes may contain sensitive information. Configure included and excluded patterns to limit\n the data exported as log attributes.\n \n+MDC capture selects only the application's original event MDC. Trace IDs, span IDs, trace flags,\n+resource attributes, and baggage added by the Java agent's Logback MDC instrumentation are available\n+to application appenders and log patterns, but are not exported as MDC log attributes. Application-owned\n+values under the same names, such as `trace_id`, `service.name`, or `baggage.foo`, remain selectable.\n+Trace correlation is carried in the OTLP log record's trace and span fields independently.\n+\n+To export baggage as log attributes, configure the bundled baggage log record processor separately:\n+\n+```properties\n+otel.java.experimental.log-attributes.copy-from-baggage.include=tenant\n+```\n+\n+This exports the selected baggage entry as `tenant`, without a `baggage.` prefix. It is independent\n+of `otel.instrumentation.logback-mdc.add-baggage` and the MDC capture selector, including when that\n+selector excludes all MDC entries.",
+      "id": "PRRT_kwDODJKVX860xg1u",
+      "opened": "2026-11-07T03:19:45Z",
+      "path": "instrumentation/logback/logback-appender-1.0/javaagent/README.md",
+      "replies": [],
+      "reviewed": "da8296a1868f94b53c91d55970f234425070a67b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21223#discussion_r4499831236"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with three focused simplifications to the Logback MDC export regression tests.\n\nIn instrumentation/logback/logback-appender-1.0/javaagent/src/mdcExportTest/java/io/opentelemetry/instrumentation/logback/appender/v1_0/LogbackMdcExportTest.java, remove exportsBaggageIndependently and its EnabledIfSystemProperty annotation/import. Remove the dedicated BaggageProcessor execution variant from the module build.gradle.kts, including its test.baggageProcessor switch and baggage-processor-only configuration. That test primarily checks the separately configured baggage processor while MDC capture is disabled, rather than the getter-suppression behavior changed by this PR. Keep baggage setup and assertions in the remaining tests, where they verify enrichment reaches application appenders without leaking into exported MDC. This supersedes earlier requests to preserve the independent baggage-processor test.\n\nReduce preservesApplicationOwnedKeys to the configured TRACE_ID_KEY, SPAN_ID_KEY, and TRACE_FLAGS_KEY, plus service.name and baggage.foo. Use a simple nearby method source for these five string inputs. Keep the existing default and LoggingKeys executions so both default and custom trace-key configurations remain covered, rather than testing all six hard-coded trace-key spellings in both JVMs.\n\nRemove the if (key.equals(TRACE_ID_KEY)) branch in preservesApplicationOwnedKeys and its exact appender-map assertion, along with the now-unused singletonMap import. That assertion pins the pre-existing already-instrumented-event shortcut, not the export-isolation contract. Retain the exact complete exported-attributes assertion.\n\nKeep the span/no-span cases, nested MDC getter logging with enriched nested and outer application appenders, null MDC, throwing-getter recovery and call-depth cleanup, selector exclusion coverage, and the assertEnrichment and assertExportedMdc helpers. Preserve all production code and behavior, the shared bootstrap module, the getter-only event-identity suppression boundary, and existing library behavior. Do not introduce new testing hooks, extra suites, unrelated cleanup, or replacement baggage-processor coverage. The README trace-correlation/baggage passage was already removed on live head 22b27f3421665f5df2d3f55ee6b826cfa4115789; retain that edit without adding more documentation changes.\n\nApply the narrowest applicable spotlessApply task directly before behavioral validation. Run the focused baseline and latest-dependency mdcExportTest suite and retained LoggingKeys execution where feasible. Commit the focused cleanup to this PR's verified head repository open-telemetry/opentelemetry-java-instrumentation and branch copilot/java-agent-logback-change, updating this PR directly instead of creating another PR. Keep the branch assigned by GitHub Copilot cloud agent; do not rename it or create a replacement branch. If GitHub creates a platform-assigned follow-up branch, keep that branch.",
+      "created": "2026-11-07T03:22:44Z",
+      "hunk": "@@ -0,0 +1,251 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.logback.appender.v1_0;\n+\n+import static io.opentelemetry.api.common.AttributeKey.stringKey;\n+import static java.util.Collections.singletonMap;\n+import static org.assertj.core.api.Assertions.assertThat;\n+\n+import ch.qos.logback.classic.Level;\n+import ch.qos.logback.classic.Logger;\n+import ch.qos.logback.classic.spi.ILoggingEvent;\n+import ch.qos.logback.classic.spi.LoggingEvent;\n+import ch.qos.logback.core.AppenderBase;\n+import io.opentelemetry.api.baggage.Baggage;\n+import io.opentelemetry.api.common.Attributes;\n+import io.opentelemetry.api.trace.Span;\n+import io.opentelemetry.api.trace.SpanContext;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import io.opentelemetry.javaagent.testing.common.TestAgentListenerAccess;\n+import java.util.HashMap;\n+import java.util.LinkedHashMap;\n+import java.util.Map;\n+import org.junit.jupiter.api.AfterEach;\n+import org.junit.jupiter.api.BeforeEach;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.ValueSource;\n+import org.slf4j.LoggerFactory;\n+import org.slf4j.MDC;\n+\n+class LogbackMdcExportTest {\n+\n+  @RegisterExtension\n+  static final InstrumentationExtension testing = AgentInstrumentationExtension.create();\n+\n+  private static final String TRACE_ID_KEY =\n+      System.getProperty(\"otel.instrumentation.common.logging.trace-id-key\", \"trace_id\");\n+  private static final String SPAN_ID_KEY =\n+      System.getProperty(\"otel.instrumentation.common.logging.span-id-key\", \"span_id\");\n+  private static final String TRACE_FLAGS_KEY =\n+      System.getProperty(\"otel.instrumentation.common.logging.trace-flags-key\", \"trace_flags\");\n+\n+  private final Logger logger = (Logger) LoggerFactory.getLogger(\"mdc-export\");\n+  private final MdcAppender appender = new MdcAppender();\n+\n+  @BeforeEach\n+  void setUp() {\n+    logger.setLevel(Level.INFO);\n+    logger.setAdditive(false);\n+    appender.start();\n+    logger.addAppender(appender);\n+  }\n+\n+  @AfterEach\n+  void tearDown() {\n+    logger.detachAppender(appender);\n+    appender.stop();\n+    MDC.clear();\n+  }\n+\n+  @ParameterizedTest\n+  @ValueSource(booleans = {false, true})\n+  void exportsOnlyApplicationMdc(boolean withSpan) {\n+    MDC.put(\"request\", \"application\");\n+    MDC.put(\"secret\", \"excluded\");\n+    Runnable log =\n+        () -> {\n+          try (Scope ignored = Baggage.builder().put(\"foo\", \"synthetic\").build().makeCurrent()) {\n+            SpanContext spanContext = Span.current().getSpanContext();\n+            logger.info(\"message\");\n+            assertEnrichment(\"message\", spanContext);\n+          }\n+        };\n+    if (withSpan) {\n+      testing.runWithSpan(\"parent\", log::run);\n+    } else {\n+      log.run();\n+    }\n+\n+    assertExportedMdc(\"message\", Attributes.of(stringKey(\"request\"), \"application\"));\n+  }\n+\n+  @ParameterizedTest\n+  @ValueSource(\n+      strings = {\n+        \"trace_id\",\n+        \"span_id\",\n+        \"trace_flags\",\n+        \"custom_trace_id\",\n+        \"custom_span_id\",\n+        \"custom_trace_flags\",\n+        \"service.name\",\n+        \"baggage.foo\"\n+      })\n+  void preservesApplicationOwnedKeys(String key) {",
+      "id": "PRRT_kwDODJKVX860xiX_",
+      "opened": "2026-11-07T03:22:44Z",
+      "path": "instrumentation/logback/logback-appender-1.0/javaagent/src/mdcExportTest/java/io/opentelemetry/instrumentation/logback/appender/v1_0/LogbackMdcExportTest.java",
+      "replies": [
+        {
+          "at": "2026-11-07T03:32:37Z",
+          "body": "Updated in `72a51080`. Spotless and both baseline/latest MDC export executions passed. The existing CI FOSSA check separately reports a missing generated entry for the Logback bootstrap module.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21223#discussion_r4499878425"
+        }
+      ],
+      "reviewed": "22b27f3421665f5df2d3f55ee6b826cfa4115789",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21223#discussion_r4499841452"
+    }
+  ]
+}

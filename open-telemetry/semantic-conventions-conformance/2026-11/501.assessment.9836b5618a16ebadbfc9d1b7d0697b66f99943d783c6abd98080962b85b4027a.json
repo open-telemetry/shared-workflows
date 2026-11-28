@@ -1,0 +1,34 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "02bb0a5f7517706a6b2f0598c02c15a7c5ed0f194ae72f95caf1ecfc74a9bc6b",
+  "input_digest": "9836b5618a16ebadbfc9d1b7d0697b66f99943d783c6abd98080962b85b4027a",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/a2f9db337a9d2f0d7e567d20dbf5166b8dab3128/tools/gen-ai/mock-server/src/genai_mock_server/openai.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/fa2cf8c4af51a73ae0f45b00e5b76e42e26b8810/tools/gen-ai/mock-server/src/genai_mock_server/openai.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/fa2cf8c4af51a73ae0f45b00e5b76e42e26b8810",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/d470a4dcdd6d773838fb16cf1d55901fbfac81f6"
+      ],
+      "id": "PRRT_kwDOTuzK5c64teFa",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/6ce99244e1be1226f83624236187aa6253422f3c/tools/gen-ai/mock-server/src/genai_mock_server/openai.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/blob/fa2cf8c4af51a73ae0f45b00e5b76e42e26b8810/tools/gen-ai/mock-server/src/genai_mock_server/openai.py",
+        "https://github.com/open-telemetry/semantic-conventions-conformance/commit/707c293ee51b6ff87f1cc3973dd50d85a9939b94"
+      ],
+      "id": "PRRT_kwDOTuzK5c66IN6M",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

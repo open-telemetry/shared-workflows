@@ -1,0 +1,139 @@
+{
+  "head": "d1f5371421a49a72319d86181340a01ee670b289",
+  "merge": "079a5af0e2f57d36527bdb7df8d65596ac013475",
+  "merged": "2026-10-22T07:46:01Z",
+  "missing_roots": 0,
+  "number": 20823,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with two small corrections to the new cross-version test code, preserving the current baseline/newer-suite coverage and supported versions.\n\nIn both newly added AwsLambdaTestUtils classes under aws-lambda-core-1.0/library/src/test and aws-lambda-events-3.11/library/src/test, remove expectedCloudResourceId() and expectedCloudAccountId(). They hide short expected values behind helpers, contrary to the repository's java-tests instructions. Keep a small helper for detecting ARN API availability if needed, but put the conditional expected ARN/account values directly in each equalTo(...) assertion. Preserve exact assertions of absent attributes on core 1.0.0 and present attributes on the newer runtime; do not replace them with non-exact assertions.\n\nThe comments saying getInvokedFunctionArn was added in core 1.2.1 are inaccurate. The published core 1.1.0 and 1.2.0 source JARs both already contain that method. Remove the release-introduction claim or describe only the relevant verified contract, that core 1.0.0 lacks the accessor.\n\nKeep the existing one-PR scope and draft state. Re-run the narrow affected formatting and baseline/newer-core tests after these corrections, preserving the exception-log execution coverage and pinned-latest behavior. Report exact commands/results and the resolved baseline versions/nonzero test counts in your task evidence. Do not change production code or dependency minimums, add unrelated refactors, create a follow-up PR, request reviews, or edit the PR title or description.",
+      "created": "2026-10-22T02:31:44Z",
+      "hunk": "@@ -0,0 +1,47 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.awslambdacore.v1_0;\n+\n+import static org.mockito.Mockito.when;\n+\n+import com.amazonaws.services.lambda.runtime.Context;\n+import java.lang.reflect.Method;\n+\n+final class AwsLambdaTestUtils {\n+\n+  private static final String INVOKED_FUNCTION_ARN =\n+      \"arn:aws:lambda:us-east-1:123456789:function:test\";\n+\n+  static void stubInvokedFunctionArn(Context context) {\n+    try {\n+      Method method = Context.class.getMethod(\"getInvokedFunctionArn\");\n+      when((String) method.invoke(context)).thenReturn(INVOKED_FUNCTION_ARN);\n+    } catch (NoSuchMethodException ignored) {\n+      // getInvokedFunctionArn was added in aws-lambda-java-core 1.2.1.\n+    } catch (ReflectiveOperationException e) {\n+      throw new LinkageError(e.getMessage(), e);\n+    }\n+  }\n+\n+  static String expectedCloudResourceId() {",
+      "id": "PRRT_kwDODJKVX86vBsBK",
+      "opened": "2026-10-22T02:31:44Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-core-1.0/library/src/test/java/io/opentelemetry/instrumentation/awslambdacore/v1_0/AwsLambdaTestUtils.java",
+      "replies": [
+        {
+          "at": "2026-10-22T02:41:09Z",
+          "body": "Addressed in `4d01a82d`. Both utilities now expose only the API-availability check; ARN/account expected values are inline in the existing exact span assertions. The comments now state only that core 1.0.0 lacks the accessor.\n\nFormatting passed: `./gradlew :instrumentation:aws-lambda:aws-lambda-core-1.0:library:spotlessApply :instrumentation:aws-lambda:aws-lambda-events-3.11:library:spotlessApply`.\n\nBaseline/newer-core tests passed (core default/version12 and exception-log variants: 17 tests each; events-3.11 default/version12: 25 tests each): `./gradlew :instrumentation:aws-lambda:aws-lambda-core-1.0:library:test :instrumentation:aws-lambda:aws-lambda-core-1.0:library:version12Test :instrumentation:aws-lambda:aws-lambda-core-1.0:library:testExceptionSignalLogs :instrumentation:aws-lambda:aws-lambda-core-1.0:library:version12TestExceptionSignalLogs :instrumentation:aws-lambda:aws-lambda-events-3.11:library:test :instrumentation:aws-lambda:aws-lambda-events-3.11:library:version12Test --console=plain`.\n\nPinned-latest mode passed with the same task list prefixed by `./gradlew --configure-on-demand -PtestLatestDeps=true` and suffixed by `--console=plain`. Resolved baseline graphs confirm core 1.0.0 in both projects and events 3.11.0 retained; version12 suites resolve core 1.2.1.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20823#discussion_r4344034488"
+        }
+      ],
+      "reviewed": "f04cdea3119a67769ab8876e6ef82f8d951a2fc5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20823#discussion_r4343989544"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] `.github/scripts/instrumentations.sh:44` still collects `aws-lambda:aws-lambda-events-3.11:library:test`. That suite now uses core 1.0.0 and omits `cloud.resource_id` and `cloud.account.id`; the newer-core suite that emits them is not collected. Regenerating the telemetry inventory will therefore omit supported attributes even though production behavior is unchanged. Switch the representative collection task to `aws-lambda:aws-lambda-events-3.11:library:version12Test`, while keeping baseline tests in `check`. This preserves the telemetry-shape coverage required by `instrumentation-docs/readme.md:76-82`.",
+      "created": "2026-10-22T03:09:16Z",
+      "hunk": "@@ -22,11 +21,46 @@ dependencies {\n   testImplementation(\"uk.org.webcompere:system-stubs-jupiter\")\n }\n \n-tasks {\n-  test {\n-    // required on jdk17\n-    jvmArgs(\"--add-opens=java.base/java.lang=ALL-UNNAMED\")\n-    jvmArgs(\"--add-opens=java.base/java.util=ALL-UNNAMED\")\n-    jvmArgs(\"-XX:+IgnoreUnrecognizedVMOptions\")\n+testing {\n+  suites {\n+    named<JvmTestSuite>(\"test\") {\n+      executions {\n+        configureEach {\n+          // required on jdk17\n+          jvmArgs(\"--add-opens=java.base/java.lang=ALL-UNNAMED\")\n+          jvmArgs(\"--add-opens=java.base/java.util=ALL-UNNAMED\")\n+          jvmArgs(\"-XX:+IgnoreUnrecognizedVMOptions\")\n+        }\n+      }\n+\n+      configurations.configureEach {\n+        when (name) {\n+          \"version12TestImplementation\" -> extendsFrom(configurations.testImplementation.get())\n+          \"version12TestRuntimeOnly\" -> extendsFrom(configurations.testRuntimeOnly.get())\n+        }\n+      }\n+    }\n+\n+    register<JvmTestSuite>(\"version12Test\") {",
+      "id": "PRRT_kwDODJKVX86vCHQM",
+      "opened": "2026-10-22T03:09:17Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-events-3.11/library/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-22T03:50:27Z",
+          "body": "Fixed in 511ca852acc0902224758de3f2d98e602579d660. The telemetry inventory now collects `aws-lambda:aws-lambda-events-3.11:library:version12Test`, preserving ARN/account attribute coverage while the core 1.0.0 baseline tests remain in `check`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20823#discussion_r4344364653"
+        }
+      ],
+      "reviewed": "4d01a82dea5a020eb6d253fd5e78f385a4994297",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20823#discussion_r4344172342"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to fix the telemetry inventory regression identified by the latest Copilot review: https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20823#discussion_r4344172342.\n\nThe finding is verified. .github/scripts/instrumentations.sh still registers aws-lambda:aws-lambda-events-3.11:library:test for metadata collection, and .github/scripts/metadata-ci-collect.sh runs this standard task list without testLatestDeps. This PR's default test now resolves core 1.0.0 and intentionally omits cloud.resource_id and cloud.account.id. Those supported attributes remain emitted by the version12Test suite, but that suite is not collected. Production behavior is unchanged, so regeneration must not lose those attributes.\n\nReplace that representative collection entry with aws-lambda:aws-lambda-events-3.11:library:version12Test. Keep baseline tests and all version suites wired into check. Do not add a duplicate collection entry or a metadataConfig label for the dependency version; this is still default instrumentation telemetry.\n\nValidate the selected version12Test task with -PcollectMetadata=true and inspect the emitted telemetry for the io.opentelemetry.aws-lambda-events-3.11 scope to confirm cloud.resource_id and cloud.account.id remain collected. Use the existing narrow task-registration validation if feasible and report exact commands/results. Preserve core 1.0.0 and events 2.2.1 baseline coverage and the existing newer-version suites. This should be a focused collection-wiring correction, not a production, dependency-minimum, generated-inventory, or unrelated refactor.\n\nKeep this one PR in draft state. Do not create a follow-up PR, dispatch additional tasks, request reviews, reply to the review, resolve threads, or edit the PR title or description.",
+      "created": "2026-10-22T03:10:56Z",
+      "hunk": "@@ -22,11 +21,46 @@ dependencies {\n   testImplementation(\"uk.org.webcompere:system-stubs-jupiter\")\n }\n \n-tasks {\n-  test {\n-    // required on jdk17\n-    jvmArgs(\"--add-opens=java.base/java.lang=ALL-UNNAMED\")\n-    jvmArgs(\"--add-opens=java.base/java.util=ALL-UNNAMED\")\n-    jvmArgs(\"-XX:+IgnoreUnrecognizedVMOptions\")\n+testing {\n+  suites {\n+    named<JvmTestSuite>(\"test\") {\n+      executions {\n+        configureEach {\n+          // required on jdk17\n+          jvmArgs(\"--add-opens=java.base/java.lang=ALL-UNNAMED\")\n+          jvmArgs(\"--add-opens=java.base/java.util=ALL-UNNAMED\")\n+          jvmArgs(\"-XX:+IgnoreUnrecognizedVMOptions\")\n+        }\n+      }\n+\n+      configurations.configureEach {\n+        when (name) {\n+          \"version12TestImplementation\" -> extendsFrom(configurations.testImplementation.get())\n+          \"version12TestRuntimeOnly\" -> extendsFrom(configurations.testRuntimeOnly.get())\n+        }\n+      }\n+    }\n+\n+    register<JvmTestSuite>(\"version12Test\") {",
+      "id": "PRRT_kwDODJKVX86vCIa3",
+      "opened": "2026-10-22T03:10:56Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-events-3.11/library/build.gradle.kts",
+      "replies": [],
+      "reviewed": "4d01a82dea5a020eb6d253fd5e78f385a4994297",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20823#discussion_r4344180223"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly rather than opening another PR. Rename only the `version12Test` suite in `instrumentation/aws-lambda/aws-lambda-events-3.11/library/build.gradle.kts` to `core12Test`. The user finds the existing name confusing because this suite varies `aws-lambda-java-core`, not the independently versioned `aws-lambda-java-events` dependency.\n\nUpdate the suite-specific configuration names, dependency-inheritance wiring, and all references to this particular task, including the representative collection entry in `.github/scripts/instrumentations.sh`, which must become `aws-lambda:aws-lambda-events-3.11:library:core12Test`. Keep the core module's own `version12Test` and the common-events module's `version310Test` unchanged. Preserve dependency versions, isolated baseline/newer-core graphs, shared sources, JVM settings, suite-owned executions, inclusion in `check`, and all current coverage. Do not change production behavior or support minimums, or add a dependency-version metadata label.\n\nRun the narrowest appropriate formatting and validation for the rename. Verify that the events-3.11 baseline and renamed newer-core suites execute tests, including the repository's pinned-latest mode, and that their dependency-inheritance configurations still select the intended versions. Validate the metadata task registration and run the renamed collection task with `-PcollectMetadata=true`, confirming that it still collects `cloud.resource_id` and `cloud.account.id` for scope `io.opentelemetry.aws-lambda-events-3.11`. Keep this a focused naming change and preserve the existing PR's draft state and base.",
+      "created": "2026-10-22T03:56:59Z",
+      "hunk": "@@ -22,11 +21,46 @@ dependencies {\n   testImplementation(\"uk.org.webcompere:system-stubs-jupiter\")\n }\n \n-tasks {\n-  test {\n-    // required on jdk17\n-    jvmArgs(\"--add-opens=java.base/java.lang=ALL-UNNAMED\")\n-    jvmArgs(\"--add-opens=java.base/java.util=ALL-UNNAMED\")\n-    jvmArgs(\"-XX:+IgnoreUnrecognizedVMOptions\")\n+testing {\n+  suites {\n+    named<JvmTestSuite>(\"test\") {\n+      executions {\n+        configureEach {\n+          // required on jdk17\n+          jvmArgs(\"--add-opens=java.base/java.lang=ALL-UNNAMED\")\n+          jvmArgs(\"--add-opens=java.base/java.util=ALL-UNNAMED\")\n+          jvmArgs(\"-XX:+IgnoreUnrecognizedVMOptions\")\n+        }\n+      }\n+\n+      configurations.configureEach {\n+        when (name) {\n+          \"version12TestImplementation\" -> extendsFrom(configurations.testImplementation.get())\n+          \"version12TestRuntimeOnly\" -> extendsFrom(configurations.testRuntimeOnly.get())\n+        }\n+      }\n+    }\n+\n+    register<JvmTestSuite>(\"version12Test\") {",
+      "id": "PRRT_kwDODJKVX86vCokk",
+      "opened": "2026-10-22T03:56:59Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-events-3.11/library/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-22T04:08:20Z",
+          "body": "Renamed the suite and its configuration/collection references in `7bd3d333`. Baseline, newer-core, and pinned-latest runs pass 25 tests per suite; metadata collection still includes `cloud.resource_id` and `cloud.account.id`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20823#discussion_r4344447853"
+        }
+      ],
+      "reviewed": "511ca852acc0902224758de3f2d98e602579d660",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20823#discussion_r4344395394"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly rather than opening another PR. Replace the nested `configurations.configureEach { when (name) { ... } }` dependency-inheritance callbacks in all three changed AWS Lambda library builds with the repository's existing targeted configuration pattern. The files are `instrumentation/aws-lambda/aws-lambda-core-1.0/library/build.gradle.kts`, `instrumentation/aws-lambda/aws-lambda-events-3.11/library/build.gradle.kts`, and `instrumentation/aws-lambda/aws-lambda-events-common-2.2/library/build.gradle.kts`.\n\nUse an explicit top-level `configurations { named(\"...Implementation\") { extendsFrom(configurations[\"testImplementation\"]) }; named(\"...RuntimeOnly\") { extendsFrom(configurations[\"testRuntimeOnly\"]) } }` block outside the default test suite and after the appropriate suite registration, accounting for Gradle's registration/realization ordering. Existing examples are `instrumentation/spring/spring-jms/spring-jms-2.0/javaagent/build.gradle.kts` and `instrumentation/runtime-telemetry/library/build.gradle.kts`. Keep the current suite names: `version12Test` in core, `core12Test` in events-3.11, and `version310Test` in common-events. Preserve the just-completed events-suite rename and its `core12Test` metadata-collection reference.\n\nKeep the change limited to clearer, conventional dependency wiring. Preserve the actual inherited dependencies and isolated baseline/newer-version graphs, test sources, JVM settings, exception-log executions, suite-owned `executions` blocks, inclusion in `check`, telemetry collection, support minimums, production behavior, and the PR's draft/base state. Do not introduce shared Gradle infrastructure or another abstraction.\n\nApply the narrowest appropriate formatting and validate configuration/task registration as well as the affected default and custom suites, including core exception-log executions and the repository's pinned-latest mode. Confirm nonzero test execution and resolved baseline/newer target versions so this cleanup cannot silently drop dependency inheritance or baseline coverage.",
+      "created": "2026-10-22T04:12:43Z",
+      "hunk": "@@ -44,6 +41,38 @@ testing {\n           jvmArgs(\"-Dotel.semconv.exception.signal.preview=logs\")\n         }\n       }\n+\n+      configurations.configureEach {",
+      "id": "PRRT_kwDODJKVX86vCzdP",
+      "opened": "2026-10-22T04:12:43Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-core-1.0/library/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-10-22T04:23:53Z",
+          "body": "Replaced the three nested callbacks with top-level named configuration blocks after suite registration in `d1f53714`. Default and custom suites—including core exception-log variants—passed in standard and pinned-latest modes; resolved graphs confirmed the baseline and newer target versions.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20823#discussion_r4344526010"
+        }
+      ],
+      "reviewed": "7bd3d333db169713a2ade911152eee76e46332c6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20823#discussion_r4344469378"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "In 2.2.1, the fluent method is misspelled `withQueryStringParamters`, so `withQueryStringParameters` won't compile. `setQueryStringParameters` exists in both versions and sets the same field. This change preserves the test's behavior while allowing it to run against the declared minimum dependency.",
+      "created": "2026-10-22T04:29:50Z",
+      "hunk": "@@ -80,8 +80,8 @@ private static Attributes attributes(\n         new APIGatewayProxyRequestEvent()\n             .withHttpMethod(\"GET\")\n             .withPath(\"/hello\")\n-            .withQueryStringParameters(query)\n             .withHeaders(headers);\n+    request.setQueryStringParameters(query);",
+      "id": "PRRT_kwDODJKVX86vDAZS",
+      "opened": "2026-10-22T04:29:50Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-events-common-2.2/library/src/test/java/io/opentelemetry/instrumentation/awslambdaevents/common/v2_2/internal/ApiGatewayProxyAttributesExtractorTest.java",
+      "replies": [],
+      "reviewed": "d1f5371421a49a72319d86181340a01ee670b289",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20823#discussion_r4344555092"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "In `aws-lambda-java-events:2.2.1`, `SQSMessage()` is private",
+      "created": "2026-10-22T04:30:32Z",
+      "hunk": "@@ -102,7 +102,7 @@ private static SQSEvent event(List<SQSMessage> records) {\n   }\n \n   private static SQSMessage message(String messageId, String eventSourceArn) {\n-    SQSMessage message = new SQSMessage();\n+    SQSMessage message = SqsEventTestUtils.newMessage();",
+      "id": "PRRT_kwDODJKVX86vDA5U",
+      "opened": "2026-10-22T04:30:32Z",
+      "path": "instrumentation/aws-lambda/aws-lambda-events-common-2.2/library/src/test/java/io/opentelemetry/instrumentation/awslambdaevents/common/v2_2/internal/SqsEventRecordAttributesTest.java",
+      "replies": [],
+      "reviewed": "d1f5371421a49a72319d86181340a01ee670b289",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20823#discussion_r4344558549"
+    }
+  ]
+}

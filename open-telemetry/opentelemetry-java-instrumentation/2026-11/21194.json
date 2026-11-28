@@ -1,0 +1,94 @@
+{
+  "head": "f1b080adfb0d17032080b3c2cfb0c1001bce4352",
+  "merge": "688f6bc44f3fa9b84ba1ced0b0c3828202099813",
+  "merged": "2026-11-04T06:38:47Z",
+  "missing_roots": 0,
+  "number": 21194,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to finish concrete omissions from the user-authorized Gradle sweep. The first attempt at b3b7b67949121733461abf70219200f2e0591176 delivered 55 Gradle build changes. Preserve all those changes, the existing head repository/branch, and this standalone draft PR's main base. Do not create another PR or change shared convention APIs, production behavior, test coverage, dependency versions, agent instructions, or personal Copilot configuration.\n\nFinish the remaining suite-container and default-setting boilerplate in three builds already changed by this PR. In instrumentation/vertx/vertx-kafka-client-3.6/javaagent/build.gradle.kts, replace the remaining testing { suites { ... } } wrapper with testing.suites { ... }, and configure the unitTests receive-telemetry property through executions.configureDefault inside its registration instead of targets/all/testTask nesting. Preserve its unit-test dependencies and agent-free semantics; the removed duplicate testing-common dependency is already supplied by the convention. In instrumentation/opentelemetry-api/opentelemetry-api-1.38/javaagent/build.gradle.kts, move noopTest's default-only testing.exporter.enabled=false setting from targets/all/testTask into its owning executions.configureDefault, retaining current dependency/exclusion/forced-version behavior. In instrumentation/pekko/pekko-http-1.0/javaagent/build.gradle.kts, replace the otherwise empty named<JvmTestSuite>(\"test\") wrapper around NewServerAt executions with executions(\"test\") in the existing container. Do not alter that build's Scala source shims, JVM release flags, supported-version/JDK gates, fixture sharing, dependencies, or genuinely cross-suite JVM settings.\n\nVerify before changing lifecycle wiring: calling executions wires the default task and variants into check when the suite is realized, and collection selectors are lazy. These suites already participate in check through dependsOn(testing.suites); retain that intended participation, default-only configuration, and sufficient realization wiring. Do not fan default-only settings across unrelated suites or register a second executions block for a suite.\n\nThe coordinating session recovered the first attempt's completion evidence after the transcript tools became available. It reports an inventory of 661 builds, focused convention/library/agent/helper tests, baseline Java 8 and latest Java 17 GraphQL runs with 20 default and 6 exception tests, successful representative check graphs in both modes, and correct Reactor Netty default exclusions. Netty 4.1's default run was discovery-only with 87 skipped tests, not an actual passing execution. Do not rerun the entire original validation matrix. Verify the three new refinements with narrow affected tasks, real relevant test discovery/execution, and representative check graphs. Provide a concise reply to this exact delegation containing the exact commands and actual results from this attempt, and note cached or skipped results and environmental limitations accurately.\n\nCheck the remaining directly equivalent suite-container or default-setting omissions within this Gradle sweep and address any you confirm. Report equivalent cases deliberately left unchanged with the concrete reason. This is not a request for a second unrelated broad redesign or validation matrix. Preserve already reviewed resource-sensitive Vaadin, MR-JAR, shaded-classpath, Testcontainers, smoke-test and benchmark behavior. Do not normalize names, remove settings based on stale local sources, redesign metadata profiles, or change distribution-agent input fingerprinting. For example, current Pekko source on the exact PR head no longer has the old local TestLatestDeps reader; verify current checked-out source and real shared-fixture usage rather than copying historical assumptions.\n\nRun the narrow affected spotlessApply tasks directly before focused validation, without preliminary spotlessCheck, clean/cleanTest, --rerun-tasks, or build-cache bypasses. Use existing repository tooling and preserve full source-set resources, JVM argument providers/input tracking, test filters, no-test error behavior, metadata profiles and collection references. Do not wait for or monitor hosted CI, request review, resolve threads, reply to human/review comments, or perform PR title/description maintenance. A completion reply to this delegation containing actual evidence is explicitly requested; the coordinating session handles review and metadata.",
+      "created": "2026-11-04T01:03:26Z",
+      "hunk": "@@ -27,26 +27,22 @@ configurations.configureEach {\n   }\n }\n \n-testing {\n-  suites {\n-    register<JvmTestSuite>(\"incubatorTest\") {\n-      dependencies {\n-        implementation(\"io.opentelemetry:opentelemetry-api-incubator:1.38.0-alpha\")\n-      }\n+testing.suites {",
+      "id": "PRRT_kwDODJKVX86zZrY4",
+      "opened": "2026-11-04T01:03:26Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.38/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-04T01:14:04Z",
+          "body": "Committed as `283d303c`.\n\nValidation commands and results:\n\n- `./gradlew :instrumentation:vertx:vertx-kafka-client-3.6:javaagent:spotlessApply :instrumentation:opentelemetry-api:opentelemetry-api-1.38:javaagent:spotlessApply :instrumentation:pekko:pekko-http-1.0:javaagent:spotlessApply` — **BUILD SUCCESSFUL**.\n- `./gradlew :instrumentation:vertx:vertx-kafka-client-3.6:javaagent:unitTests :instrumentation:opentelemetry-api:opentelemetry-api-1.38:javaagent:noopTest :instrumentation:pekko:pekko-http-1.0:javaagent:testNewServerAt` — **BUILD SUCCESSFUL**. Reports: Vert.x 7 tests, 0 skipped; OpenTelemetry API 1 test, 0 skipped; Pekko 185 tests, 37 skipped; 0 failures/errors in all three.\n- `./gradlew :instrumentation:vertx:vertx-kafka-client-3.6:javaagent:check :instrumentation:opentelemetry-api:opentelemetry-api-1.38:javaagent:check :instrumentation:pekko:pekko-http-1.0:javaagent:check --dry-run` — **BUILD SUCCESSFUL**; all three check graphs included their affected execution tasks. As expected, tasks in this graph were marked `SKIPPED` by `--dry-run`.\n\nSome supporting build tasks were `UP-TO-DATE`. Develocity cache lookups failed because `community.develocity.cloud` could not resolve; Gradle disabled the remote cache and all commands still succeeded. The changed-build scan found no additional equivalent `targets/all/testTask` defaults or empty named `test` wrappers. Pekko’s cross-suite JVM flags and Scala source shims were left unchanged because they apply across suites/source sets. CodeQL reported no changes in analyzable languages, so no analysis was performed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21194#discussion_r4462425131"
+        }
+      ],
+      "reviewed": "b3b7b67949121733461abf70219200f2e0591176",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21194#discussion_r4462358375"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to undo only the Reactor Kafka layout change that moved the unitTests executions block inside its suite registration. In instrumentation/reactor/reactor-kafka-1.0/javaagent/build.gradle.kts, remove the nested executions { configureDefault { ... } } from register<JvmTestSuite>(\"unitTests\") and restore the separate collection-level executions(\"unitTests\") { configureDefault { jvmArgs(\"-Dotel.instrumentation.common.messaging.experimental.receive-telemetry.enabled=true\") } } block before executions(\"test\"), matching the pre-PR layout. Preserve the exact property, default-only behavior, unit-test dependencies, and check wiring. Keep all other PR cleanup changes, including the removed redundant testing-common dependencies. Do not change other modules, production code, shared convention APIs, PR title/description, or draft state. Run the narrow affected spotlessApply task directly before focused validation and verify the unitTests task and check dependency graph retain their behavior. Do not create another PR or wait for hosted CI.",
+      "created": "2026-11-04T01:41:24Z",
+      "hunk": "@@ -50,9 +50,14 @@ testing.suites {\n       implementation(project(\":instrumentation:reactor:reactor-3.1:library\"))\n       implementation(project(\":javaagent-bootstrap\"))\n       implementation(project(\":javaagent-extension-api\"))\n-      implementation(\"io.opentelemetry.javaagent:opentelemetry-testing-common\")\n       implementation(\"io.projectreactor.kafka:reactor-kafka:1.0.0.RELEASE\")\n     }\n+\n+    executions {",
+      "id": "PRRT_kwDODJKVX86zaNQ7",
+      "opened": "2026-11-04T01:41:23Z",
+      "path": "instrumentation/reactor/reactor-kafka-1.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-04T01:50:32Z",
+          "body": "Restored the collection-level `executions(\"unitTests\")` block with its default-only JVM argument, preserving the existing dependencies and check wiring. Commit: `931d449f`. `spotlessApply` and `unitTests` passed (6 tests, 0 failures); the check dry run includes `unitTests` and the existing execution variants.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21194#discussion_r4462648167"
+        }
+      ],
+      "reviewed": "283d303c1af7710816598b4dea92bd64787f8fb3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21194#discussion_r4462588999"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to keep execution configuration outside suite definitions in the files already touched by this PR. Move the three remaining nested executions blocks into separate collection-level executions(\"suiteName\") blocks in their existing testing.suites containers: noopTest in instrumentation/opentelemetry-api/opentelemetry-api-1.38/javaagent/build.gradle.kts; unitTests in instrumentation/vertx/vertx-kafka-client-3.6/javaagent/build.gradle.kts; and pekko11Test in instrumentation/pekko/pekko-http-1.0/javaagent/build.gradle.kts. Keep dependencies, source and compilation setup in their registrations. Do not wrap the existing built-in test execution blocks in named<JvmTestSuite>(\"test\").\n\nPreserve the current configureEach settings: noopTest retains -Dtesting.exporter.enabled=false; Vert.x unitTests retains -Dotel.instrumentation.common.messaging.experimental.receive-telemetry.enabled=true. Preserve Pekko pekko11Test NoSpanSuppression variant name, JVM setting, test filter, suite classpath/resources, and existing JVM/Scala/version gates. Keep one executions declaration per suite, existing check participation and lazy realization, all shared collection selectors, and every other PR change. Reactor Kafka already uses the desired separate layout and its configureEach change must remain. This is only a three-block layout cleanup within this PR, not the repository-wide sweep discussed for later. Do not change dependencies, test coverage, production behavior, shared convention APIs, unrelated files, or PR draft state, and do not create another PR.\n\nVerify that no executions block remains inside a registered or named JVM suite definition in any build file already touched by this PR. Run the narrow affected spotlessApply tasks directly before focused validation, then run the affected noopTest, Vert.x unitTests, and Pekko pekko11TestNoSpanSuppression executions and verify relevant check graphs without changing their configuration. Do not run clean/cleanTest, preliminary spotlessCheck, --rerun-tasks, or bypass caches. Report cached/skipped outcomes and any environment limitations accurately. Do not wait for hosted CI or request reviews; the coordinating session handles review and metadata.",
+      "created": "2026-11-04T02:51:20Z",
+      "hunk": "@@ -27,27 +29,21 @@ configurations.configureEach {\n   }\n }\n \n-testing {\n-  suites {\n-    register<JvmTestSuite>(\"incubatorTest\") {\n-      dependencies {\n-        implementation(\"io.opentelemetry:opentelemetry-api-incubator:1.38.0-alpha\")\n-      }\n+testing.suites {\n+  register<JvmTestSuite>(\"incubatorTest\") {\n+    dependencies {\n+      implementation(\"io.opentelemetry:opentelemetry-api-incubator:1.38.0-alpha\")\n     }\n   }\n \n-  suites {\n-    register<JvmTestSuite>(\"noopTest\") {\n-      dependencies {\n-        implementation(\"io.opentelemetry:opentelemetry-api-incubator:1.38.0-alpha\")\n-      }\n+  register<JvmTestSuite>(\"noopTest\") {\n+    dependencies {\n+      implementation(\"io.opentelemetry:opentelemetry-api-incubator:1.38.0-alpha\")\n+    }\n \n-      targets {\n-        all {\n-          testTask.configure {\n-            jvmArgs(\"-Dtesting.exporter.enabled=false\")\n-          }\n-        }\n+    executions {\n+      configureEach {",
+      "id": "PRRT_kwDODJKVX86zbNfd",
+      "opened": "2026-11-04T02:51:20Z",
+      "path": "instrumentation/opentelemetry-api/opentelemetry-api-1.38/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-04T03:00:48Z",
+          "body": "Committed as `3bffe71b`.\n\n- `./gradlew :instrumentation:opentelemetry-api:opentelemetry-api-1.38:javaagent:spotlessApply :instrumentation:vertx:vertx-kafka-client-3.6:javaagent:spotlessApply :instrumentation:pekko:pekko-http-1.0:javaagent:spotlessApply` — **BUILD SUCCESSFUL**.\n- `./gradlew :instrumentation:opentelemetry-api:opentelemetry-api-1.38:javaagent:noopTest :instrumentation:vertx:vertx-kafka-client-3.6:javaagent:unitTests :instrumentation:pekko:pekko-http-1.0:javaagent:pekko11TestNoSpanSuppression` — **BUILD SUCCESSFUL**; reports show 1, 7, and 3 tests respectively, all with 0 skipped/failures/errors. Overall 32 tasks were up-to-date; the requested executions ran.\n- `./gradlew :instrumentation:opentelemetry-api:opentelemetry-api-1.38:javaagent:check :instrumentation:vertx:vertx-kafka-client-3.6:javaagent:check :instrumentation:pekko:pekko-http-1.0:javaagent:check --dry-run` — **BUILD SUCCESSFUL**; all three graphs included their affected execution tasks, marked skipped as expected for `--dry-run`.\n\nThe touched-build scan found no other suite-nested execution blocks. The unqualified Sofa RPC `executions` block is collection-wide. Develocity DNS resolution failed, so Gradle disabled the remote cache; commands succeeded with local/up-to-date results.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21194#discussion_r4463072605"
+        }
+      ],
+      "reviewed": "893b6a63ef5b49771e5671ce8a3d7f03dd5d9e31",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21194#discussion_r4463019984"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the small registration/execution ordering cleanup in instrumentation/pekko/pekko-http-1.0/javaagent/build.gradle.kts. Inside testing.suites, place all five existing register<JvmTestSuite> declarations first, followed by the two existing executions blocks. Move executions(\"test\") and executions(\"pekko11Test\") after the tapirTest registration. Preserve the relative order of the five registrations and the relative order of the two execution blocks.\n\nThis is a one-file statement reorder, not a repository-wide sweep or a new PR. Preserve every block body, dependencies, source/classpath/resources configuration, Scala shims, version/JDK gates, task names, filters, JVM settings, NewServerAt and NoSpanSuppression variants, check wiring, lazy realization, and all other PR changes. Keep executions outside suite registrations and do not introduce named test wrappers, shared helpers, or abstractions. Do not move the sourceSets or tasks configuration following testing.suites. Other files already touched by this PR have registrations before executions; do not change unrelated files or draft state.\n\nVerify registrations precede executions in the affected container and that no other build already touched by the PR needs this ordering adjustment. Run the affected spotlessApply task directly before focused validation, then testNewServerAt and pekko11TestNoSpanSuppression and the relevant check dry-run graph. Preserve caches; do not run clean/cleanTest, preliminary spotlessCheck, or --rerun-tasks. Report actual outcomes and any skipped/cached or environmental limitations accurately. Do not wait for hosted CI or request review; the coordinating session handles review and metadata.",
+      "created": "2026-11-04T03:11:59Z",
+      "hunk": "@@ -72,11 +72,9 @@ dependencies {\n }\n \n testing.suites {\n-  named<JvmTestSuite>(\"test\") {\n-    executions {\n-      register(\"NewServerAt\") {\n-        systemProperty(\"testNewServerAt\", true)\n-      }\n+  executions(\"test\") {",
+      "id": "PRRT_kwDODJKVX86zbeb3",
+      "opened": "2026-11-04T03:11:59Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-04T03:21:57Z",
+          "body": "Moved both execution blocks after all five suite registrations in `f1b080ad`. `./gradlew :instrumentation:pekko:pekko-http-1.0:javaagent:spotlessApply` succeeded. The requested test command succeeded: `testNewServerAt` reported 185 tests (37 skipped), and `pekko11TestNoSpanSuppression` 3 tests (0 skipped); neither had failures or errors. `./gradlew :instrumentation:pekko:pekko-http-1.0:javaagent:check --dry-run` succeeded and included both variants, marked skipped as expected. Other touched custom-suite builds already have registrations before executions. Gradle could not resolve the Develocity host, so the remote cache was disabled; local execution succeeded.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21194#discussion_r4463198300"
+        }
+      ],
+      "reviewed": "3bffe71bfcaa6e06df48d629ee3e5774c7d33008",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21194#discussion_r4463133060"
+    }
+  ]
+}

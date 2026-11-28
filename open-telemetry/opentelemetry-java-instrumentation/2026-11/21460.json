@@ -1,0 +1,120 @@
+{
+  "head": "8df79c2181f78b7f38d6b1a48094fb87a9b94f4c",
+  "merge": "e1f1c1a5d7270421da094a03e9af3bedb1c6ce8d",
+  "merged": "2026-11-25T15:34:46Z",
+  "missing_roots": 0,
+  "number": 21460,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Add a focused regression test for the gRPC response-header context fix already in this PR. Use a real successful RPC through the instrumented client and observe the application-facing `ClientCall.Listener.onHeaders` callback. Assert that it sees the exact caller span captured when creating the call, not the outgoing gRPC CLIENT span, and that a custom OpenTelemetry context value is preserved. Make sure the callback actually ran, and collect its observations for assertions on the test thread. The test should fail before the `onHeaders` override and pass with it.\n\nReuse the existing gRPC test setup where practical. `instrumentation/grpc-1.6/testing/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/AbstractGrpcTest.java` has a `userContextPreserved` test, but its `StreamObserver.onNext` assertion does not exercise response headers. Keep this scoped to regression coverage; do not change production behavior. Run the relevant focused Gradle test and demonstrate that it catches the pre-fix behavior if feasible.\n\nUpdate this existing PR directly on `open-telemetry/opentelemetry-java-instrumentation:otelbot/instruction-audit-45426016089`; do not open a separate PR as a workaround. Keep the branch GitHub assigns you if the platform creates a follow-up branch. Do not rename it or create a replacement branch.",
+      "created": "2026-11-24T23:18:56Z",
+      "hunk": "@@ -168,6 +168,13 @@ final class TracingClientCallListener\n         this.request = request;\n       }\n \n+      @Override\n+      public void onHeaders(Metadata headers) {",
+      "id": "PRRT_kwDODJKVX867o9Eu",
+      "opened": "2026-11-24T23:18:56Z",
+      "path": "instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/TracingClientInterceptor.java",
+      "replies": [
+        {
+          "at": "2026-11-24T23:28:07Z",
+          "body": "Added in 00e68707. The real-RPC test captures `onHeaders` observations and verifies the exact caller span and custom context value on the test thread, along with callback delivery and RPC success. Removing the override makes it fail because the callback sees the gRPC CLIENT span. Restored the fix and passed the full `GrpcTest` class (49 tests, 1 skipped), Spotless, and Checkstyle. Production code is unchanged.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21460#discussion_r4687963210"
+        }
+      ],
+      "reviewed": "2d1c4a96230403e9ecceab36ac8b2959d1cfa34b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21460#discussion_r4687875232"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "These assertions check the caller context inside asynchronous `onHeaders`, but would still pass if that context leaked onto the delivery thread; they also do not exercise inline delivery during `start`. The Coverage section of `.github/instructions/context-propagation.instructions.md` requires inline execution and restoration of an unrelated callback-thread context. Add controlled delivery tests that verify the caller context inside the callback, restoration of the delivery context after normal and exceptional returns, and restoration of the outgoing context when inline `start` execution resumes.",
+      "created": "2026-11-24T23:33:00Z",
+      "hunk": "@@ -97,6 +104,84 @@ protected InstrumentationExtension testing() {\n     return testing;\n   }\n \n+  @Test\n+  void responseHeadersPreserveCallerContext() throws Exception {\n+    BindableService greeter =\n+        new GreeterGrpc.GreeterImplBase() {\n+          @Override\n+          public void sayHello(\n+              Helloworld.Request req, StreamObserver<Helloworld.Response> responseObserver) {\n+            responseObserver.onNext(\n+                Helloworld.Response.newBuilder().setMessage(\"Hello \" + req.getName()).build());\n+            responseObserver.onCompleted();\n+          }\n+        };\n+    Server server = configureServer(ServerBuilder.forPort(0).addService(greeter)).build().start();\n+    closer.add(() -> server.shutdownNow().awaitTermination());\n+    ManagedChannel channel =\n+        createChannel(\n+            configureClient(ManagedChannelBuilder.forAddress(\"localhost\", server.getPort())));\n+    closer.add(() -> channel.shutdownNow().awaitTermination(10, SECONDS));\n+\n+    ContextKey<String> key = ContextKey.named(\"custom-value\");\n+    AtomicReference<Span> callerSpan = new AtomicReference<>();\n+    ClientCall<Helloworld.Request, Helloworld.Response> call =\n+        testing.runWithSpan(\n+            \"parent\",\n+            () -> {\n+              callerSpan.set(Span.current());\n+              try (Scope ignored = Context.current().with(key, \"caller-value\").makeCurrent()) {\n+                return channel.newCall(GreeterGrpc.METHOD_SAY_HELLO, CallOptions.DEFAULT);\n+              }\n+            });\n+\n+    AtomicReference<Context> headersContext = new AtomicReference<>();\n+    AtomicReference<Helloworld.Response> response = new AtomicReference<>();\n+    AtomicReference<Status> status = new AtomicReference<>();\n+    CountDownLatch closed = new CountDownLatch(1);\n+    call.start(\n+        new ClientCall.Listener<Helloworld.Response>() {\n+          @Override\n+          public void onHeaders(Metadata headers) {\n+            headersContext.set(Context.current());\n+          }\n+\n+          @Override\n+          public void onMessage(Helloworld.Response message) {\n+            response.set(message);\n+          }\n+\n+          @Override\n+          public void onClose(Status callStatus, Metadata trailers) {\n+            status.set(callStatus);\n+            closed.countDown();\n+          }\n+        },\n+        new Metadata());\n+    call.request(1);\n+    call.sendMessage(Helloworld.Request.newBuilder().setName(\"test\").build());\n+    call.halfClose();\n+\n+    assertThat(closed.await(10, SECONDS)).isTrue();\n+    assertThat(status.get().isOk()).isTrue();\n+    assertThat(response.get().getMessage()).isEqualTo(\"Hello test\");\n+    assertThat(headersContext.get()).isNotNull();\n+    assertThat(Span.fromContext(headersContext.get())).isSameAs(callerSpan.get());\n+    assertThat(headersContext.get().get(key)).isEqualTo(\"caller-value\");",
+      "id": "PRRT_kwDODJKVX867pQvO",
+      "opened": "2026-11-24T23:33:00Z",
+      "path": "instrumentation/grpc-1.6/library/src/test/java/io/opentelemetry/instrumentation/grpc/v1_6/GrpcTest.java",
+      "replies": [
+        {
+          "at": "2026-11-24T23:42:59Z",
+          "body": "Added deterministic inline and deferred restoration coverage in fe43e9d1. The focused gRPC tests pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21460#discussion_r4688116463"
+        },
+        {
+          "at": "2026-11-24T23:47:03Z",
+          "body": "Verified on fe43e9d1. The inline case checks that the outgoing context is restored before the delegate resumes. The deferred cases check that a distinct delivery context is restored both when the callback returns normally and when it throws.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21460#discussion_r4688159263"
+        }
+      ],
+      "reviewed": "00e68707b3d54598d3e00e110627fbeb1959f651",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21460#discussion_r4688012305"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Follow up on the Copilot review of the gRPC response-header regression test: https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21460#discussion_r4688012305. Keep the existing real-RPC regression test. Add focused, deterministic coverage for the same `ClientCall.Listener.onHeaders` wrapper: invoke headers inline from the delegate's `start` and verify the caller context is current inside the callback and the outgoing context is restored when the delegate resumes. Also invoke headers after `start` under a distinct delivery context and verify the caller context is used inside the callback and the delivery context is restored whether the callback returns normally or throws. Cover a caller context with a custom value but no span in the deferred case if straightforward. Use the existing public tracing interceptor with a controlled gRPC call or channel so no timing assumptions are needed. Follow `.github/instructions/context-propagation.instructions.md` and the Java test conventions.\n\nThis is test-only coverage for the original fix. Do not change production behavior or broaden the scope. Run the focused gRPC library tests. Update this existing PR directly on `open-telemetry/opentelemetry-java-instrumentation:otelbot/instruction-audit-45426016089`. Do not open a separate PR as a workaround. Keep the branch GitHub assigns you if the platform creates a follow-up branch. Do not rename it or create a replacement branch.",
+      "created": "2026-11-24T23:35:55Z",
+      "hunk": "@@ -168,6 +168,13 @@ final class TracingClientCallListener\n         this.request = request;\n       }\n \n+      @Override\n+      public void onHeaders(Metadata headers) {",
+      "id": "PRRT_kwDODJKVX867pVCk",
+      "opened": "2026-11-24T23:35:55Z",
+      "path": "instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/TracingClientInterceptor.java",
+      "replies": [
+        {
+          "at": "2026-11-24T23:42:59Z",
+          "body": "Added in fe43e9d1. The focused gRPC tests, Spotless, and Checkstyle pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21460#discussion_r4688116459"
+        }
+      ],
+      "reviewed": "00e68707b3d54598d3e00e110627fbeb1959f651",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21460#discussion_r4688042417"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Simplify the gRPC response-header regression coverage in this PR. Keep the existing real-RPC `responseHeadersPreserveCallerContext` test in `instrumentation/grpc-1.6/library/src/test/java/io/opentelemetry/instrumentation/grpc/v1_6/GrpcTest.java` unchanged; it already fails without the fix and checks the exact caller span and a custom context value. Delete the supplemental `ClientHeadersContextTest.java` fixture in the same package and do not add replacement tests. This is a deliberate scope reduction to the one real-RPC regression test. Leave production code and unrelated files unchanged. Run the focused real-RPC regression test.\n\nUpdate this existing PR directly on `open-telemetry/opentelemetry-java-instrumentation:otelbot/instruction-audit-45426016089`. Do not open a separate PR as a workaround. Keep the branch GitHub assigns you if the platform creates a follow-up branch. Do not rename it or create a replacement branch.",
+      "created": "2026-11-24T23:59:01Z",
+      "hunk": "@@ -0,0 +1,170 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.grpc.v1_6;\n+\n+import static org.assertj.core.api.Assertions.assertThat;\n+import static org.assertj.core.api.Assertions.assertThatThrownBy;\n+\n+import example.GreeterGrpc;\n+import example.Helloworld;\n+import io.grpc.CallOptions;\n+import io.grpc.Channel;\n+import io.grpc.ClientCall;\n+import io.grpc.Metadata;\n+import io.grpc.MethodDescriptor;\n+import io.grpc.Status;\n+import io.opentelemetry.api.trace.Span;\n+import io.opentelemetry.context.Context;\n+import io.opentelemetry.context.ContextKey;\n+import io.opentelemetry.context.Scope;\n+import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;\n+import io.opentelemetry.instrumentation.testing.junit.LibraryInstrumentationExtension;\n+import java.util.concurrent.atomic.AtomicReference;\n+import org.junit.jupiter.api.Test;\n+import org.junit.jupiter.api.extension.RegisterExtension;\n+import org.junit.jupiter.params.ParameterizedTest;\n+import org.junit.jupiter.params.provider.ValueSource;\n+\n+class ClientHeadersContextTest {",
+      "id": "PRRT_kwDODJKVX867p3ME",
+      "opened": "2026-11-24T23:59:01Z",
+      "path": "instrumentation/grpc-1.6/library/src/test/java/io/opentelemetry/instrumentation/grpc/v1_6/ClientHeadersContextTest.java",
+      "replies": [
+        {
+          "at": "2026-11-25T00:05:24Z",
+          "body": "Done in 8df79c21. The focused real-RPC regression test passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21460#discussion_r4688341453"
+        }
+      ],
+      "reviewed": "fe43e9d1284d2975de6352448417da470507e2af",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21460#discussion_r4688281960"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Usually we just create a span and verify that it appears in the expected position in the trace.",
+      "created": "2026-11-25T13:53:31Z",
+      "hunk": "@@ -97,6 +104,84 @@ protected InstrumentationExtension testing() {\n     return testing;\n   }\n \n+  @Test\n+  void responseHeadersPreserveCallerContext() throws Exception {\n+    BindableService greeter =\n+        new GreeterGrpc.GreeterImplBase() {\n+          @Override\n+          public void sayHello(\n+              Helloworld.Request req, StreamObserver<Helloworld.Response> responseObserver) {\n+            responseObserver.onNext(\n+                Helloworld.Response.newBuilder().setMessage(\"Hello \" + req.getName()).build());\n+            responseObserver.onCompleted();\n+          }\n+        };\n+    Server server = configureServer(ServerBuilder.forPort(0).addService(greeter)).build().start();\n+    closer.add(() -> server.shutdownNow().awaitTermination());\n+    ManagedChannel channel =\n+        createChannel(\n+            configureClient(ManagedChannelBuilder.forAddress(\"localhost\", server.getPort())));\n+    closer.add(() -> channel.shutdownNow().awaitTermination(10, SECONDS));\n+\n+    ContextKey<String> key = ContextKey.named(\"custom-value\");\n+    AtomicReference<Span> callerSpan = new AtomicReference<>();\n+    ClientCall<Helloworld.Request, Helloworld.Response> call =\n+        testing.runWithSpan(\n+            \"parent\",\n+            () -> {\n+              callerSpan.set(Span.current());\n+              try (Scope ignored = Context.current().with(key, \"caller-value\").makeCurrent()) {\n+                return channel.newCall(GreeterGrpc.METHOD_SAY_HELLO, CallOptions.DEFAULT);\n+              }\n+            });\n+\n+    AtomicReference<Context> headersContext = new AtomicReference<>();\n+    AtomicReference<Helloworld.Response> response = new AtomicReference<>();\n+    AtomicReference<Status> status = new AtomicReference<>();\n+    CountDownLatch closed = new CountDownLatch(1);\n+    call.start(\n+        new ClientCall.Listener<Helloworld.Response>() {\n+          @Override\n+          public void onHeaders(Metadata headers) {\n+            headersContext.set(Context.current());",
+      "id": "PRRT_kwDODJKVX8677hFM",
+      "opened": "2026-11-25T13:53:31Z",
+      "path": "instrumentation/grpc-1.6/library/src/test/java/io/opentelemetry/instrumentation/grpc/v1_6/GrpcTest.java",
+      "replies": [
+        {
+          "at": "2026-11-25T15:34:39Z",
+          "body": "I'm going to address it in a follow-up\n\nAlso see https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21487",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21460#discussion_r4697236958"
+        }
+      ],
+      "reviewed": "8df79c2181f78b7f38d6b1a48094fb87a9b94f4c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21460#discussion_r4695899528"
+    }
+  ]
+}

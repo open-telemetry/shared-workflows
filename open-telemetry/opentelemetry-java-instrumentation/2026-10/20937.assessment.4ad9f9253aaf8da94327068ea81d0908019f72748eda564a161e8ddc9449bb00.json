@@ -1,0 +1,71 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "21cc99cb29bf7f0f804bed79aa7528c20c1d14e604234edf4d86c10f340b9333",
+  "input_digest": "4ad9f9253aaf8da94327068ea81d0908019f72748eda564a161e8ddc9449bb00",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c6a5b520764a464456d3c0459efc5ef460ed199a/instrumentation/logback/logback-appender-1.0/library/src/main/java/io/opentelemetry/instrumentation/logback/appender/v1_0/OpenTelemetryAppender.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b3f2989219b2c1ec604d95fe0760f09c657a749f/instrumentation/logback/logback-appender-1.0/library/src/main/java/io/opentelemetry/instrumentation/logback/appender/v1_0/OpenTelemetryAppender.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c6a5b520764a464456d3c0459efc5ef460ed199a/instrumentation/logback/logback-appender-1.0/library/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b3f2989219b2c1ec604d95fe0760f09c657a749f/instrumentation/logback/logback-appender-1.0/library/README.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c6a5b520764a464456d3c0459efc5ef460ed199a/instrumentation/logback/logback-appender-1.0/library/src/asyncAppenderTest/java/io/opentelemetry/instrumentation/logback/appender/v1_0/AsyncAppenderWarningTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b3f2989219b2c1ec604d95fe0760f09c657a749f/instrumentation/logback/logback-appender-1.0/library/src/asyncAppenderTest/java/io/opentelemetry/instrumentation/logback/appender/v1_0/AsyncAppenderWarningTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c6a5b520764a464456d3c0459efc5ef460ed199a/instrumentation/spring/spring-boot-autoconfigure/src/testLogbackAppender/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/logging/LogbackAppenderWarningTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b3f2989219b2c1ec604d95fe0760f09c657a749f/instrumentation/spring/spring-boot-autoconfigure/src/testLogbackAppender/java/io/opentelemetry/instrumentation/spring/autoconfigure/internal/instrumentation/logging/LogbackAppenderWarningTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/5ed9afc9daa1c723cbf40e90fd6e5c7215737fb5"
+      ],
+      "id": "PRRT_kwDODJKVX86v6b2U",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86v6qQx",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/eaa63a5d9a1a91635cef41e4cb51a13fb6a5c3a8/instrumentation/logback/logback-appender-1.0/library/src/asyncAppenderTest/java/io/opentelemetry/instrumentation/logback/appender/v1_0/AsyncAppenderWarningTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b3f2989219b2c1ec604d95fe0760f09c657a749f/instrumentation/logback/logback-appender-1.0/library/src/asyncAppenderTest/java/io/opentelemetry/instrumentation/logback/appender/v1_0/AsyncAppenderWarningTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b3f2989219b2c1ec604d95fe0760f09c657a749f/instrumentation/logback/logback-appender-1.0/library/src/asyncAppenderTest/java/io/opentelemetry/instrumentation/logback/appender/v1_0/AsyncOpenTelemetryAppenderTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/7651372a25dc5b58ec6b78616d87558a0ec552b2"
+      ],
+      "id": "PRRT_kwDODJKVX86v6rpG",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7651372a25dc5b58ec6b78616d87558a0ec552b2/instrumentation/logback/logback-appender-1.0/library/src/asyncAppenderTest/java/io/opentelemetry/instrumentation/logback/appender/v1_0/AsyncAppenderWarningTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b3f2989219b2c1ec604d95fe0760f09c657a749f/instrumentation/logback/logback-appender-1.0/library/src/asyncAppenderTest/java/io/opentelemetry/instrumentation/logback/appender/v1_0/AsyncAppenderWarningTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7651372a25dc5b58ec6b78616d87558a0ec552b2/instrumentation/logback/logback-appender-1.0/library/src/asyncAppenderTest/java/io/opentelemetry/instrumentation/logback/appender/v1_0/AsyncOpenTelemetryAppenderTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b3f2989219b2c1ec604d95fe0760f09c657a749f/instrumentation/logback/logback-appender-1.0/library/src/asyncAppenderTest/java/io/opentelemetry/instrumentation/logback/appender/v1_0/AsyncOpenTelemetryAppenderTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/compare/7651372a25dc5b58ec6b78616d87558a0ec552b2...9c08997a3a5813e3b9e5d84583cbf12ba146664e",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/9c08997a3a5813e3b9e5d84583cbf12ba146664e"
+      ],
+      "id": "PRRT_kwDODJKVX86v6_Ha",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9c08997a3a5813e3b9e5d84583cbf12ba146664e/instrumentation/logback/logback-appender-1.0/library/src/asyncAppenderTest/java/io/opentelemetry/instrumentation/logback/appender/v1_0/AsyncOpenTelemetryAppenderTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b3f2989219b2c1ec604d95fe0760f09c657a749f/instrumentation/logback/logback-appender-1.0/library/src/asyncAppenderTest/java/io/opentelemetry/instrumentation/logback/appender/v1_0/AsyncOpenTelemetryAppenderTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86v7HWU",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

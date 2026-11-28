@@ -1,0 +1,31 @@
+{
+  "head": "2155f2f067ff57a3c2ca908e7d4d87e40b935144",
+  "merge": "645f57408b67662aeedbc9ecc7e7efa188a3d40f",
+  "merged": "2026-11-02T15:45:16Z",
+  "missing_roots": 0,
+  "number": 21128,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the remaining behavior-preserving check-wiring cleanup from its delivery assessment. In instrumentation/hbase/hbase-client-2.0/javaagent/build.gradle.kts, replace the newly introduced dependsOn(\"shadedClientTest\") in tasks.check with dependsOn(testing.suites). In instrumentation/kafka/kafka-streams-0.11/javaagent/build.gradle.kts, replace the newly introduced dependsOn(\"unitTests\") in tasks.check with dependsOn(testing.suites).\n\nBoth builds already used all-suite check wiring before this migration. Preserve that intent rather than enumerating the non-default suite now that the helper supplies the default test dependency. This follows .github/agents/knowledge/gradle-conventions.md: prefer unconditional dependsOn(testing.suites), including in testLatestDeps builds, and select individual suites only for a concrete compatibility or resource constraint. Neither module has such an exception.\n\nKeep all 25 migrated variant names, their default-suite-only registration, classpaths, filters, telemetry and metadata settings, HBase serialization service, gates and other configuration unchanged. Do not register execution variants on shadedClientTest or unitTests. Preserve the existing head branch, stacked base, and draft state; do not modify parent PRs, create another PR, or expand this two-line cleanup. Run the narrow relevant spotlessApply tasks directly before focused validation, and verify check includes the default tests, the additional existing suites, and the same variants in normal and testLatestDeps modes. Report any validation blockers accurately.",
+      "created": "2026-11-02T02:50:28Z",
+      "hunk": "@@ -57,19 +60,8 @@ tasks {\n     systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)\n   }\n \n-  val testExceptionSignalLogs = register<Test>(\"testExceptionSignalLogs\") {\n-    testClassesDirs = sourceSets.test.get().output.classesDirs\n-    classpath = sourceSets.test.get().runtimeClasspath\n-\n-    filter {\n-      includeTestsMatching(\"*HbaseClient20Test.testGetTimeout\")\n-    }\n-    jvmArgs(\"-Dotel.semconv.exception.signal.preview=logs\")\n-    systemProperty(\"metadataConfig\", \"otel.semconv.exception.signal.preview=logs\")\n-  }\n-\n   check {\n-    dependsOn(testing.suites, testExceptionSignalLogs)\n+    dependsOn(\"shadedClientTest\")",
+      "id": "PRRT_kwDODJKVX86yhL3Q",
+      "opened": "2026-11-02T02:50:28Z",
+      "path": "instrumentation/hbase/hbase-client-2.0/javaagent/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-02T02:59:39Z",
+          "body": "Updated both checks to depend on `testing.suites` in df1f7100. The normal and `testLatestDeps` dry-run task graphs retain the default tests, the additional suites, and all existing variants.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21128#discussion_r4438542158"
+        }
+      ],
+      "reviewed": "3ffd907ca226429d32692dc45f5133d82158fd3e",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21128#discussion_r4438506151"
+    }
+  ]
+}

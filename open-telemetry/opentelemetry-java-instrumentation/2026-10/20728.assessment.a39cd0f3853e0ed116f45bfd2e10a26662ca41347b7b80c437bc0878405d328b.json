@@ -1,0 +1,99 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "ae07670b2d509e6c1e909bf8bc72c38f31137331b09c9b57a13e3821fa58ba0b",
+  "input_digest": "a39cd0f3853e0ed116f45bfd2e10a26662ca41347b7b80c437bc0878405d328b",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6e8b4c4fe39ec87700a9a4a1ad5a2cf914dd5975/instrumentation/apache-dubbo-2.7/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/TracingFilter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/86019ff308870986b5dc2ae2116829f61c3998ed/instrumentation/apache-dubbo-2.7/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/TracingFilter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/86019ff308870986b5dc2ae2116829f61c3998ed/instrumentation/apache-dubbo-2.7/library-autoconfigure/src/test/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/TracingFilterTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86t_Xf4",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6e8b4c4fe39ec87700a9a4a1ad5a2cf914dd5975/instrumentation/apache-dubbo-2.7/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/TracingFilter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/86019ff308870986b5dc2ae2116829f61c3998ed/instrumentation/apache-dubbo-2.7/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/TracingFilter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6e8b4c4fe39ec87700a9a4a1ad5a2cf914dd5975/instrumentation/apache-dubbo-2.7/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/86019ff308870986b5dc2ae2116829f61c3998ed/instrumentation/apache-dubbo-2.7/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86t_XfD",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a5dea14febe0bf8048195d56569065b1266f30c9/instrumentation/apache-dubbo-2.7/library-autoconfigure/src/test/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/TracingFilterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/86019ff308870986b5dc2ae2116829f61c3998ed/instrumentation/apache-dubbo-2.7/library-autoconfigure/src/test/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/TracingFilterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a5dea14febe0bf8048195d56569065b1266f30c9/instrumentation/apache-dubbo-2.7/testing/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/AbstractDubboAsyncTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/86019ff308870986b5dc2ae2116829f61c3998ed/instrumentation/apache-dubbo-2.7/testing/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/AbstractDubboAsyncTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86un0x0",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f90f9afcd2dc79ab843cacb78e94965374b2218b/instrumentation/apache-dubbo-2.7/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/86019ff308870986b5dc2ae2116829f61c3998ed/instrumentation/apache-dubbo-2.7/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86uoHUx",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a075c2e20729f931f478c0c342d2b35d6f6cb0db/instrumentation/apache-dubbo-2.7/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/86019ff308870986b5dc2ae2116829f61c3998ed/instrumentation/apache-dubbo-2.7/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86uobHG",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a075c2e20729f931f478c0c342d2b35d6f6cb0db/instrumentation/apache-dubbo-2.7/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/86019ff308870986b5dc2ae2116829f61c3998ed/instrumentation/apache-dubbo-2.7/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a075c2e20729f931f478c0c342d2b35d6f6cb0db/instrumentation/apache-dubbo-2.7/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/TracingFilter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/86019ff308870986b5dc2ae2116829f61c3998ed/instrumentation/apache-dubbo-2.7/library-autoconfigure/src/main/java/io/opentelemetry/instrumentation/apachedubbo/v2_7/TracingFilter.java"
+      ],
+      "id": "PRRT_kwDODJKVX86uorTF",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/41638bdf318de7c5344708b9a12d0cbf023fd4e1/instrumentation/apache-dubbo-2.7/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/86019ff308870986b5dc2ae2116829f61c3998ed/instrumentation/apache-dubbo-2.7/javaagent/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX86u4zLU",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86u87ad",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86u4zLU",
+      "status": "duplicate"
+    }
+  ]
+}

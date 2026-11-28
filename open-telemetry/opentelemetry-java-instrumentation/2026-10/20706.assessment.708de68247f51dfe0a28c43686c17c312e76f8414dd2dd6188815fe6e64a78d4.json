@@ -1,0 +1,148 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "2683461baf407cf134b08e7d0ab4598a8590894cd4863dc05671adfd7992dd13",
+  "input_digest": "708de68247f51dfe0a28c43686c17c312e76f8414dd2dd6188815fe6e64a78d4",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5cc4204c33f4c3bbe6d33792339ed9574566e060/instrumentation/mongo/mongo-common/testing/src/main/java/io/opentelemetry/instrumentation/mongo/testing/AbstractMongoClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/774469b1b561f7980b21b05e7d2001c013346716/instrumentation/mongo/mongo-common/testing/src/main/java/io/opentelemetry/instrumentation/mongo/testing/AbstractMongoClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5cc4204c33f4c3bbe6d33792339ed9574566e060/instrumentation/mongo/mongo-3.1/library/src/test/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/TracingCommandListenerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/774469b1b561f7980b21b05e7d2001c013346716/instrumentation/mongo/mongo-3.1/library/src/test/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/TracingCommandListenerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5cc4204c33f4c3bbe6d33792339ed9574566e060/instrumentation/mongo/mongo-3.1/javaagent/src/version37Test/java/io/opentelemetry/javaagent/instrumentation/mongo/v3_1/MongoClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/774469b1b561f7980b21b05e7d2001c013346716/instrumentation/mongo/mongo-3.1/javaagent/src/version37Test/java/io/opentelemetry/javaagent/instrumentation/mongo/v3_1/MongoClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/639ea727bd6a7e236756f7752eb8eb88efa6dc0a"
+      ],
+      "id": "PRRT_kwDODJKVX86txvHe",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/639ea727bd6a7e236756f7752eb8eb88efa6dc0a/instrumentation/mongo/mongo-3.1/library/src/main/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/TracingCommandListener.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/774469b1b561f7980b21b05e7d2001c013346716/instrumentation/mongo/mongo-3.1/library/src/main/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/TracingCommandListener.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/639ea727bd6a7e236756f7752eb8eb88efa6dc0a/instrumentation/mongo/mongo-3.1/library/src/main/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/MongoDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/774469b1b561f7980b21b05e7d2001c013346716/instrumentation/mongo/mongo-3.1/library/src/main/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/MongoDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/639ea727bd6a7e236756f7752eb8eb88efa6dc0a/instrumentation/mongo/mongo-3.1/library/src/main/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/MongoInstrumenterFactory.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/774469b1b561f7980b21b05e7d2001c013346716/instrumentation/mongo/mongo-3.1/library/src/main/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/MongoInstrumenterFactory.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/639ea727bd6a7e236756f7752eb8eb88efa6dc0a/instrumentation/mongo/mongo-3.1/library/src/main/java/io/opentelemetry/instrumentation/mongo/v3_1/MongoTelemetry.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/774469b1b561f7980b21b05e7d2001c013346716/instrumentation/mongo/mongo-3.1/library/src/main/java/io/opentelemetry/instrumentation/mongo/v3_1/MongoTelemetry.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/99526981e64c56b3b0685c744b7391ba9d22ef59"
+      ],
+      "id": "PRRT_kwDODJKVX86uBHh0",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86uBT4g",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86uBHh0",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/99526981e64c56b3b0685c744b7391ba9d22ef59/instrumentation/mongo/mongo-3.1/library/src/main/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/MongoInstrumenterFactory.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/774469b1b561f7980b21b05e7d2001c013346716/instrumentation/mongo/mongo-3.1/library/src/main/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/MongoInstrumenterFactory.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/a1d4cfdbe06e22acdea84bb8ccdafab5e984d907"
+      ],
+      "id": "PRRT_kwDODJKVX86uBv_o",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a1d4cfdbe06e22acdea84bb8ccdafab5e984d907/instrumentation/mongo/mongo-common/testing/src/main/java/io/opentelemetry/instrumentation/mongo/testing/AbstractMongoClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/774469b1b561f7980b21b05e7d2001c013346716/instrumentation/mongo/mongo-common/testing/src/main/java/io/opentelemetry/instrumentation/mongo/testing/AbstractMongoClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/774469b1b561f7980b21b05e7d2001c013346716",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/4ef7d817b53a7ee1ada20834b0dfa754e2df868f",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/81012143296304baeadf7228f21a6a2c452ef77b"
+      ],
+      "id": "PRRT_kwDODJKVX86uCRee",
+      "kind": "improvement",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/81012143296304baeadf7228f21a6a2c452ef77b/instrumentation/mongo/mongo-common/testing/src/main/java/io/opentelemetry/instrumentation/mongo/testing/AbstractMongoClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/774469b1b561f7980b21b05e7d2001c013346716/instrumentation/mongo/mongo-common/testing/src/main/java/io/opentelemetry/instrumentation/mongo/testing/AbstractMongoClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/4ef7d817b53a7ee1ada20834b0dfa754e2df868f"
+      ],
+      "id": "PRRT_kwDODJKVX86uDTc0",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4ef7d817b53a7ee1ada20834b0dfa754e2df868f/instrumentation/mongo/mongo-common/testing/src/main/java/io/opentelemetry/instrumentation/mongo/testing/AbstractMongoClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/774469b1b561f7980b21b05e7d2001c013346716/instrumentation/mongo/mongo-common/testing/src/main/java/io/opentelemetry/instrumentation/mongo/testing/AbstractMongoClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4ef7d817b53a7ee1ada20834b0dfa754e2df868f/instrumentation/mongo/mongo-3.1/javaagent/src/version37Test/java/io/opentelemetry/javaagent/instrumentation/mongo/v3_1/MongoClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/774469b1b561f7980b21b05e7d2001c013346716/instrumentation/mongo/mongo-3.1/javaagent/src/version37Test/java/io/opentelemetry/javaagent/instrumentation/mongo/v3_1/MongoClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4ef7d817b53a7ee1ada20834b0dfa754e2df868f/instrumentation/mongo/mongo-3.1/testing/src/main/java/io/opentelemetry/instrumentation/mongo/v3_1/AbstractMongo31ClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/774469b1b561f7980b21b05e7d2001c013346716/instrumentation/mongo/mongo-3.1/testing/src/main/java/io/opentelemetry/instrumentation/mongo/v3_1/AbstractMongo31ClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/4ef7d817b53a7ee1ada20834b0dfa754e2df868f/instrumentation/mongo/mongo-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/mongo/v4_0/Mongo4ReactiveClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/774469b1b561f7980b21b05e7d2001c013346716/instrumentation/mongo/mongo-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/mongo/v4_0/Mongo4ReactiveClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/51e7f5adcf2cd11fa2558eb74c8d9118cbdb6cce"
+      ],
+      "id": "PRRT_kwDODJKVX86uDwbi",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/51e7f5adcf2cd11fa2558eb74c8d9118cbdb6cce/instrumentation/mongo/mongo-async-3.3/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/mongoasync/v3_3/MongoAsyncClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/51e7f5adcf2cd11fa2558eb74c8d9118cbdb6cce/instrumentation/mongo/mongo-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/mongo/v4_0/Mongo4ReactiveClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/774469b1b561f7980b21b05e7d2001c013346716/instrumentation/mongo/mongo-async-3.3/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/mongoasync/v3_3/MongoAsyncClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/774469b1b561f7980b21b05e7d2001c013346716/instrumentation/mongo/mongo-4.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/mongo/v4_0/Mongo4ReactiveClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/134e4d3215ad599253db73fd85245fbdd36ec684"
+      ],
+      "id": "PRRT_kwDODJKVX86uESyA",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/134e4d3215ad599253db73fd85245fbdd36ec684/instrumentation/mongo/mongo-3.1/library/src/test/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/MongoDbAttributesGetterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/774469b1b561f7980b21b05e7d2001c013346716/instrumentation/mongo/mongo-3.1/library/src/test/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/MongoDbAttributesGetterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/d2d5744f2435c38f4c5745dda2a84b9a20718771"
+      ],
+      "id": "PRRT_kwDODJKVX86uEssD",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/134e4d3215ad599253db73fd85245fbdd36ec684/instrumentation/mongo/mongo-common/testing/src/main/java/io/opentelemetry/instrumentation/mongo/testing/AbstractMongoClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/774469b1b561f7980b21b05e7d2001c013346716/instrumentation/mongo/mongo-common/testing/src/main/java/io/opentelemetry/instrumentation/mongo/testing/AbstractMongoClientTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86uEss3",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86uH1Zg",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86uEssD",
+      "status": "duplicate"
+    }
+  ]
+}

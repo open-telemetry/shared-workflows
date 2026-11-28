@@ -1,0 +1,351 @@
+{
+  "head": "2c50f5ed3abf34c9c0bfeffed333afb127b139bb",
+  "merge": "c602e360e804768d086f5b900a0c4aa07b4b4b2b",
+  "merged": "2026-11-26T14:38:35Z",
+  "missing_roots": 0,
+  "number": 21306,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] For a rejected absolute target such as `http://example.com?AWSAccessKeyId=/secret%%`, the first slash after the authority belongs to the query, so this emits `/secret%%` as `url.path` and omits `url.query`. This bypasses the default query-value redaction for `AWSAccessKeyId`. Check the query boundary before selecting a path slash, and preserve the query when the absolute target has no path.",
+      "created": "2026-11-15T20:35:04Z",
+      "hunk": "@@ -48,19 +51,68 @@ public List<String> getHttpResponseHeader(ErrorInfo request, HttpResponse respon\n \n   @Nullable\n   @Override\n-  public String getUrlScheme(ErrorInfo request) {\n-    return null;\n+  public String getUrlScheme(PekkoHttpParsingErrorRequest request) {\n+    String target = request.rawRequestTarget();\n+    if (target == null || target.startsWith(\"/\")) {\n+      return null;\n+    }\n+    int schemeEnd = target.indexOf(\"://\");\n+    return schemeEnd > 0 ? target.substring(0, schemeEnd) : null;\n   }\n \n   @Nullable\n   @Override\n-  public String getUrlPath(ErrorInfo request) {\n-    return null;\n+  public String getUrlPath(PekkoHttpParsingErrorRequest request) {\n+    String target = pathAndQuery(request.rawRequestTarget());\n+    if (target == null) {\n+      return null;\n+    }\n+    int queryStart = target.indexOf('?');\n+    return queryStart >= 0 ? target.substring(0, queryStart) : target;\n   }\n \n   @Nullable\n   @Override\n-  public String getUrlQuery(ErrorInfo request) {\n-    return null;\n+  public String getUrlQuery(PekkoHttpParsingErrorRequest request) {\n+    String target = pathAndQuery(request.rawRequestTarget());\n+    if (target == null) {\n+      return null;\n+    }\n+    int queryStart = target.indexOf('?');\n+    return queryStart >= 0 ? target.substring(queryStart + 1) : null;\n+  }\n+\n+  @Nullable\n+  @Override\n+  public String getNetworkProtocolName(\n+      PekkoHttpParsingErrorRequest request, @Nullable HttpResponse response) {\n+    String protocol = request.protocol();\n+    return protocol != null ? HttpProtocolUtil.getProtocol(protocol) : null;\n+  }\n+\n+  @Nullable\n+  @Override\n+  public String getNetworkProtocolVersion(\n+      PekkoHttpParsingErrorRequest request, @Nullable HttpResponse response) {\n+    String protocol = request.protocol();\n+    return protocol != null ? HttpProtocolUtil.getVersion(protocol) : null;\n+  }\n+\n+  /**\n+   * Returns the path and query of a request-target in origin form ({@code /path?query}) or absolute\n+   * form ({@code http://host/path?query}), and {@code null} for the authority form of a CONNECT\n+   * request and the asterisk form of a server-wide OPTIONS request, which have neither.\n+   */\n+  @Nullable\n+  private static String pathAndQuery(@Nullable String target) {\n+    if (target == null || target.startsWith(\"/\")) {\n+      return target;\n+    }\n+    int schemeEnd = target.indexOf(\"://\");\n+    if (schemeEnd <= 0) {\n+      return null;\n+    }\n+    int pathStart = target.indexOf('/', schemeEnd + 3);\n+    return pathStart >= 0 ? target.substring(pathStart) : null;",
+      "id": "PRRT_kwDODJKVX863toWO",
+      "opened": "2026-11-15T20:35:05Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/PekkoHttpParsingErrorAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-11-15T20:56:52Z",
+          "body": "Fixed in ef19989046: the authority now ends at the first `/`, `?` or `#`, so a target with a query but no path reports `url.query` and no `url.path`. Added `absoluteTargetWithoutPathIsTraced` covering `http://example.com?q=/%%`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21306#discussion_r4580208428"
+        }
+      ],
+      "reviewed": "80a833dac784c5f0d825a995f2f8e1c14233ca33",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21306#discussion_r4580135555"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This delegation regression runs only with default span suppression, which can hide duplicate spans if the consumed rejection marker stops working. The existing no-suppression execution covers only a successful request on Pekko HTTP 1.1. Add a filtered `NoSpanSuppression` variant to the existing Pekko 2 executions block in `javaagent/build.gradle.kts`, setting `otel.instrumentation.common.span-suppression-strategy=none` and running `*PekkoHttpServerParsingErrorHandlerTest`.",
+      "created": "2026-11-15T20:35:05Z",
+      "hunk": "@@ -0,0 +1,159 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0\n+\n+import com.typesafe.config.ConfigFactory\n+import io.opentelemetry.api.trace.SpanKind\n+import io.opentelemetry.instrumentation.testing.junit.{\n+  AgentInstrumentationExtension,\n+  InstrumentationExtension\n+}\n+import io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo\n+import io.opentelemetry.sdk.testing.assertj.{SpanDataAssert, TraceAssert}\n+import io.opentelemetry.semconv.{HttpAttributes, UrlAttributes}\n+import org.apache.pekko.actor.ActorSystem\n+import org.apache.pekko.event.LoggingAdapter\n+import org.apache.pekko.http.{IllegalRequestContext, ParsingErrorHandler}\n+import org.apache.pekko.http.javadsl.{model => jm}\n+import org.apache.pekko.http.scaladsl.model.{\n+  ErrorInfo,\n+  HttpRequest,\n+  HttpResponse,\n+  StatusCode,\n+  StatusCodes\n+}\n+import org.apache.pekko.http.scaladsl.settings.ServerSettings\n+import org.assertj.core.api.Assertions.assertThat\n+import org.junit.jupiter.api.Test\n+import org.junit.jupiter.api.extension.RegisterExtension\n+\n+import java.util.function.Consumer\n+import scala.concurrent.Await\n+import scala.concurrent.duration._\n+\n+import PekkoHttpServerParsingErrorTest.send\n+\n+/** Custom parsing error handlers on pekko-http 2.0, which answers a rejection\n+  * through the handler overload that carries the rejected request. Its default\n+  * delegates to the overload that pekko-http 1.x calls, and both are\n+  * instrumented, so a rejection must still get exactly one span whichever of\n+  * the two a handler overrides.\n+  */\n+class PekkoHttpServerParsingErrorHandlerTest {\n+\n+  @RegisterExtension val testing: InstrumentationExtension =\n+    AgentInstrumentationExtension.create()\n+\n+  /** A handler that overrides only the overload carrying the request never\n+    * reaches the other overload, so this is traced only because that overload\n+    * is instrumented as well.\n+    */\n+  @Test def handlerOverridingRequestContextOverloadIsTraced(): Unit =\n+    assertRejectionTraced(classOf[RequestContextParsingErrorHandler])\n+\n+  /** A handler that delegates from the overload carrying the request to the\n+    * other one passes through both instrumented methods for one rejection.\n+    */\n+  @Test def handlerDelegatingBetweenOverloadsIsTracedOnce(): Unit =\n+    assertRejectionTraced(classOf[DelegatingParsingErrorHandler])",
+      "id": "PRRT_kwDODJKVX863toWk",
+      "opened": "2026-11-15T20:35:05Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/pekko2OnlyTest/scala/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/PekkoHttpServerParsingErrorHandlerTest.scala",
+      "replies": [
+        {
+          "at": "2026-11-15T20:56:54Z",
+          "body": "Added in ef19989046: a `NoSpanSuppression` execution of `pekko2Test` with `span-suppression-strategy=none`, filtered to `*PekkoHttpServerParsingErrorHandlerTest`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21306#discussion_r4580208632"
+        }
+      ],
+      "reviewed": "80a833dac784c5f0d825a995f2f8e1c14233ca33",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21306#discussion_r4580135597"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] For the malformed target `bad?AWSAccessKeyId=secret://host/%%`, this returns `bad?AWSAccessKeyId=secret` as `url.scheme`, exposing a query credential outside query redaction. Validate the prefix against URI scheme syntax before treating a target as absolute-form, and share that validation with `pathAndQuery`. Add a rejected-target regression covering this case.",
+      "created": "2026-11-15T21:04:52Z",
+      "hunk": "@@ -48,19 +51,78 @@ public List<String> getHttpResponseHeader(ErrorInfo request, HttpResponse respon\n \n   @Nullable\n   @Override\n-  public String getUrlScheme(ErrorInfo request) {\n-    return null;\n+  public String getUrlScheme(PekkoHttpParsingErrorRequest request) {\n+    String target = request.rawRequestTarget();\n+    if (target == null || target.startsWith(\"/\")) {\n+      return null;\n+    }\n+    int schemeEnd = target.indexOf(\"://\");\n+    return schemeEnd > 0 ? target.substring(0, schemeEnd) : null;",
+      "id": "PRRT_kwDODJKVX863t3bk",
+      "opened": "2026-11-15T21:04:52Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/PekkoHttpParsingErrorAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-11-15T21:28:13Z",
+          "body": "Fixed in b32e10edf5: a target counts as absolute-form only when it starts with a valid scheme (`ALPHA *( ALPHA / DIGIT / \"+\" / \"-\" / \".\" )`) followed by `://`. `getUrlScheme` and `pathAndQuery` share that check. The regression test is `targetWithoutValidSchemeIsNotAbsolute`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21306#discussion_r4580312595"
+        }
+      ],
+      "reviewed": "ef199890462d50b0f8cc2a85b9ffe8075308afdc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21306#discussion_r4580234832"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] A rejected target such as `/path?AWSAccessKeyId=first#&AWSAccessKeyId=secret` retains its fragment in `url.query`, and `UrlQuerySanitizer` preserves everything after `#`, leaving the second value unredacted. Path-only targets also expose the fragment in `url.path`. Strip everything from the first raw `#` before extracting either component, for both origin-form and absolute-form targets.",
+      "created": "2026-11-15T21:04:52Z",
+      "hunk": "@@ -48,19 +51,78 @@ public List<String> getHttpResponseHeader(ErrorInfo request, HttpResponse respon\n \n   @Nullable\n   @Override\n-  public String getUrlScheme(ErrorInfo request) {\n-    return null;\n+  public String getUrlScheme(PekkoHttpParsingErrorRequest request) {\n+    String target = request.rawRequestTarget();\n+    if (target == null || target.startsWith(\"/\")) {\n+      return null;\n+    }\n+    int schemeEnd = target.indexOf(\"://\");\n+    return schemeEnd > 0 ? target.substring(0, schemeEnd) : null;\n   }\n \n   @Nullable\n   @Override\n-  public String getUrlPath(ErrorInfo request) {\n-    return null;\n+  public String getUrlPath(PekkoHttpParsingErrorRequest request) {\n+    String target = pathAndQuery(request.rawRequestTarget());\n+    if (target == null) {\n+      return null;\n+    }\n+    int queryStart = target.indexOf('?');\n+    String path = queryStart >= 0 ? target.substring(0, queryStart) : target;\n+    // an absolute-form target may have a query but no path\n+    return path.isEmpty() ? null : path;\n   }\n \n   @Nullable\n   @Override\n-  public String getUrlQuery(ErrorInfo request) {\n-    return null;\n+  public String getUrlQuery(PekkoHttpParsingErrorRequest request) {\n+    String target = pathAndQuery(request.rawRequestTarget());\n+    if (target == null) {\n+      return null;\n+    }\n+    int queryStart = target.indexOf('?');\n+    return queryStart >= 0 ? target.substring(queryStart + 1) : null;\n+  }\n+\n+  @Nullable\n+  @Override\n+  public String getNetworkProtocolName(\n+      PekkoHttpParsingErrorRequest request, @Nullable HttpResponse response) {\n+    String protocol = request.protocol();\n+    return protocol != null ? HttpProtocolUtil.getProtocol(protocol) : null;\n+  }\n+\n+  @Nullable\n+  @Override\n+  public String getNetworkProtocolVersion(\n+      PekkoHttpParsingErrorRequest request, @Nullable HttpResponse response) {\n+    String protocol = request.protocol();\n+    return protocol != null ? HttpProtocolUtil.getVersion(protocol) : null;\n+  }\n+\n+  /**\n+   * Returns the path and query of a request-target in origin form ({@code /path?query}) or absolute\n+   * form ({@code http://host/path?query}, where the path may be empty), and {@code null} for the\n+   * authority form of a CONNECT request and the asterisk form of a server-wide OPTIONS request,\n+   * which have neither.\n+   */\n+  @Nullable\n+  private static String pathAndQuery(@Nullable String target) {\n+    if (target == null || target.startsWith(\"/\")) {\n+      return target;\n+    }",
+      "id": "PRRT_kwDODJKVX863t3bt",
+      "opened": "2026-11-15T21:04:52Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/PekkoHttpParsingErrorAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-11-15T21:28:17Z",
+          "body": "Fixed in b32e10edf5: everything from the first `#` is dropped before the scheme, path or query is extracted, for both origin-form and absolute-form targets. The regression test is `fragmentOfRejectedTargetIsDropped`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21306#discussion_r4580312814"
+        }
+      ],
+      "reviewed": "ef199890462d50b0f8cc2a85b9ffe8075308afdc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21306#discussion_r4580234848"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] This matches the complete five-parameter signature, rather than an intentionally partial signature. `.github/instructions/javaagent.instructions.md:82-98` requires the ordered `AgentElementMatchers.takesArguments(...)` form for this case; the adjacent `ParsingErrorHandlerInstrumentation.transform()` already follows it. Replace the arity check and five positional checks with one ordered matcher list, and update the static imports.",
+      "created": "2026-11-19T22:20:29Z",
+      "hunk": "@@ -0,0 +1,88 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0.server;\n+\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasClassesNamed;\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasSuperType;\n+import static net.bytebuddy.matcher.ElementMatchers.isAbstract;\n+import static net.bytebuddy.matcher.ElementMatchers.isBridge;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.not;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArgument;\n+import static net.bytebuddy.matcher.ElementMatchers.takesArguments;\n+\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.implementation.bytecode.assign.Assigner;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import org.apache.pekko.http.IllegalRequestContext;\n+import org.apache.pekko.http.javadsl.model.HttpResponse;\n+import org.apache.pekko.http.scaladsl.model.ErrorInfo;\n+\n+/**\n+ * Pekko HTTP 2.0 added a parsing error handler overload that also carries what was read of the\n+ * rejected request, and answers rejections through it. Its default implementation delegates to the\n+ * overload that {@link ParsingErrorHandlerInstrumentation} instruments, which then finds the\n+ * rejection already traced, see {@link PekkoHttpParsingErrorSingletons#startSpan(ErrorInfo)}. A\n+ * handler that overrides only this overload never reaches the other one, so it has to be\n+ * instrumented on its own rather than only consulted for the request.\n+ */\n+class ParsingErrorHandlerRequestContextInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<ClassLoader> classLoaderOptimization() {\n+    return hasClassesNamed(\"org.apache.pekko.http.ParsingErrorHandler\");\n+  }\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return hasSuperType(named(\"org.apache.pekko.http.ParsingErrorHandler\"));\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    // see ParsingErrorHandlerInstrumentation for why bridges are skipped and why every parameter\n+    // type is matched\n+    transformer.applyAdviceToMethod(\n+        named(\"handle\")\n+            .and(not(isAbstract()))\n+            .and(not(isBridge()))\n+            .and(takesArguments(5))\n+            .and(takesArgument(0, named(\"org.apache.pekko.http.scaladsl.model.StatusCode\")))\n+            .and(takesArgument(1, named(\"org.apache.pekko.http.scaladsl.model.ErrorInfo\")))\n+            .and(takesArgument(2, named(\"org.apache.pekko.event.LoggingAdapter\")))\n+            .and(takesArgument(3, named(\"org.apache.pekko.http.scaladsl.settings.ServerSettings\")))\n+            .and(takesArgument(4, named(\"org.apache.pekko.http.IllegalRequestContext\"))),",
+      "id": "PRRT_kwDODJKVX865vlA_",
+      "opened": "2026-11-19T22:20:30Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/ParsingErrorHandlerRequestContextInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-11-19T23:20:38Z",
+          "body": "Fixed in 9bb97986ec: the five-argument overload is now matched with one ordered `AgentElementMatchers.takesArguments(...)` list.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21306#discussion_r4636425362"
+        }
+      ],
+      "reviewed": "2bbe8cc9cc05e5d641818b91c8465dcb0d2b5bb2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21306#discussion_r4635881785"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] This gate duplicates a boundary Muzzle can already establish: the new advice and `PekkoHttpIllegalRequestContextUtil` directly reference `IllegalRequestContext` and its getters. `.github/instructions/javaagent.instructions.md:126-129` reserves `classLoaderMatcher()` overrides for boundaries that referenced symbols cannot establish. Remove this override and its unused imports; Muzzle will still exclude Pekko HTTP 1.x.",
+      "created": "2026-11-19T22:20:30Z",
+      "hunk": "@@ -0,0 +1,38 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0.server;\n+\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasClassesNamed;\n+import static java.util.Collections.singletonList;\n+\n+import com.google.auto.service.AutoService;\n+import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import java.util.List;\n+import net.bytebuddy.matcher.ElementMatcher;\n+\n+/**\n+ * Traces the rejected requests that Pekko HTTP 2.0 answers through the parsing error handler\n+ * overload that carries the request. The rejections themselves are still marked by {@link\n+ * PekkoHttpServerInstrumentationModule}, which is selected by the same names.\n+ */\n+@AutoService(InstrumentationModule.class)\n+public class PekkoHttp2ParsingErrorInstrumentationModule extends InstrumentationModule {\n+  public PekkoHttp2ParsingErrorInstrumentationModule() {\n+    super(\"pekko-http-1.0\", \"pekko-http-server\", \"pekko-http\", \"pekko\");\n+  }\n+\n+  @Override\n+  public ElementMatcher.Junction<ClassLoader> classLoaderMatcher() {\n+    // added in 2.0.0-M2\n+    return hasClassesNamed(\"org.apache.pekko.http.IllegalRequestContext\");\n+  }",
+      "id": "PRRT_kwDODJKVX865vlBv",
+      "opened": "2026-11-19T22:20:30Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/PekkoHttp2ParsingErrorInstrumentationModule.java",
+      "replies": [
+        {
+          "at": "2026-11-19T23:20:40Z",
+          "body": "Fixed in 9bb97986ec: removed the `classLoaderMatcher()` override. Muzzle excludes pekko-http 1.x through the `IllegalRequestContext` references, and the 2.x muzzle passes with `assertInverse` confirm it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21306#discussion_r4636425741"
+        },
+        {
+          "at": "2026-11-20T21:15:32Z",
+          "body": "Reverted in 7c017aea7d. Muzzle does skip this module on pekko-http 1.x, but only after the type matcher has matched every `ParsingErrorHandler`, and each skip is reported as a mismatch. The agent test runner fails any test class that hits one (\"1 Muzzle failures during test\"), which broke the 1.x suites, and real 1.x applications would log the mismatch too. The `IllegalRequestContext` gate is back, with a comment explaining why the referenced symbols alone are not enough.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21306#discussion_r4647819053"
+        }
+      ],
+      "reviewed": "2bbe8cc9cc05e5d641818b91c8465dcb0d2b5bb2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21306#discussion_r4635881851"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This conditionally constructs the attribute-assertion collection and introduces `ifRequestContext` solely to select mode-dependent expected values, which `.github/instructions/testing-modes.instructions.md:110-125` explicitly disallows. Keep the keys directly in `hasAttributesSatisfyingExactly(...)`, with each expected value conditional on request-context availability and `null` for absence. The shared helper can remain, but it should contain the direct assertions rather than assembling a filtered collection.",
+      "created": "2026-11-19T22:20:30Z",
+      "hunk": "@@ -293,31 +406,60 @@ class PekkoHttpServerParsingErrorTest {\n     } finally Await.result(system.terminate(), 10.seconds)\n   }\n \n-  /** Nothing of the rejected request is known, so every one of these spans\n-    * looks the same apart from the status the rejection was answered with.\n+  /** The parts of the rejected request that pekko-http 2.0 reports, the\n+    * arguments name what it reports for the request in each test. pekko-http\n+    * 1.x reports none of them, so on 1.x every one of these spans looks the\n+    * same apart from the status the rejection was answered with.\n     */\n   private def assertParsingErrorSpan(\n       span: SpanDataAssert,\n-      statusCode: Long\n+      statusCode: Long,\n+      method: Option[String] = None,\n+      scheme: Option[String] = None,\n+      path: Option[String] = None,\n+      query: Option[String] = None,\n+      protocolVersion: Option[String] = None\n   ): SpanDataAssert = {\n-    val statusAttribute = equalTo(\n-      HttpAttributes.HTTP_RESPONSE_STATUS_CODE,\n-      java.lang.Long.valueOf(statusCode)\n-    )\n+    def ifRequestContext(\n+        key: AttributeKey[String],\n+        value: Option[String]\n+    ): Option[AttributeAssertion] =\n+      if (PekkoHttpServerParsingErrorTest.requestContextAvailable)\n+        value.map(equalTo(key, _))\n+      else None\n+\n+    val attributes = Seq(\n+      Some(\n+        equalTo(\n+          HttpAttributes.HTTP_RESPONSE_STATUS_CODE,\n+          java.lang.Long.valueOf(statusCode)\n+        )\n+      ),\n+      if (statusCode >= 500)\n+        Some(equalTo(ErrorAttributes.ERROR_TYPE, statusCode.toString))\n+      else None,\n+      ifRequestContext(HttpAttributes.HTTP_REQUEST_METHOD, method),\n+      ifRequestContext(UrlAttributes.URL_PATH, path),\n+      ifRequestContext(UrlAttributes.URL_SCHEME, scheme),\n+      ifRequestContext(UrlAttributes.URL_QUERY, query),\n+      ifRequestContext(",
+      "id": "PRRT_kwDODJKVX865vlCl",
+      "opened": "2026-11-19T22:20:30Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/test/scala/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/PekkoHttpServerParsingErrorTest.scala",
+      "replies": [
+        {
+          "at": "2026-11-19T23:20:43Z",
+          "body": "Fixed in 9bb97986ec: `assertParsingErrorSpan` now lists every key directly in `hasAttributesSatisfyingExactly(...)`, with the request-context-dependent values conditional inline and `null` for absence. `ifRequestContext` and the filtered collection are gone.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21306#discussion_r4636426086"
+        }
+      ],
+      "reviewed": "2bbe8cc9cc05e5d641818b91c8465dcb0d2b5bb2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21306#discussion_r4635881930"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Javaagent] `.github/instructions/javaagent-advice.instructions.md:25-28` requires omitting explicit dynamic typing on `@Advice.AssignReturned` mappings. This advice uses the standard `TypeTransformerImpl` pipeline, whose `ForceDynamicallyTypedAssignReturnedFactory` already supplies dynamic typing. Use plain `@Advice.AssignReturned.ToReturned` and remove the unused `Assigner` import.",
+      "created": "2026-11-20T00:00:22Z",
+      "hunk": "@@ -0,0 +1,88 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0.server;\n+\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasClassesNamed;\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasSuperType;\n+import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.takesArguments;\n+import static net.bytebuddy.matcher.ElementMatchers.isAbstract;\n+import static net.bytebuddy.matcher.ElementMatchers.isBridge;\n+import static net.bytebuddy.matcher.ElementMatchers.named;\n+import static net.bytebuddy.matcher.ElementMatchers.not;\n+\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;\n+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;\n+import javax.annotation.Nullable;\n+import net.bytebuddy.asm.Advice;\n+import net.bytebuddy.description.type.TypeDescription;\n+import net.bytebuddy.implementation.bytecode.assign.Assigner;\n+import net.bytebuddy.matcher.ElementMatcher;\n+import org.apache.pekko.http.IllegalRequestContext;\n+import org.apache.pekko.http.javadsl.model.HttpResponse;\n+import org.apache.pekko.http.scaladsl.model.ErrorInfo;\n+\n+/**\n+ * Pekko HTTP 2.0 added a parsing error handler overload that also carries what was read of the\n+ * rejected request, and answers rejections through it. Its default implementation delegates to the\n+ * overload that {@link ParsingErrorHandlerInstrumentation} instruments, which then finds the\n+ * rejection already traced, see {@link PekkoHttpParsingErrorSingletons#startSpan(ErrorInfo)}. A\n+ * handler that overrides only this overload never reaches the other one, so it has to be\n+ * instrumented on its own rather than only consulted for the request.\n+ */\n+class ParsingErrorHandlerRequestContextInstrumentation implements TypeInstrumentation {\n+\n+  @Override\n+  public ElementMatcher<ClassLoader> classLoaderOptimization() {\n+    return hasClassesNamed(\"org.apache.pekko.http.ParsingErrorHandler\");\n+  }\n+\n+  @Override\n+  public ElementMatcher<TypeDescription> typeMatcher() {\n+    return hasSuperType(named(\"org.apache.pekko.http.ParsingErrorHandler\"));\n+  }\n+\n+  @Override\n+  public void transform(TypeTransformer transformer) {\n+    // see ParsingErrorHandlerInstrumentation for why bridges are skipped and why every parameter\n+    // type is matched\n+    transformer.applyAdviceToMethod(\n+        named(\"handle\")\n+            .and(not(isAbstract()))\n+            .and(not(isBridge()))\n+            .and(\n+                takesArguments(\n+                    named(\"org.apache.pekko.http.scaladsl.model.StatusCode\"),\n+                    named(\"org.apache.pekko.http.scaladsl.model.ErrorInfo\"),\n+                    named(\"org.apache.pekko.event.LoggingAdapter\"),\n+                    named(\"org.apache.pekko.http.scaladsl.settings.ServerSettings\"),\n+                    named(\"org.apache.pekko.http.IllegalRequestContext\"))),\n+        getClass().getName() + \"$HandleAdvice\");\n+  }\n+\n+  @SuppressWarnings(\"unused\")\n+  public static class HandleAdvice {\n+\n+    @Nullable\n+    @Advice.OnMethodEnter(suppress = Throwable.class, inline = false)\n+    public static Object[] onEnter(\n+        @Advice.Argument(1) ErrorInfo info, @Advice.Argument(4) IllegalRequestContext context) {\n+      return PekkoHttpIllegalRequestContextUtil.startSpan(info, context);\n+    }\n+\n+    // see ParsingErrorHandlerInstrumentation for why the return value is written back\n+    @Advice.AssignReturned.ToReturned(typing = Assigner.Typing.DYNAMIC)",
+      "id": "PRRT_kwDODJKVX865xiKo",
+      "opened": "2026-11-20T00:00:22Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/ParsingErrorHandlerRequestContextInstrumentation.java",
+      "replies": [
+        {
+          "at": "2026-11-20T21:15:35Z",
+          "body": "Fixed in 7c017aea7d: plain `@Advice.AssignReturned.ToReturned`, and the unused `Assigner` import is removed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21306#discussion_r4647819760"
+        }
+      ],
+      "reviewed": "9bb97986ec8a4708724e877f2b7caaaabf8253bd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21306#discussion_r4636738722"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Pekko preserves literal control characters in rejected targets. These getters can pass them through to `url.path` or `url.query`, and the `logging` exporter writes string attributes unescaped. That can alter terminal log output. Please omit both URL attributes when the target contains control characters.",
+      "created": "2026-11-21T02:31:12Z",
+      "hunk": "@@ -48,19 +51,126 @@ public List<String> getHttpResponseHeader(ErrorInfo request, HttpResponse respon\n \n   @Nullable\n   @Override\n-  public String getUrlScheme(ErrorInfo request) {\n+  public String getUrlScheme(PekkoHttpParsingErrorRequest request) {\n+    String target = withoutFragment(request.rawRequestTarget());\n+    if (target == null) {\n+      return null;\n+    }\n+    int schemeEnd = findSchemeEnd(target);\n+    if (schemeEnd < 0 || !target.startsWith(\"://\", schemeEnd)) {\n+      return null;\n+    }\n+    // The scheme also labels the request duration metric, so only report known values.\n+    if (schemeEnd == 4 && target.regionMatches(true, 0, \"http\", 0, 4)) {\n+      return \"http\";\n+    }\n+    if (schemeEnd == 5 && target.regionMatches(true, 0, \"https\", 0, 5)) {\n+      return \"https\";\n+    }\n     return null;\n   }\n \n   @Nullable\n   @Override\n-  public String getUrlPath(ErrorInfo request) {\n-    return null;\n+  public String getUrlPath(PekkoHttpParsingErrorRequest request) {\n+    String target = pathAndQuery(request);\n+    if (target == null) {\n+      return null;\n+    }\n+    int queryStart = target.indexOf('?');\n+    String path = queryStart >= 0 ? target.substring(0, queryStart) : target;",
+      "id": "PRRT_kwDODJKVX866QfH0",
+      "opened": "2026-11-21T02:38:50Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/PekkoHttpParsingErrorAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-11-21T07:30:25Z",
+          "body": "Fixed in 4341312370: `pathAndQuery` returns null when the target, after the fragment is dropped, contains any `Character.isISOControl` character (C0, DEL and C1), so neither `url.path` nor `url.query` is reported. The regression test is `targetWithControlCharactersIsNotReported`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21306#discussion_r4651362235"
+        }
+      ],
+      "reviewed": "1b8f266ed9d71ba20cd90785ec15b556c50ca701",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21306#discussion_r4650038173"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Pekko renders an IPv6 `CONNECT` authority with a leading `//` before passing it to the rejection handler. This branch treats the whole authority as `url.path` before reaching the `CONNECT` guard. Move the guard before the leading-slash branch and add an IPv6 case alongside the hostname test.",
+      "created": "2026-11-21T02:37:32Z",
+      "hunk": "@@ -48,19 +51,126 @@ public List<String> getHttpResponseHeader(ErrorInfo request, HttpResponse respon\n \n   @Nullable\n   @Override\n-  public String getUrlScheme(ErrorInfo request) {\n+  public String getUrlScheme(PekkoHttpParsingErrorRequest request) {\n+    String target = withoutFragment(request.rawRequestTarget());\n+    if (target == null) {\n+      return null;\n+    }\n+    int schemeEnd = findSchemeEnd(target);\n+    if (schemeEnd < 0 || !target.startsWith(\"://\", schemeEnd)) {\n+      return null;\n+    }\n+    // The scheme also labels the request duration metric, so only report known values.\n+    if (schemeEnd == 4 && target.regionMatches(true, 0, \"http\", 0, 4)) {\n+      return \"http\";\n+    }\n+    if (schemeEnd == 5 && target.regionMatches(true, 0, \"https\", 0, 5)) {\n+      return \"https\";\n+    }\n     return null;\n   }\n \n   @Nullable\n   @Override\n-  public String getUrlPath(ErrorInfo request) {\n-    return null;\n+  public String getUrlPath(PekkoHttpParsingErrorRequest request) {\n+    String target = pathAndQuery(request);\n+    if (target == null) {\n+      return null;\n+    }\n+    int queryStart = target.indexOf('?');\n+    String path = queryStart >= 0 ? target.substring(0, queryStart) : target;\n+    // an absolute-form target may have a query but no path\n+    return path.isEmpty() ? null : path;\n   }\n \n   @Nullable\n   @Override\n-  public String getUrlQuery(ErrorInfo request) {\n-    return null;\n+  public String getUrlQuery(PekkoHttpParsingErrorRequest request) {\n+    String target = pathAndQuery(request);\n+    if (target == null) {\n+      return null;\n+    }\n+    int queryStart = target.indexOf('?');\n+    return queryStart >= 0 ? target.substring(queryStart + 1) : null;\n+  }\n+\n+  @Nullable\n+  @Override\n+  public String getNetworkProtocolName(\n+      PekkoHttpParsingErrorRequest request, @Nullable HttpResponse response) {\n+    String protocol = request.protocol();\n+    return protocol != null ? HttpProtocolUtil.getProtocol(protocol) : null;\n+  }\n+\n+  @Nullable\n+  @Override\n+  public String getNetworkProtocolVersion(\n+      PekkoHttpParsingErrorRequest request, @Nullable HttpResponse response) {\n+    String protocol = request.protocol();\n+    return protocol != null ? HttpProtocolUtil.getVersion(protocol) : null;\n+  }\n+\n+  /**\n+   * Returns the path and query of a request-target in origin form ({@code /path?query}) or absolute\n+   * form with or without an authority. Returns {@code null} for the authority form of a CONNECT\n+   * request, the asterisk form of a server-wide OPTIONS request, and anything else that is neither\n+   * origin nor absolute form.\n+   */\n+  @Nullable\n+  private static String pathAndQuery(PekkoHttpParsingErrorRequest request) {\n+    String target = withoutFragment(request.rawRequestTarget());\n+    if (target == null || target.startsWith(\"/\")) {",
+      "id": "PRRT_kwDODJKVX866QnAg",
+      "opened": "2026-11-21T02:38:50Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/PekkoHttpParsingErrorAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-11-21T07:30:27Z",
+          "body": "Fixed in 4341312370: the CONNECT check is now the first thing in `pathAndQuery`, so a CONNECT target never yields a path or query, whatever form pekko-http renders it in. `ipv6ConnectRequestIsTraced` covers `[::1]:443` alongside the hostname case.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21306#discussion_r4651362461"
+        }
+      ],
+      "reviewed": "1b8f266ed9d71ba20cd90785ec15b556c50ca701",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21306#discussion_r4650090110"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "Pekko accepts authority-form targets even for `GET`. If effective URI resolution rejects an HTTP/1.0 request with no `Host` under default settings, Pekko passes a rendered authority starting with `//`. This branch exports it as `url.path`, including any credentials in the userinfo.\n\nIf we can't get the original target here, skip the ambiguous `//` form when there is no later slash or query.\n\n```suggestion\n      // Pekko can render an authority as a single segment prefixed with \"//\".\n      if (target.startsWith(\"//\") && target.indexOf('/', 2) < 0 && target.indexOf('?') < 0) {\n        return null;\n      }\n      return target;\n```",
+      "created": "2026-11-21T18:17:47Z",
+      "hunk": "@@ -48,19 +51,144 @@ public List<String> getHttpResponseHeader(ErrorInfo request, HttpResponse respon\n \n   @Nullable\n   @Override\n-  public String getUrlScheme(ErrorInfo request) {\n+  public String getUrlScheme(PekkoHttpParsingErrorRequest request) {\n+    String target = withoutFragment(request.rawRequestTarget());\n+    if (target == null) {\n+      return null;\n+    }\n+    int schemeEnd = findSchemeEnd(target);\n+    if (schemeEnd < 0 || !target.startsWith(\"://\", schemeEnd)) {\n+      return null;\n+    }\n+    // The scheme also labels the request duration metric, so only report known values.\n+    if (schemeEnd == 4 && target.regionMatches(true, 0, \"http\", 0, 4)) {\n+      return \"http\";\n+    }\n+    if (schemeEnd == 5 && target.regionMatches(true, 0, \"https\", 0, 5)) {\n+      return \"https\";\n+    }\n     return null;\n   }\n \n   @Nullable\n   @Override\n-  public String getUrlPath(ErrorInfo request) {\n-    return null;\n+  public String getUrlPath(PekkoHttpParsingErrorRequest request) {\n+    String target = pathAndQuery(request);\n+    if (target == null) {\n+      return null;\n+    }\n+    int queryStart = target.indexOf('?');\n+    String path = queryStart >= 0 ? target.substring(0, queryStart) : target;\n+    // an absolute-form target may have a query but no path\n+    return path.isEmpty() ? null : path;\n   }\n \n   @Nullable\n   @Override\n-  public String getUrlQuery(ErrorInfo request) {\n-    return null;\n+  public String getUrlQuery(PekkoHttpParsingErrorRequest request) {\n+    String target = pathAndQuery(request);\n+    if (target == null) {\n+      return null;\n+    }\n+    int queryStart = target.indexOf('?');\n+    return queryStart >= 0 ? target.substring(queryStart + 1) : null;\n+  }\n+\n+  @Nullable\n+  @Override\n+  public String getNetworkProtocolName(\n+      PekkoHttpParsingErrorRequest request, @Nullable HttpResponse response) {\n+    String protocol = request.protocol();\n+    return protocol != null ? HttpProtocolUtil.getProtocol(protocol) : null;\n+  }\n+\n+  @Nullable\n+  @Override\n+  public String getNetworkProtocolVersion(\n+      PekkoHttpParsingErrorRequest request, @Nullable HttpResponse response) {\n+    String protocol = request.protocol();\n+    return protocol != null ? HttpProtocolUtil.getVersion(protocol) : null;\n+  }\n+\n+  /**\n+   * Returns the path and query of a request-target in origin form ({@code /path?query}) or absolute\n+   * form with or without an authority. Returns {@code null} for a CONNECT request, the asterisk\n+   * form of a server-wide OPTIONS request, anything else that is neither origin nor absolute form,\n+   * and a target that contains control characters.\n+   */\n+  @Nullable\n+  private static String pathAndQuery(PekkoHttpParsingErrorRequest request) {\n+    // a CONNECT target is a host and port, not a path, even when pekko-http renders an IPv6 one\n+    // with a leading // such as //[::1]:443\n+    if (\"CONNECT\".equals(request.method())) {\n+      return null;\n+    }\n+    String target = withoutFragment(request.rawRequestTarget());\n+    // a rejected target keeps any literal control characters, which exporters such as the logging\n+    // one write unescaped\n+    if (target == null || containsControlCharacter(target)) {\n+      return null;\n+    }\n+    if (target.startsWith(\"/\")) {\n+      return target;",
+      "id": "PRRT_kwDODJKVX866an-X",
+      "opened": "2026-11-21T18:51:53Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/PekkoHttpParsingErrorAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-11-21T22:09:17Z",
+          "body": "Applied in f21836dbb6: a target that starts with `//` and has no later `/` or `?` is skipped. The regression test is `renderedAuthorityIsNotReported`, which sends `GET user@[::1]:80 HTTP/1.0` without a Host header. Also picked up your `PER_CLASS` commit, thanks.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21306#discussion_r4655238554"
+        }
+      ],
+      "reviewed": "43413123706b6b9dad7a98af985acaa96d0a924a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21306#discussion_r4654261207"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "For `GET //%% HTTP/1.1`, this guard mistakes the malformed origin-form target for a rendered authority and drops `url.path`; adding `?q=1` makes the same path reappear. Pekko's [parser reads the target before the protocol](https://github.com/apache/pekko-http/blob/50d97ed71ba67716487c19ded9f8712e40b17e36/http-core/src/main/scala/org/apache/pekko/http/impl/engine/parsing/HttpRequestParser.scala#L102-L108), while [rendered rejection contexts include a protocol](https://github.com/apache/pekko-http/blob/50d97ed71ba67716487c19ded9f8712e40b17e36/http-core/src/main/scala/org/apache/pekko/http/impl/engine/server/HttpServerBluePrint.scala#L284-L290) (upstream default branch). Restrict this exclusion to contexts with a parsed protocol, and add a regression for the queryless malformed target.",
+      "created": "2026-11-21T22:16:09Z",
+      "hunk": "@@ -48,19 +51,150 @@ public List<String> getHttpResponseHeader(ErrorInfo request, HttpResponse respon\n \n   @Nullable\n   @Override\n-  public String getUrlScheme(ErrorInfo request) {\n+  public String getUrlScheme(PekkoHttpParsingErrorRequest request) {\n+    String target = withoutFragment(request.rawRequestTarget());\n+    if (target == null) {\n+      return null;\n+    }\n+    int schemeEnd = findSchemeEnd(target);\n+    if (schemeEnd < 0 || !target.startsWith(\"://\", schemeEnd)) {\n+      return null;\n+    }\n+    // The scheme also labels the request duration metric, so only report known values.\n+    if (schemeEnd == 4 && target.regionMatches(true, 0, \"http\", 0, 4)) {\n+      return \"http\";\n+    }\n+    if (schemeEnd == 5 && target.regionMatches(true, 0, \"https\", 0, 5)) {\n+      return \"https\";\n+    }\n     return null;\n   }\n \n   @Nullable\n   @Override\n-  public String getUrlPath(ErrorInfo request) {\n-    return null;\n+  public String getUrlPath(PekkoHttpParsingErrorRequest request) {\n+    String target = pathAndQuery(request);\n+    if (target == null) {\n+      return null;\n+    }\n+    int queryStart = target.indexOf('?');\n+    String path = queryStart >= 0 ? target.substring(0, queryStart) : target;\n+    // an absolute-form target may have a query but no path\n+    return path.isEmpty() ? null : path;\n   }\n \n   @Nullable\n   @Override\n-  public String getUrlQuery(ErrorInfo request) {\n-    return null;\n+  public String getUrlQuery(PekkoHttpParsingErrorRequest request) {\n+    String target = pathAndQuery(request);\n+    if (target == null) {\n+      return null;\n+    }\n+    int queryStart = target.indexOf('?');\n+    return queryStart >= 0 ? target.substring(queryStart + 1) : null;\n+  }\n+\n+  @Nullable\n+  @Override\n+  public String getNetworkProtocolName(\n+      PekkoHttpParsingErrorRequest request, @Nullable HttpResponse response) {\n+    String protocol = request.protocol();\n+    return protocol != null ? HttpProtocolUtil.getProtocol(protocol) : null;\n+  }\n+\n+  @Nullable\n+  @Override\n+  public String getNetworkProtocolVersion(\n+      PekkoHttpParsingErrorRequest request, @Nullable HttpResponse response) {\n+    String protocol = request.protocol();\n+    return protocol != null ? HttpProtocolUtil.getVersion(protocol) : null;\n+  }\n+\n+  /**\n+   * Returns the path and query of a request-target in origin form ({@code /path?query}) or absolute\n+   * form with or without an authority. Returns {@code null} for a CONNECT request, the asterisk\n+   * form of a server-wide OPTIONS request, anything else that is neither origin nor absolute form,\n+   * and a target that contains control characters.\n+   */\n+  @Nullable\n+  private static String pathAndQuery(PekkoHttpParsingErrorRequest request) {\n+    // a CONNECT target is a host and port, not a path, even when pekko-http renders an IPv6 one\n+    // with a leading // such as //[::1]:443\n+    if (\"CONNECT\".equals(request.method())) {\n+      return null;\n+    }\n+    String target = withoutFragment(request.rawRequestTarget());\n+    // a rejected target keeps any literal control characters, which exporters such as the logging\n+    // one write unescaped\n+    if (target == null || containsControlCharacter(target)) {\n+      return null;\n+    }\n+    if (target.startsWith(\"/\")) {\n+      // pekko-http renders an authority-form target, userinfo included, as a single segment with a\n+      // leading //, for example when it cannot resolve the effective URI of an HTTP/1.0 request\n+      // without a Host header\n+      if (target.startsWith(\"//\") && target.indexOf('/', 2) < 0 && target.indexOf('?') < 0) {",
+      "id": "PRRT_kwDODJKVX866dAzD",
+      "opened": "2026-11-21T22:16:10Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/PekkoHttpParsingErrorAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-11-23T11:41:48Z",
+          "body": "Fixed in fa02be2738: the rendered-authority guard now applies only when the context has a protocol. pekko-http renders a target only for a request line it parsed up to the protocol, so without one the target is what the client sent and a leading `//` starts its path. The regression test is `malformedPathWithLeadingDoubleSlashIsReported`, which sends `GET //%% HTTP/1.1` and expects `url.path` of `//%%`; `renderedAuthorityIsNotReported` still passes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21306#discussion_r4665311325"
+        }
+      ],
+      "reviewed": "f21836dbb6b5d05e717107698c00db1aa8ad95dd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21306#discussion_r4655272615"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "For `GET //admin HTTP/1.1\\r\\n\\r\\n` without a Host header, this guard drops the known `url.path`, while adding `?q=1` makes the same path reappear. The [Pekko parser retains both the raw target and parsed protocol for this rejection](https://github.com/apache/pekko-http/blob/b6a11a0b000c38191fbb6088dd96cc408b68dfde/http-core/src/main/scala/org/apache/pekko/http/impl/engine/parsing/HttpRequestParser.scala#L267-L279), so protocol presence does not identify a rendered authority. Track whether the target came from parsing or URI rendering before applying this exclusion, and add a missing-Host regression while preserving the rendered-authority userinfo protection.",
+      "created": "2026-11-23T12:07:49Z",
+      "hunk": "@@ -48,19 +51,154 @@ public List<String> getHttpResponseHeader(ErrorInfo request, HttpResponse respon\n \n   @Nullable\n   @Override\n-  public String getUrlScheme(ErrorInfo request) {\n+  public String getUrlScheme(PekkoHttpParsingErrorRequest request) {\n+    String target = withoutFragment(request.rawRequestTarget());\n+    if (target == null) {\n+      return null;\n+    }\n+    int schemeEnd = findSchemeEnd(target);\n+    if (schemeEnd < 0 || !target.startsWith(\"://\", schemeEnd)) {\n+      return null;\n+    }\n+    // The scheme also labels the request duration metric, so only report known values.\n+    if (schemeEnd == 4 && target.regionMatches(true, 0, \"http\", 0, 4)) {\n+      return \"http\";\n+    }\n+    if (schemeEnd == 5 && target.regionMatches(true, 0, \"https\", 0, 5)) {\n+      return \"https\";\n+    }\n     return null;\n   }\n \n   @Nullable\n   @Override\n-  public String getUrlPath(ErrorInfo request) {\n-    return null;\n+  public String getUrlPath(PekkoHttpParsingErrorRequest request) {\n+    String target = pathAndQuery(request);\n+    if (target == null) {\n+      return null;\n+    }\n+    int queryStart = target.indexOf('?');\n+    String path = queryStart >= 0 ? target.substring(0, queryStart) : target;\n+    // an absolute-form target may have a query but no path\n+    return path.isEmpty() ? null : path;\n   }\n \n   @Nullable\n   @Override\n-  public String getUrlQuery(ErrorInfo request) {\n-    return null;\n+  public String getUrlQuery(PekkoHttpParsingErrorRequest request) {\n+    String target = pathAndQuery(request);\n+    if (target == null) {\n+      return null;\n+    }\n+    int queryStart = target.indexOf('?');\n+    return queryStart >= 0 ? target.substring(queryStart + 1) : null;\n+  }\n+\n+  @Nullable\n+  @Override\n+  public String getNetworkProtocolName(\n+      PekkoHttpParsingErrorRequest request, @Nullable HttpResponse response) {\n+    String protocol = request.protocol();\n+    return protocol != null ? HttpProtocolUtil.getProtocol(protocol) : null;\n+  }\n+\n+  @Nullable\n+  @Override\n+  public String getNetworkProtocolVersion(\n+      PekkoHttpParsingErrorRequest request, @Nullable HttpResponse response) {\n+    String protocol = request.protocol();\n+    return protocol != null ? HttpProtocolUtil.getVersion(protocol) : null;\n+  }\n+\n+  /**\n+   * Returns the path and query of a request-target in origin form ({@code /path?query}) or absolute\n+   * form with or without an authority. Returns {@code null} for a CONNECT request, the asterisk\n+   * form of a server-wide OPTIONS request, anything else that is neither origin nor absolute form,\n+   * and a target that contains control characters.\n+   */\n+  @Nullable\n+  private static String pathAndQuery(PekkoHttpParsingErrorRequest request) {\n+    // a CONNECT target is a host and port, not a path, even when pekko-http renders an IPv6 one\n+    // with a leading // such as //[::1]:443\n+    if (\"CONNECT\".equals(request.method())) {\n+      return null;\n+    }\n+    String target = withoutFragment(request.rawRequestTarget());\n+    // a rejected target keeps any literal control characters, which exporters such as the logging\n+    // one write unescaped\n+    if (target == null || containsControlCharacter(target)) {\n+      return null;\n+    }\n+    if (target.startsWith(\"/\")) {\n+      // pekko-http renders an authority-form target, userinfo included, as a single segment with a\n+      // leading //, for example when it cannot resolve the effective URI of an HTTP/1.0 request\n+      // without a Host header. It only renders a target of a request line that it parsed up to the\n+      // protocol, without a protocol the target is what the client sent and // starts its path.\n+      if (request.protocol() != null\n+          && target.startsWith(\"//\")\n+          && target.indexOf('/', 2) < 0\n+          && target.indexOf('?') < 0) {",
+      "id": "PRRT_kwDODJKVX8661XQC",
+      "opened": "2026-11-23T12:07:50Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/PekkoHttpParsingErrorAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-11-23T12:24:51Z",
+          "body": "Leaving this as it is. The observation is right: a missing `Host` on HTTP/1.1 is rejected by the parser, so the context has the raw `//admin` and a protocol, and `url.path` is dropped. But `IllegalRequestContext` only carries the method, target and protocol, with nothing to say whether the target is what the client sent or a URI pekko-http rendered, so the instrumentation cannot track that. Once a protocol is present, a raw `//admin` path and an authority rendered as `//admin` or `//user@host` are the same string. A rendered one is not limited to HTTP/1.0 either, an HTTP/1.1 request with an empty `Host` header gets there too, so the protocol version does not separate them.\n\nGiven that, the guard stays conservative: a `//segment` target with no later `/` or `?` is not reported when a protocol was parsed, at the cost of losing `url.path` for that shape of path on rejections after the request line. That seems the better side to err on than exporting userinfo. The only alternative I can see is keying on the text of the effective-URI error message, which would silently stop protecting if pekko-http reworded it.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21306#discussion_r4665780145"
+        }
+      ],
+      "reviewed": "fff01edc3308bc2117e36633c6b3b176520a39a8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21306#discussion_r4665595109"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "[Simplification] Nothing calls `info()`. The `ErrorInfo` is only needed to consume the parsing-error mark in `PekkoHttpParsingErrorSingletons.startSpan`, so keeping it in the request wrapper is dead state. Removing it also needs three separate edits: drop the `org.apache.pekko.http.scaladsl.model.ErrorInfo` import, change the call site in `PekkoHttpParsingErrorSingletons` to `new PekkoHttpParsingErrorRequest(method, rawRequestTarget, protocol)`, and update the class Javadoc so it no longer says the `ErrorInfo` is what this class holds.\n\n```suggestion\n  @Nullable private final String method;\n  @Nullable private final String rawRequestTarget;\n  @Nullable private final String protocol;\n\n  PekkoHttpParsingErrorRequest(\n      @Nullable String method, @Nullable String rawRequestTarget, @Nullable String protocol) {\n    this.method = method;\n    this.rawRequestTarget = rawRequestTarget;\n    this.protocol = protocol;\n  }\n```",
+      "created": "2026-11-24T00:47:49Z",
+      "hunk": "@@ -0,0 +1,58 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0.server;\n+\n+import javax.annotation.Nullable;\n+import org.apache.pekko.http.scaladsl.model.ErrorInfo;\n+\n+/**\n+ * A request that pekko-http rejected while parsing it. Pekko HTTP 1.x tells the parsing error\n+ * handler nothing about the rejected request, so only the {@code ErrorInfo} is known. Pekko HTTP\n+ * 2.0 also reports what was read of the request before it was rejected, and any part of it may be\n+ * missing because the request was rejected before that part was read.\n+ */\n+class PekkoHttpParsingErrorRequest {\n+\n+  private final ErrorInfo info;\n+  @Nullable private final String method;\n+  @Nullable private final String rawRequestTarget;\n+  @Nullable private final String protocol;\n+\n+  PekkoHttpParsingErrorRequest(\n+      ErrorInfo info,\n+      @Nullable String method,\n+      @Nullable String rawRequestTarget,\n+      @Nullable String protocol) {\n+    this.info = info;\n+    this.method = method;\n+    this.rawRequestTarget = rawRequestTarget;\n+    this.protocol = protocol;\n+  }\n+\n+  ErrorInfo info() {\n+    return info;\n+  }",
+      "id": "PRRT_kwDODJKVX867I6-S",
+      "opened": "2026-11-24T00:47:49Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/PekkoHttpParsingErrorRequest.java",
+      "replies": [
+        {
+          "at": "2026-11-24T09:01:02Z",
+          "body": "Applied in 211c7c7930: `PekkoHttpParsingErrorRequest` no longer holds the `ErrorInfo`. The field, `info()`, the import and the constructor argument are gone, the call site in `PekkoHttpParsingErrorSingletons` is updated and the class Javadoc no longer mentions it. No new tests, the existing parsing error tests pass on pekko-http 1.x and 2.x.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21306#discussion_r4677643790"
+        }
+      ],
+      "reviewed": "fff01edc3308bc2117e36633c6b3b176520a39a8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21306#discussion_r4674032696"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "[Simplification] `HttpProtocolUtil.getProtocol` and `getVersion` already accept `@Nullable` input and return `null` for it, so these null checks repeat what the helper does.\n\n```suggestion\n    return HttpProtocolUtil.getProtocol(request.protocol());\n  }\n\n  @Nullable\n  @Override\n  public String getNetworkProtocolVersion(\n      PekkoHttpParsingErrorRequest request, @Nullable HttpResponse response) {\n    return HttpProtocolUtil.getVersion(request.protocol());\n```",
+      "created": "2026-11-24T00:47:50Z",
+      "hunk": "@@ -48,19 +51,154 @@ public List<String> getHttpResponseHeader(ErrorInfo request, HttpResponse respon\n \n   @Nullable\n   @Override\n-  public String getUrlScheme(ErrorInfo request) {\n+  public String getUrlScheme(PekkoHttpParsingErrorRequest request) {\n+    String target = withoutFragment(request.rawRequestTarget());\n+    if (target == null) {\n+      return null;\n+    }\n+    int schemeEnd = findSchemeEnd(target);\n+    if (schemeEnd < 0 || !target.startsWith(\"://\", schemeEnd)) {\n+      return null;\n+    }\n+    // The scheme also labels the request duration metric, so only report known values.\n+    if (schemeEnd == 4 && target.regionMatches(true, 0, \"http\", 0, 4)) {\n+      return \"http\";\n+    }\n+    if (schemeEnd == 5 && target.regionMatches(true, 0, \"https\", 0, 5)) {\n+      return \"https\";\n+    }\n     return null;\n   }\n \n   @Nullable\n   @Override\n-  public String getUrlPath(ErrorInfo request) {\n-    return null;\n+  public String getUrlPath(PekkoHttpParsingErrorRequest request) {\n+    String target = pathAndQuery(request);\n+    if (target == null) {\n+      return null;\n+    }\n+    int queryStart = target.indexOf('?');\n+    String path = queryStart >= 0 ? target.substring(0, queryStart) : target;\n+    // an absolute-form target may have a query but no path\n+    return path.isEmpty() ? null : path;\n   }\n \n   @Nullable\n   @Override\n-  public String getUrlQuery(ErrorInfo request) {\n-    return null;\n+  public String getUrlQuery(PekkoHttpParsingErrorRequest request) {\n+    String target = pathAndQuery(request);\n+    if (target == null) {\n+      return null;\n+    }\n+    int queryStart = target.indexOf('?');\n+    return queryStart >= 0 ? target.substring(queryStart + 1) : null;\n+  }\n+\n+  @Nullable\n+  @Override\n+  public String getNetworkProtocolName(\n+      PekkoHttpParsingErrorRequest request, @Nullable HttpResponse response) {\n+    String protocol = request.protocol();\n+    return protocol != null ? HttpProtocolUtil.getProtocol(protocol) : null;\n+  }\n+\n+  @Nullable\n+  @Override\n+  public String getNetworkProtocolVersion(\n+      PekkoHttpParsingErrorRequest request, @Nullable HttpResponse response) {\n+    String protocol = request.protocol();\n+    return protocol != null ? HttpProtocolUtil.getVersion(protocol) : null;",
+      "id": "PRRT_kwDODJKVX867I6-s",
+      "opened": "2026-11-24T00:47:49Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/server/PekkoHttpParsingErrorAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-11-24T09:01:05Z",
+          "body": "Applied in 211c7c7930: both getters now pass `request.protocol()` straight to `HttpProtocolUtil.getProtocol` / `getVersion`. No new tests, the existing assertions on `network.protocol.version` being present or absent still pass.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21306#discussion_r4677644244"
+        }
+      ],
+      "reviewed": "fff01edc3308bc2117e36633c6b3b176520a39a8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21306#discussion_r4674032730"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "otelbot"
+      },
+      "body": "[Simplification] There's no need to build HOCON text with escaped quotes and a `ConfigFactory.load()` fallback. You can set the handler with `ServerSettings(system).withParsingErrorHandler(...)` and bind through `newServerAt(...).withSettings(...)`. `customHandlerIsTraced` in `PekkoHttpServerParsingErrorTest` already does it this way. This test only runs on Pekko 2, so it doesn't need the `PekkoHttpTestBinding` indirection. After this change, the `com.typesafe.config.ConfigFactory` import is unused and can be removed. You may also need to import `org.apache.pekko.http.scaladsl.Http` if it isn't already imported.\n\n```suggestion\n    implicit val system: ActorSystem = ActorSystem(\"parsing-error-handler-test\")\n    try {\n      val handler: HttpRequest => HttpResponse = _ => HttpResponse()\n      val settings =\n        ServerSettings(system).withParsingErrorHandler(handlerClass.getName)\n      val binding =\n        Await.result(\n          Http()\n            .newServerAt(\"localhost\", 0)\n            .withSettings(settings)\n            .bindSync(handler),\n          10.seconds\n        )\n```",
+      "created": "2026-11-24T20:34:47Z",
+      "hunk": "@@ -0,0 +1,151 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.pekkohttp.v1_0\n+\n+import com.typesafe.config.ConfigFactory\n+import io.opentelemetry.api.trace.SpanKind\n+import io.opentelemetry.instrumentation.testing.junit.{\n+  AgentInstrumentationExtension,\n+  InstrumentationExtension\n+}\n+import io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions.equalTo\n+import io.opentelemetry.sdk.testing.assertj.{SpanDataAssert, TraceAssert}\n+import io.opentelemetry.semconv.{HttpAttributes, UrlAttributes}\n+import org.apache.pekko.actor.ActorSystem\n+import org.apache.pekko.event.LoggingAdapter\n+import org.apache.pekko.http.{IllegalRequestContext, ParsingErrorHandler}\n+import org.apache.pekko.http.javadsl.{model => jm}\n+import org.apache.pekko.http.scaladsl.model.{\n+  ErrorInfo,\n+  HttpRequest,\n+  HttpResponse,\n+  StatusCode,\n+  StatusCodes\n+}\n+import org.apache.pekko.http.scaladsl.settings.ServerSettings\n+import org.assertj.core.api.Assertions.assertThat\n+import org.junit.jupiter.api.{Test, TestInstance}\n+import org.junit.jupiter.api.extension.RegisterExtension\n+\n+import java.util.function.Consumer\n+import scala.concurrent.Await\n+import scala.concurrent.duration._\n+\n+import PekkoHttpServerParsingErrorTest.send\n+\n+/** Custom parsing error handlers on pekko-http 2.0, which answers a rejection\n+  * through the handler overload that carries the rejected request. Its default\n+  * delegates to the overload that pekko-http 1.x calls, and both are\n+  * instrumented, so a rejection must still get exactly one span whichever of\n+  * the two a handler overrides.\n+  */\n+@TestInstance(TestInstance.Lifecycle.PER_CLASS)\n+class PekkoHttpServerParsingErrorHandlerTest {\n+\n+  @RegisterExtension val testing: InstrumentationExtension =\n+    AgentInstrumentationExtension.create()\n+\n+  /** A handler that overrides only the overload carrying the request never\n+    * reaches the other overload, so this is traced only because that overload\n+    * is instrumented as well.\n+    */\n+  @Test def handlerOverridingRequestContextOverloadIsTraced(): Unit =\n+    assertRejectionTraced(classOf[RequestContextParsingErrorHandler])\n+\n+  /** A handler that delegates from the overload carrying the request to the\n+    * other one passes through both instrumented methods for one rejection.\n+    */\n+  @Test def handlerDelegatingBetweenOverloadsIsTracedOnce(): Unit =\n+    assertRejectionTraced(classOf[OverloadDelegatingParsingErrorHandler])\n+\n+  private def assertRejectionTraced(handlerClass: Class[_]): Unit = {\n+    implicit val system: ActorSystem = ActorSystem(\n+      \"parsing-error-handler-test\",\n+      ConfigFactory\n+        .parseString(\n+          \"pekko.http.server.parsing.error-handler = \\\"\" + handlerClass.getName + \"\\\"\"\n+        )\n+        .withFallback(ConfigFactory.load())\n+    )\n+    try {\n+      val handler: HttpRequest => HttpResponse = _ => HttpResponse()\n+      val binding =\n+        Await.result(\n+          PekkoHttpTestBinding.bindSync(handler, \"localhost\", 0),\n+          10.seconds\n+        )",
+      "id": "PRRT_kwDODJKVX867lENc",
+      "opened": "2026-11-24T20:34:47Z",
+      "path": "instrumentation/pekko/pekko-http-1.0/javaagent/src/pekko2OnlyTest/scala/io/opentelemetry/javaagent/instrumentation/pekkohttp/v1_0/PekkoHttpServerParsingErrorHandlerTest.scala",
+      "replies": [
+        {
+          "at": "2026-11-24T21:22:30Z",
+          "body": "Applied in 70644689fc: the test now sets the handler with `ServerSettings(system).withParsingErrorHandler(handlerClass.getName)` and binds through `Http().newServerAt(\"localhost\", 0).withSettings(settings).bindSync(handler)`, as `customHandlerIsTraced` does. The `ConfigFactory` import is removed. No new tests, the two existing ones pass on Scala 2.13, Scala 3 and with `span-suppression-strategy=none`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21306#discussion_r4686731183"
+        }
+      ],
+      "reviewed": "b1466ed3b261b09c7c07887dce0895788656ca6b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21306#discussion_r4686181353"
+    }
+  ]
+}

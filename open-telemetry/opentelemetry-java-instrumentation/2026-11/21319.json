@@ -1,0 +1,25 @@
+{
+  "head": "4ab1efa4adf7ed1baf7c6429b159012816146038",
+  "merge": "37a19e0d36638cf24a8fb55f9fc1fa0e6627b591",
+  "merged": "2026-11-17T15:55:11Z",
+  "missing_roots": 0,
+  "number": 21319,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Rename the inline attribute-assertion lambda parameter from `value` to `val`, as required by the “Attribute-assertion lambda parameters” convention in `.github/instructions/java-tests.instructions.md`.",
+      "created": "2026-11-17T03:01:39Z",
+      "hunk": "@@ -135,12 +151,98 @@ void setUp() throws ClientException {\n             .newProducerBuilder()\n             .setClientConfiguration(clientConfiguration)\n             .setTopics(NORMAL_TOPIC)\n+            .setMaxAttempts(3)\n             .build();\n     cleanup.deferAfterAll(producer);\n   }\n \n   @Test\n   void testSendAndConsumeNormalMessage() throws ClientException {\n+    sendAndConsumeNormalMessage(producer);\n+  }\n+\n+  @Test\n+  void testSendRetriesAndConsumesMessage() throws ClientException {\n+    AtomicInteger attempts = new AtomicInteger();\n+\n+    sendAndConsumeNormalMessage(producerWithSendFailures(2, attempts));\n+\n+    assertThat(attempts).hasValue(3);\n+  }\n+\n+  @Test\n+  void testSendRetriesExhausted() {\n+    AtomicInteger attempts = new AtomicInteger();\n+    Producer sender = producerWithSendFailures(3, attempts);\n+    Message message =\n+        provider\n+            .newMessageBuilder()\n+            .setTopic(NORMAL_TOPIC)\n+            .setTag(TAG)\n+            .setKeys(\"retry-key\")\n+            .setBody(\"message\".getBytes(UTF_8))\n+            .build();\n+\n+    testing()\n+        .runWithSpan(\n+            \"parent\",\n+            () ->\n+                assertThatThrownBy(() -> sender.send(message))\n+                    .isInstanceOf(InternalErrorException.class));\n+\n+    assertThat(attempts).hasValue(3);\n+\n+    testing()\n+        .waitAndAssertTraces(\n+            trace ->\n+                trace.hasSpansSatisfyingExactly(\n+                    span -> span.hasName(\"parent\").hasKind(SpanKind.INTERNAL).hasNoParent(),\n+                    span ->\n+                        span.hasName(\"send \" + NORMAL_TOPIC)\n+                            .hasKind(SpanKind.PRODUCER)\n+                            .hasParent(trace.getSpan(0))\n+                            .hasStatus(StatusData.error())\n+                            .hasAttributesSatisfyingExactly(\n+                                equalTo(MESSAGING_DESTINATION_NAME, NORMAL_TOPIC),\n+                                equalTo(MESSAGING_OPERATION_NAME, \"send\"),\n+                                equalTo(MESSAGING_OPERATION_TYPE, \"send\"),\n+                                satisfies(MESSAGING_MESSAGE_ID, value -> value.isNotEmpty()),",
+      "id": "PRRT_kwDODJKVX864QAFB",
+      "opened": "2026-11-17T03:01:40Z",
+      "path": "instrumentation/rocketmq/rocketmq-client-5.0/javaagent/src/test/java/io/opentelemetry/instrumentation/rocketmqclient/v5_0/AbstractRocketMqClientTest.java",
+      "replies": [],
+      "reviewed": "f2acc3433dc18b64a60a21bcdd09bf16408035e0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21319#discussion_r4594736452"
+    }
+  ]
+}

@@ -1,0 +1,222 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "f4df7e376bd6d9159221364afd6da98411f9e92d74b6b535d4d2b79a6c34f7e6",
+  "input_digest": "db4afff2d7284681e8aa3819c7811d34e637c4a5cdc9a24e84a8d92c6467d0e4",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/510216030b5333c96a34f5d0bbb5d04f3c615397/instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6ab08db4ee9fba39da686cb66316bcc120ba219e/instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6ab08db4ee9fba39da686cb66316bcc120ba219e/instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonErrorCapture.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/36a4c0b4691679edffb2e398d0f3c0d59ce724d4"
+      ],
+      "id": "PRRT_kwDODJKVX86ujTB1",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d88c5979d57b004f41e25d4e56ba9dfd6ec4ef3e/instrumentation/redisson/redisson-3.17/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6ab08db4ee9fba39da686cb66316bcc120ba219e/instrumentation/redisson/redisson-3.17/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/8ea80793ae18a59e319e246f25870b71e5d330ed"
+      ],
+      "id": "PRRT_kwDODJKVX86ul666",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8ea80793ae18a59e319e246f25870b71e5d330ed/instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonErrorCapture.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6ab08db4ee9fba39da686cb66316bcc120ba219e/instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonErrorCapture.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/748681d46d1a05782cdd2ee41ef1b0f4c0aafd25"
+      ],
+      "id": "PRRT_kwDODJKVX86unb-Y",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/b03040e4f6afbc2bfa52ed0be019156ed5d7e2d9/instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonErrorCapture.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6ab08db4ee9fba39da686cb66316bcc120ba219e/instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonErrorCapture.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6ab08db4ee9fba39da686cb66316bcc120ba219e/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/internal/RedisErrorPrefix.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/775a3873b1bbde5b7fc549c41ed420697bebb888"
+      ],
+      "id": "PRRT_kwDODJKVX86u2Mob",
+      "kind": "improvement",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/775a3873b1bbde5b7fc549c41ed420697bebb888/instrumentation/redisson/redisson-3.0/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonDbAttributesGetterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6ab08db4ee9fba39da686cb66316bcc120ba219e/instrumentation/redisson/redisson-3.0/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonDbAttributesGetterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/67ca1b0a1a9dd519c50c3a0aab0a8b3a5183e93e"
+      ],
+      "id": "PRRT_kwDODJKVX86u3lWf",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67ca1b0a1a9dd519c50c3a0aab0a8b3a5183e93e/instrumentation/redisson/redisson-3.17/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/v3_17/RedisCommandDataInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6ab08db4ee9fba39da686cb66316bcc120ba219e/instrumentation/redisson/redisson-3.17/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/v3_17/RedisCommandDataInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/67ca1b0a1a9dd519c50c3a0aab0a8b3a5183e93e/instrumentation/redisson/redisson-common-3.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/AbstractRedissonClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6ab08db4ee9fba39da686cb66316bcc120ba219e/instrumentation/redisson/redisson-common-3.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/AbstractRedissonClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/c4e9ffa21eea0c59bfda8e44df0271d8bf5fc401"
+      ],
+      "id": "PRRT_kwDODJKVX86u5SCv",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86u5uIq",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86u5SCv",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e6c95e680147f64ca3a08a93eb12deb9f856e612/instrumentation/redisson/redisson-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/v3_0/RedisCommandDecoderInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e6c95e680147f64ca3a08a93eb12deb9f856e612/instrumentation/redisson/redisson-3.17/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/v3_17/RedisCommandDecoderInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6ab08db4ee9fba39da686cb66316bcc120ba219e/instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedisCommandDecoderInstrumentation.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e6c95e680147f64ca3a08a93eb12deb9f856e612/instrumentation/redisson/redisson-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/v3_0/RedissonInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6ab08db4ee9fba39da686cb66316bcc120ba219e/instrumentation/redisson/redisson-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/v3_0/RedissonInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e6c95e680147f64ca3a08a93eb12deb9f856e612/instrumentation/redisson/redisson-3.17/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/v3_17/RedissonInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6ab08db4ee9fba39da686cb66316bcc120ba219e/instrumentation/redisson/redisson-3.17/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/v3_17/RedissonInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e6c95e680147f64ca3a08a93eb12deb9f856e612/instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonErrorCapture.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6ab08db4ee9fba39da686cb66316bcc120ba219e/instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonErrorCapture.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e6c95e680147f64ca3a08a93eb12deb9f856e612/instrumentation/redisson/redisson-common-3.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/AbstractRedissonClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6ab08db4ee9fba39da686cb66316bcc120ba219e/instrumentation/redisson/redisson-common-3.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/AbstractRedissonClientTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86vWipT",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f581f150631967b43a15ec110f0ad40a1dee1434/instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonErrorCapture.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6ab08db4ee9fba39da686cb66316bcc120ba219e/instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonErrorCapture.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/baf04368644aeac8d0cd558b6f30605dfc38509c"
+      ],
+      "id": "PRRT_kwDODJKVX86vX6dd",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86vYC9c",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86vX6dd",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/baf04368644aeac8d0cd558b6f30605dfc38509c/instrumentation/redisson/redisson-common-3.0/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonDbAttributesGetterTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/baf04368644aeac8d0cd558b6f30605dfc38509c/instrumentation/redisson/redisson-common-3.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/AbstractRedissonClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6ab08db4ee9fba39da686cb66316bcc120ba219e/instrumentation/redisson/redisson-common-3.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/AbstractRedissonClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/7955b9238c9d679bb0b09b5849fe21b187a66e71"
+      ],
+      "id": "PRRT_kwDODJKVX86vYZeI",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7955b9238c9d679bb0b09b5849fe21b187a66e71/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/internal/RedisErrorPrefixTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6ab08db4ee9fba39da686cb66316bcc120ba219e/instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/internal/RedisErrorPrefixTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/110a764404c7baa243e0a1086717eda7903651ca"
+      ],
+      "id": "PRRT_kwDODJKVX86vb8Q5",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/110a764404c7baa243e0a1086717eda7903651ca/instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonErrorCapture.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6ab08db4ee9fba39da686cb66316bcc120ba219e/instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonErrorCapture.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/281ede5153ee15f74ebd34f20e0e31690b5063e0"
+      ],
+      "id": "PRRT_kwDODJKVX86vcqnS",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/281ede5153ee15f74ebd34f20e0e31690b5063e0/instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonErrorCapture.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6ab08db4ee9fba39da686cb66316bcc120ba219e/instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonErrorCapture.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/e1db51def9d0f730a8d353df1d1ad9030f58069e"
+      ],
+      "id": "PRRT_kwDODJKVX86vdCTV",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e1db51def9d0f730a8d353df1d1ad9030f58069e/instrumentation/redisson/redisson-common-3.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6ab08db4ee9fba39da686cb66316bcc120ba219e/instrumentation/redisson/redisson-common-3.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/75b55b6f551e99ffb247f5aa8f0de232a4d268fc"
+      ],
+      "id": "PRRT_kwDODJKVX86vdbg6",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/75b55b6f551e99ffb247f5aa8f0de232a4d268fc/instrumentation/redisson/redisson-common-3.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/AbstractRedissonClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/75b55b6f551e99ffb247f5aa8f0de232a4d268fc/instrumentation/redisson/redisson-common-3.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/AbstractRedissonAsyncClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6ab08db4ee9fba39da686cb66316bcc120ba219e/instrumentation/redisson/redisson-common-3.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/AbstractRedissonClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6ab08db4ee9fba39da686cb66316bcc120ba219e/instrumentation/redisson/redisson-common-3.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/AbstractRedissonAsyncClientTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/7670cc9ce2d36f1e37d01717f11eec76ed4914b2"
+      ],
+      "id": "PRRT_kwDODJKVX86vd7YE",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86veIV7",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX86vd7YE",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/89d22f5ea980e6e86791a2a09fd17596968cc59e/instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6ab08db4ee9fba39da686cb66316bcc120ba219e/instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonDbAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/410de677c9ff31e53430523d17c1403de067b7e4"
+      ],
+      "id": "PRRT_kwDODJKVX86wHwiS",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

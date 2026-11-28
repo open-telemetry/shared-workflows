@@ -1,0 +1,48 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "01655932e4d8ce06a539b3d3338e1342f73cf1dbb16266d4007e560b96e324a8",
+  "input_digest": "3f702493ed688975affd5f177210b401207b2c55507ea0f2fd91f1899765a283",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/acd36f97b70fdb314cdaa4a094846212f1695ef4/instrumentation/spymemcached-2.12/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/acd36f97b70fdb314cdaa4a094846212f1695ef4/instrumentation/spymemcached-2.12/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6e5036132589d9872ee0041b292b056924cd09ae/instrumentation/spymemcached-2.12/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6e5036132589d9872ee0041b292b056924cd09ae/instrumentation/spymemcached-2.12/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/6e5036132589d9872ee0041b292b056924cd09ae",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f0a11f1a77deaf4c6cc94387bbfa9635cb5cd559"
+      ],
+      "id": "PRRT_kwDODJKVX86txvHn",
+      "kind": "improvement",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/f0a11f1a77deaf4c6cc94387bbfa9635cb5cd559/instrumentation/spymemcached-2.12/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6e5036132589d9872ee0041b292b056924cd09ae/instrumentation/spymemcached-2.12/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/c9e891038148827430af961f945a35ddc9f68fdd"
+      ],
+      "id": "PRRT_kwDODJKVX86uGE1b",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c9e891038148827430af961f945a35ddc9f68fdd/instrumentation/spymemcached-2.12/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/6e5036132589d9872ee0041b292b056924cd09ae/instrumentation/spymemcached-2.12/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/f4cb51cb85fb7b63af6aa1d07f12d109a131cae8"
+      ],
+      "id": "PRRT_kwDODJKVX86uHUiM",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

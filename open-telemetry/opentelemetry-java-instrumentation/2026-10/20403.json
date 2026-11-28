@@ -1,0 +1,115 @@
+{
+  "head": "af16aa66574959e9991cd0fc61aa228116f5e6bc",
+  "merge": "21808559178978df3e4942c5ea7445e37dd02155",
+  "merged": "2026-10-06T19:35:16Z",
+  "missing_roots": 0,
+  "number": 20403,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] The new flag list omits messaging even though it remains selectable through `otel.semconv-stability.preview`. Include it so messaging tests retain the documented mode-coverage path.\n\nThis issue also appears on line 349 of the same file.",
+      "created": "2026-10-06T03:48:22Z",
+      "hunk": "@@ -331,7 +331,8 @@ expected:\n \n - Experimental attributes (`-Dotel.instrumentation.<module>.experimental-*=true`) — see\n   [testing-experimental-flags.md](testing-experimental-flags.md).\n-- Semconv stability (`-Dotel.semconv-stability.opt-in=...`) — see\n+- Semconv selection (`-Dotel.semconv-stability.opt-in=code` for stable code conventions,\n+  `-Dotel.semconv-stability.preview=rpc,service.peer` for preview conventions), see",
+      "id": "PRRT_kwDODJKVX86pT9DH",
+      "opened": "2026-10-06T03:48:23Z",
+      "path": ".github/agents/knowledge/testing-general-patterns.md",
+      "replies": [],
+      "reviewed": "72b48263dc75b0938f7f1dc55458321dba6c9886",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20403#discussion_r4191343912"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This rewritten overview omits messaging even though `SemconvSelectionResolver.messaging()` also uses `otel.semconv-stability.preview`. Include messaging here so contributors know its assertions still require preview-mode coverage.\n\nThis issue also appears on line 30 of the same file.",
+      "created": "2026-10-06T03:48:22Z",
+      "hunk": "@@ -1,77 +1,90 @@\n # [Semconv] Dual Semconv Testing\n \n-Use this article when changing semconv opt-in tests or their Gradle tasks.\n+Use this article when changing semconv selection tests or their Gradle tasks.\n It shows which modes each domain requires and how to express their\n expected attributes without hiding mode differences.\n \n-## Background: The Three Modes\n+## Selectable domains\n \n-The system property `otel.semconv-stability.opt-in` (or env `OTEL_SEMCONV_STABILITY_OPT_IN`)\n-controls which attributes are emitted at runtime. Tests must run in all applicable modes.\n+Use `otel.semconv-stability.opt-in` or `OTEL_SEMCONV_STABILITY_OPT_IN` for stable code\n+conventions. Use `otel.semconv-stability.preview` or `OTEL_SEMCONV_STABILITY_PREVIEW`\n+for RPC and service-peer preview conventions. Tests must run in all applicable modes.",
+      "id": "PRRT_kwDODJKVX86pT9DW",
+      "opened": "2026-10-06T03:48:23Z",
+      "path": ".github/agents/knowledge/testing-semconv-stability.md",
+      "replies": [],
+      "reviewed": "72b48263dc75b0938f7f1dc55458321dba6c9886",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20403#discussion_r4191343940"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] `/dup` coverage is also required for selectable messaging conventions; existing messaging modules wire `preview=messaging/dup` (for example, `instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/build.gradle.kts:44-48`). Limiting this requirement to RPC would incorrectly direct contributors to drop that coverage.",
+      "created": "2026-10-06T03:48:23Z",
+      "hunk": "@@ -1,77 +1,90 @@\n # [Semconv] Dual Semconv Testing\n \n-Use this article when changing semconv opt-in tests or their Gradle tasks.\n+Use this article when changing semconv selection tests or their Gradle tasks.\n It shows which modes each domain requires and how to express their\n expected attributes without hiding mode differences.\n \n-## Background: The Three Modes\n+## Selectable domains\n \n-The system property `otel.semconv-stability.opt-in` (or env `OTEL_SEMCONV_STABILITY_OPT_IN`)\n-controls which attributes are emitted at runtime. Tests must run in all applicable modes.\n+Use `otel.semconv-stability.opt-in` or `OTEL_SEMCONV_STABILITY_OPT_IN` for stable code\n+conventions. Use `otel.semconv-stability.preview` or `OTEL_SEMCONV_STABILITY_PREVIEW`\n+for RPC and service-peer preview conventions. Tests must run in all applicable modes.\n \n-| Property value | Old attrs emitted | Stable attrs emitted | Purpose                                           |\n-| -------------- | :---------------: | :------------------: | ------------------------------------------------- |\n-| _(unset)_      |        ✅         |          ❌          | Default / legacy mode — what most users run today |\n-| `database`     |        ❌         |          ✅          | Stable-only — users who have opted in             |\n-| `database/dup` |        ✅         |          ✅          | Both — migration period support                   |\n+RPC preview selection:\n \n-Multiple domains can be comma-separated: `database,code,service.peer`.\n+| `otel.semconv-stability.preview` value | Old attrs emitted | Preview attrs emitted | Purpose                     |\n+| -------------------------------------- | :---------------: | :-------------------: | --------------------------- |\n+| _(unset)_                              |        ✅         |          ❌           | Default / legacy mode       |\n+| `rpc`                                  |        ❌         |          ✅           | Preview-only                |\n+| `rpc/dup`                              |        ✅         |          ✅           | Legacy and preview together |\n+\n+Multiple preview domains can be comma-separated: `otel.semconv-stability.preview=rpc,service.peer`.\n+Select code conventions separately with `otel.semconv-stability.opt-in=code`.\n+\n+Legacy `opt-in` values for RPC and service-peer, including `/dup`, remain accepted and combine with\n+preview values outside v3-preview. V3-preview ignores those legacy tokens for preview domains.\n+Preserve tests that explicitly cover this compatibility behavior.\n \n Available domains and their `SemconvStability` methods:\n \n-| Domain       | `opt-in` value                      | Methods                                                         |\n-| ------------ | ----------------------------------- | --------------------------------------------------------------- |\n-| Database     | `database` / `database/dup`         | `emitOldDatabaseSemconv()`, `emitStableDatabaseSemconv()`       |\n-| Code         | `code` / `code/dup`                 | `emitOldCodeSemconv()`, `emitStableCodeSemconv()`               |\n-| RPC          | `rpc` / `rpc/dup`                   | `emitOldRpcSemconv()`, `emitStableRpcSemconv()`                 |\n-| Service peer | `service.peer` / `service.peer/dup` | `emitOldServicePeerSemconv()`, `emitStableServicePeerSemconv()` |\n+| Domain       | Property                         | Values                              | Methods                                                         |\n+| ------------ | -------------------------------- | ----------------------------------- | --------------------------------------------------------------- |\n+| Code         | `otel.semconv-stability.opt-in`  | `code` / `code/dup`                 | `emitOldCodeSemconv()`, `emitStableCodeSemconv()`               |\n+| RPC          | `otel.semconv-stability.preview` | `rpc` / `rpc/dup`                   | `emitOldRpcSemconv()`, `emitStableRpcSemconv()`                 |\n+| Service peer | `otel.semconv-stability.preview` | `service.peer` / `service.peer/dup` | `emitOldServicePeerSemconv()`, `emitStableServicePeerSemconv()` |\n \n All methods are in `io.opentelemetry.instrumentation.api.internal.SemconvStability`.\n+The RPC and service-peer `emitStable*()` names select preview conventions; the method names do not\n+indicate convention stability. Code conventions are stable by default under v3-preview.\n \n ## Gradle Test Task Setup\n \n-Every Gradle project whose tests exercise semconv attributes **must** define its own\n+Every Gradle project whose tests exercise selectable semconv modes **must** define its own\n `testStableSemconv` task. This includes `javaagent-unit-tests` projects whose tests branch on an\n-`emitOld*()` or `emitStable*()` accessor.\n+`emitOld*()` or `emitStable*()` accessor. The conventional task name covers stable code selection\n+and RPC or service-peer preview selection.\n \n A `testBothSemconv` task (testing the `/dup` mode) is **only required for the RPC domain**.\n-Database, code, and service-peer domains do not need a `testBothSemconv` task — only\n+Code and service-peer domains do not need a `testBothSemconv` task — only\n `testStableSemconv` (and the default `test` task for the legacy/unset mode).",
+      "id": "PRRT_kwDODJKVX86pT9Dh",
+      "opened": "2026-10-06T03:48:23Z",
+      "path": ".github/agents/knowledge/testing-semconv-stability.md",
+      "replies": [],
+      "reviewed": "72b48263dc75b0938f7f1dc55458321dba6c9886",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20403#discussion_r4191343957"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] This rule incorrectly limits preview and `/dup` coverage to RPC/service-peer. Messaging also uses `otel.semconv-stability.preview`, and existing modules wire `preview=messaging/dup` (for example, `instrumentation/kafka/kafka-clients/kafka-clients-2.6/library/build.gradle.kts:37-48`). Omitting it would direct reviewers to skip required messaging dual-mode tasks.",
+      "created": "2026-10-06T03:48:23Z",
+      "hunk": "@@ -60,8 +60,11 @@ or test failure that CI will report.\n   the default test task and run the flag-on assertions through a wired `testExperimental` task\n   or an existing equivalent variant. Do not request a task for flags unrelated to the tests or\n   another task when the default test and an existing wired variant already cover both modes.\n-  Semconv opt-in assertions need a stable-mode task for the relevant domain; `/dup` coverage\n-  is required for RPC, not database, code, or service-peer. For default enablement under\n+  Semconv selection assertions need a task for the relevant stable or preview mode. Use\n+  `otel.semconv-stability.opt-in` for code and `otel.semconv-stability.preview` for RPC and\n+  service-peer; preserve explicit legacy opt-in compatibility tests. `/dup` coverage is required\n+  for RPC, not code or service-peer. Keep mixed variants that exercise\n+  selectable domains. For default enablement under",
+      "id": "PRRT_kwDODJKVX86pT9Dy",
+      "opened": "2026-10-06T03:48:23Z",
+      "path": ".github/instructions/instrumentation-gradle.instructions.md",
+      "replies": [],
+      "reviewed": "72b48263dc75b0938f7f1dc55458321dba6c9886",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20403#discussion_r4191343976"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "wondering whether it would make sense to use something like `foo` instead of `rpc` so this wouldn't need to be changed later",
+      "created": "2026-10-06T13:02:58Z",
+      "hunk": "@@ -312,8 +312,8 @@ val stableSemconvSuites = testing.suites.withType(JvmTestSuite::class)\n       testClassesDirs = suite.sources.output.classesDirs\n       classpath = suite.sources.runtimeClasspath\n \n-      jvmArgs(\"-Dotel.semconv-stability.opt-in=database\")\n-      systemProperty(\"metadataConfig\", \"otel.semconv-stability.opt-in=database\")\n+      jvmArgs(\"-Dotel.semconv-stability.preview=rpc\")",
+      "id": "PRRT_kwDODJKVX86peYBt",
+      "opened": "2026-10-06T13:02:58Z",
+      "path": ".github/agents/knowledge/gradle-conventions.md",
+      "replies": [],
+      "reviewed": "72b48263dc75b0938f7f1dc55458321dba6c9886",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20403#discussion_r4195585416"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "isn't the code opt-in also removed?",
+      "created": "2026-10-06T13:06:02Z",
+      "hunk": "@@ -1,77 +1,90 @@\n # [Semconv] Dual Semconv Testing\n \n-Use this article when changing semconv opt-in tests or their Gradle tasks.\n+Use this article when changing semconv selection tests or their Gradle tasks.\n It shows which modes each domain requires and how to express their\n expected attributes without hiding mode differences.\n \n-## Background: The Three Modes\n+## Selectable domains\n \n-The system property `otel.semconv-stability.opt-in` (or env `OTEL_SEMCONV_STABILITY_OPT_IN`)\n-controls which attributes are emitted at runtime. Tests must run in all applicable modes.\n+Use `otel.semconv-stability.opt-in` or `OTEL_SEMCONV_STABILITY_OPT_IN` for stable code\n+conventions. Use `otel.semconv-stability.preview` or `OTEL_SEMCONV_STABILITY_PREVIEW`\n+for RPC and service-peer preview conventions. Tests must run in all applicable modes.\n \n-| Property value | Old attrs emitted | Stable attrs emitted | Purpose                                           |\n-| -------------- | :---------------: | :------------------: | ------------------------------------------------- |\n-| _(unset)_      |        ✅         |          ❌          | Default / legacy mode — what most users run today |\n-| `database`     |        ❌         |          ✅          | Stable-only — users who have opted in             |\n-| `database/dup` |        ✅         |          ✅          | Both — migration period support                   |\n+RPC preview selection:\n \n-Multiple domains can be comma-separated: `database,code,service.peer`.\n+| `otel.semconv-stability.preview` value | Old attrs emitted | Preview attrs emitted | Purpose                     |\n+| -------------------------------------- | :---------------: | :-------------------: | --------------------------- |\n+| _(unset)_                              |        ✅         |          ❌           | Default / legacy mode       |\n+| `rpc`                                  |        ❌         |          ✅           | Preview-only                |\n+| `rpc/dup`                              |        ✅         |          ✅           | Legacy and preview together |\n+\n+Multiple preview domains can be comma-separated: `otel.semconv-stability.preview=rpc,service.peer`.\n+Select code conventions separately with `otel.semconv-stability.opt-in=code`.\n+\n+Legacy `opt-in` values for RPC and service-peer, including `/dup`, remain accepted and combine with\n+preview values outside v3-preview. V3-preview ignores those legacy tokens for preview domains.\n+Preserve tests that explicitly cover this compatibility behavior.\n \n Available domains and their `SemconvStability` methods:\n \n-| Domain       | `opt-in` value                      | Methods                                                         |\n-| ------------ | ----------------------------------- | --------------------------------------------------------------- |\n-| Database     | `database` / `database/dup`         | `emitOldDatabaseSemconv()`, `emitStableDatabaseSemconv()`       |\n-| Code         | `code` / `code/dup`                 | `emitOldCodeSemconv()`, `emitStableCodeSemconv()`               |\n-| RPC          | `rpc` / `rpc/dup`                   | `emitOldRpcSemconv()`, `emitStableRpcSemconv()`                 |\n-| Service peer | `service.peer` / `service.peer/dup` | `emitOldServicePeerSemconv()`, `emitStableServicePeerSemconv()` |\n+| Domain       | Property                         | Values                              | Methods                                                         |\n+| ------------ | -------------------------------- | ----------------------------------- | --------------------------------------------------------------- |\n+| Code         | `otel.semconv-stability.opt-in`  | `code` / `code/dup`                 | `emitOldCodeSemconv()`, `emitStableCodeSemconv()`               |\n+| RPC          | `otel.semconv-stability.preview` | `rpc` / `rpc/dup`                   | `emitOldRpcSemconv()`, `emitStableRpcSemconv()`                 |\n+| Service peer | `otel.semconv-stability.preview` | `service.peer` / `service.peer/dup` | `emitOldServicePeerSemconv()`, `emitStableServicePeerSemconv()` |\n \n All methods are in `io.opentelemetry.instrumentation.api.internal.SemconvStability`.\n+The RPC and service-peer `emitStable*()` names select preview conventions; the method names do not\n+indicate convention stability. Code conventions are stable by default under v3-preview.\n \n ## Gradle Test Task Setup\n \n-Every Gradle project whose tests exercise semconv attributes **must** define its own\n+Every Gradle project whose tests exercise selectable semconv modes **must** define its own\n `testStableSemconv` task. This includes `javaagent-unit-tests` projects whose tests branch on an\n-`emitOld*()` or `emitStable*()` accessor.\n+`emitOld*()` or `emitStable*()` accessor. The conventional task name covers stable code selection\n+and RPC or service-peer preview selection.\n \n A `testBothSemconv` task (testing the `/dup` mode) is **only required for the RPC domain**.\n-Database, code, and service-peer domains do not need a `testBothSemconv` task — only\n+Code and service-peer domains do not need a `testBothSemconv` task — only\n `testStableSemconv` (and the default `test` task for the legacy/unset mode).\n \n+Preserve mixed variants that exercise selectable domains and variants for experimental telemetry,\n+disabled adapters, connection telemetry, exception signals, and dependency versions.\n+\n See [gradle-conventions.md](gradle-conventions.md) for `testClassesDirs`, `classpath`,\n `collectMetadata`, `metadataConfig`, and `check` wiring requirements. In a module that also\n-registers custom `JvmTestSuite`s, add opt-in tasks only for suites whose tests exercise the\n+registers custom `JvmTestSuite`s, add selection tasks only for suites whose tests exercise the\n affected semconv attributes. Use `testing.suites.withType(JvmTestSuite::class)` when every suite\n is relevant and shares the same configuration. Otherwise keep the task bound to\n `sourceSets.test`, or select the relevant suites explicitly when the added coverage justifies\n the extra build-script complexity.\n \n-Database domain example (stable-only task):\n+Code domain example (stable-only task):",
+      "id": "PRRT_kwDODJKVX86pedBi",
+      "opened": "2026-10-06T13:06:02Z",
+      "path": ".github/agents/knowledge/testing-semconv-stability.md",
+      "replies": [],
+      "reviewed": "72b48263dc75b0938f7f1dc55458321dba6c9886",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20403#discussion_r4195617356"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n```",
+      "created": "2026-10-06T17:32:58Z",
+      "hunk": "@@ -56,6 +56,9 @@\n - Remove the deprecated `OpenTelemetryMeterRegistryBuilder#setMicrometerHistogramGaugesEnabled(boolean)`.\n   Use `Experimental#setMicrometerHistogramGaugesEnabled(OpenTelemetryMeterRegistryBuilder, boolean)`\n   instead.\n+- Remove `io.opentelemetry.instrumentation.testing.junit.db.SemconvStabilityUtil` from\n+  `io.opentelemetry.javaagent:opentelemetry-testing-common`. Database instrumentation tests should\n+  assert stable semantic-convention keys and values directly.",
+      "id": "PRRT_kwDODJKVX86plc7_",
+      "opened": "2026-10-06T17:32:58Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "52132ff2eef07ddb429d2a923132a1dbcf5200ff",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20403#discussion_r4198492803"
+    }
+  ]
+}

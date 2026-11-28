@@ -1,0 +1,46 @@
+{
+  "head": "f45fda0bb093e841046f71a3985c5885bac1659a",
+  "merge": "b4e87ccf0e8b40917a3cbbabcf03db1ec3fbd537",
+  "merged": "2026-11-25T08:56:02Z",
+  "missing_roots": 0,
+  "number": 21439,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n  val playVersion = \"3.1.0-M9\"\n```",
+      "created": "2026-11-24T07:25:03Z",
+      "hunk": "@@ -17,7 +17,7 @@ play {\n }\n \n dependencies {\n-  val playVersion = \"3.1.0-M9\"\n+  val playVersion = \"3.1.0-M10-70074814-SNAPSHOT\"",
+      "id": "PRRT_kwDODJKVX867POXu",
+      "opened": "2026-11-24T07:25:03Z",
+      "path": "smoke-tests/images/play/build.gradle.kts",
+      "replies": [],
+      "reviewed": "810e14a05c9b991b22e2b10d9d66a461739d16cc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21439#discussion_r4676761171"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This suite defaults to Spring Boot 4.0.0 (`settings.gradle.kts:67`), whose BOM selects Spring Framework 7.0. Updating the explicit `spring-test` dependency to 7.1.0 removes coverage of that baseline and mixes Framework release lines. Keep the baseline dependency on 7.0.x and exercise 7.1 through the existing latest-dependency/catalog override with a matching Boot version.",
+      "created": "2026-11-24T16:55:34Z",
+      "hunk": "@@ -25,7 +25,7 @@ dependencies {\n \n   testImplementation(project(\":smoke-tests-otel-starter:spring-boot-common\"))\n \n-  testImplementation(\"org.springframework:spring-test:7.0.10\")\n+  testImplementation(\"org.springframework:spring-test:7.1.0\")",
+      "id": "PRRT_kwDODJKVX867e9Xn",
+      "opened": "2026-11-24T16:55:35Z",
+      "path": "smoke-tests-otel-starter/spring-boot-4/build.gradle.kts",
+      "replies": [
+        {
+          "at": "2026-11-24T19:02:52Z",
+          "body": "Removed the explicit `spring-test` version in 51e4d70f5b. The Spring Boot BOM now supplies it in both modes: the Boot 4.0 baseline uses Framework 7.0, and the latest-dependency run uses Boot 4.2 with Framework 7.1.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21439#discussion_r4685076696"
+        }
+      ],
+      "reviewed": "819c625d9104d6d55f3686be9a87a9faa9fe089b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21439#discussion_r4683516570"
+    }
+  ]
+}

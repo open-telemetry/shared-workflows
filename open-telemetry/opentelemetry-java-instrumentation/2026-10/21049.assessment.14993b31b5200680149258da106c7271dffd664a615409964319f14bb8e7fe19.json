@@ -1,0 +1,69 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "008dbafae1dc3bfa43b09d5f426f661ec63209ca424738ec7e1098dc7b2ef430",
+  "input_digest": "14993b31b5200680149258da106c7271dffd664a615409964319f14bb8e7fe19",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/7dba71c3d8666336dadfdd0e745cd49b1310ca25/instrumentation/restlet/restlet-2.0/library/src/test/java/io/opentelemetry/instrumentation/restlet/v2_0/internal/MessageAttributesAccessorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/56b8f42e7e4ed0ccffb471e84a0e752265c66b71/instrumentation/restlet/restlet-2.0/library/src/test/java/io/opentelemetry/instrumentation/restlet/v2_0/internal/MessageAttributesAccessorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/56b8f42e7e4ed0ccffb471e84a0e752265c66b71",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/5763d55df391a5a70bf638d2d08795480d853d28"
+      ],
+      "id": "PRRT_kwDODJKVX86xRpP9",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5763d55df391a5a70bf638d2d08795480d853d28/instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/56b8f42e7e4ed0ccffb471e84a0e752265c66b71/instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5763d55df391a5a70bf638d2d08795480d853d28/instrumentation/restlet/restlet-2.0/library/src/main/java/io/opentelemetry/instrumentation/restlet/v2_0/internal/MessageAttributesAccessor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/56b8f42e7e4ed0ccffb471e84a0e752265c66b71/instrumentation/restlet/restlet-2.0/library/src/main/java/io/opentelemetry/instrumentation/restlet/v2_0/internal/MessageAttributesAccessor.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5763d55df391a5a70bf638d2d08795480d853d28/instrumentation/restlet/restlet-2.0/library/src/main/java/io/opentelemetry/instrumentation/restlet/v2_0/internal/RestletHeadersGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/56b8f42e7e4ed0ccffb471e84a0e752265c66b71/instrumentation/restlet/restlet-2.0/library/src/main/java/io/opentelemetry/instrumentation/restlet/v2_0/internal/RestletHeadersGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5763d55df391a5a70bf638d2d08795480d853d28/instrumentation/spring/spring-web/spring-web-3.1/library/src/main/java/io/opentelemetry/instrumentation/spring/web/v3_1/SpringWebHttpAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/56b8f42e7e4ed0ccffb471e84a0e752265c66b71/instrumentation/spring/spring-web/spring-web-3.1/library/src/main/java/io/opentelemetry/instrumentation/spring/web/v3_1/SpringWebHttpAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/c6d26f03de0f5c10a05939990784024314eae803"
+      ],
+      "id": "PRRT_kwDODJKVX86xUaZO",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c6d26f03de0f5c10a05939990784024314eae803/instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/56b8f42e7e4ed0ccffb471e84a0e752265c66b71/instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/5d0926d30ebd15cca94b504116c659ab71b9eb67"
+      ],
+      "id": "PRRT_kwDODJKVX86xU6Ri",
+      "kind": "improvement",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5d0926d30ebd15cca94b504116c659ab71b9eb67/instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/56b8f42e7e4ed0ccffb471e84a0e752265c66b71/instrumentation/redisson/redisson-common-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/redisson/common/v3_0/RedissonRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/1b9c7af95a55e4adc486780780b1da690386865c"
+      ],
+      "id": "PRRT_kwDODJKVX86xVNTH",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX86x-4rl",
+      "kind": null,
+      "status": "other"
+    }
+  ]
+}

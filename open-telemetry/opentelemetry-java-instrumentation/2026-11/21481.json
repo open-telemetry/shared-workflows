@@ -1,0 +1,52 @@
+{
+  "head": "22f5e74b251fbac78dab272645fdf53542c9fa7a",
+  "merge": "9f61283abbb6191941c056c698766c3c610c84fc",
+  "merged": "2026-11-26T10:06:36Z",
+  "missing_roots": 0,
+  "number": 21481,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This partial assertion accepts unexpected span attributes and leaves the configured max tokens, temperature, top-p, and stop sequences unchecked, weakening the overload-parity regression. Use `hasAttributesSatisfyingExactly(...)` with the complete expected set, including those request parameters and the shared `rpc.system`, `rpc.service`, and `rpc.method` attributes. This follows `.github/instructions/java-tests.instructions.md:186-188`.",
+      "created": "2026-11-25T04:45:23Z",
+      "hunk": "@@ -108,6 +112,93 @@ protected BedrockRuntimeAsyncClient configureBedrockRuntimeClient(\n     return telemetry.instrumentBedrockRuntimeClient(client);\n   }\n \n+  @ParameterizedTest\n+  @ValueSource(booleans = {false, true})\n+  void testInvokeModelWithResponseStreamConsumer(boolean captureMessageContent) {\n+    AwsSdkTelemetry telemetry =\n+        AwsSdkTelemetry.builder(testing.getOpenTelemetry())\n+            .setGenaiCaptureMessageContent(captureMessageContent)\n+            .build();\n+    BedrockRuntimeAsyncClientBuilder builder = BedrockRuntimeAsyncClient.builder();\n+    builder.overrideConfiguration(\n+        ClientOverrideConfiguration.builder()\n+            .addExecutionInterceptor(telemetry.createExecutionInterceptor())\n+            .build());\n+    configureClient(builder);\n+\n+    String modelId = \"amazon.titan-text-lite-v1\";\n+    SdkBytes body =\n+        SdkBytes.fromUtf8String(\n+            \"{\\\"inputText\\\":\\\"List out every country in the world\\\",\"\n+                + \"\\\"textGenerationConfig\\\":{\\\"maxTokenCount\\\":100,\\\"temperature\\\":0.8,\"\n+                + \"\\\"topP\\\":1,\\\"stopSequences\\\":[\\\"|\\\"]}}\");\n+    StringBuilder text = new StringBuilder();\n+    InvokeModelWithResponseStreamResponseHandler responseHandler =\n+        InvokeModelWithResponseStreamResponseHandler.builder()\n+            .subscriber(\n+                InvokeModelWithResponseStreamResponseHandler.Visitor.builder()\n+                    .onChunk(chunk -> {\n+                      JsonNode node = JsonNode.parser().parse(chunk.bytes().asByteArray());\n+                      Document result = node.visit(new DocumentUnmarshaller());\n+                      text.append(result.asMap().get(\"outputText\").asString());\n+                    })\n+                    .build())\n+            .build();\n+    AtomicInteger consumerCalls = new AtomicInteger();\n+    try (BedrockRuntimeAsyncClient client =\n+        telemetry.instrumentBedrockRuntimeClient(builder.build())) {\n+      client\n+          .invokeModelWithResponseStream(\n+              request -> {\n+                consumerCalls.incrementAndGet();\n+                request.modelId(modelId).body(body);\n+              },\n+              responseHandler)\n+          .join();\n+    }\n+\n+    assertThat(consumerCalls.get()).isEqualTo(1);\n+    assertThat(text.toString()).contains(\"Here is the list of every country in the world\");\n+    testing.waitAndAssertTraces(trace ->\n+        trace.hasSpansSatisfyingExactly(span ->\n+            span.hasName(\"text_completion amazon.titan-text-lite-v1\")\n+                .hasKind(SpanKind.CLIENT)\n+                .hasAttributesSatisfying(",
+      "id": "PRRT_kwDODJKVX867u8L2",
+      "opened": "2026-11-25T04:45:23Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/testBedrockRuntime/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/Aws2BedrockRuntimeTest.java",
+      "replies": [
+        {
+          "at": "2026-11-25T04:57:23Z",
+          "body": "`22f5e74` now checks the exact span attributes in both content-capture modes, including the configured request parameters and the RPC attributes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21481#discussion_r4690573467"
+        }
+      ],
+      "reviewed": "6d7d66df44d03809123dacc2f853c2e9c26751c2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21481#discussion_r4690500141"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update draft PR #21481 directly on its existing open-telemetry/opentelemetry-java-instrumentation head branch `copilot/fix-invokemodelwithresponsestream-telemetry`, not a new PR. Keep the platform-assigned branch; if GitHub assigns a follow-up branch, keep it rather than renaming or replacing it.\n\nAddress the verified review finding on `Aws2BedrockRuntimeTest.testInvokeModelWithResponseStreamConsumer`: use `hasAttributesSatisfyingExactly` to check the full expected span attributes in both message-content modes per `.github/instructions/java-tests.instructions.md`. Include the configured max tokens, temperature, top-p, and stop sequences, plus the common RPC attributes actually emitted. The existing Titan built-request test in `AbstractAws2BedrockRuntimeTest` shows the expected request parameters. Keep the regression checks for handler delivery, single consumer execution, token usage, finish reason, and streamed log content with capture enabled and disabled. Do not change production behavior for this test correction. Run the focused Bedrock Runtime library test and formatting if feasible. Leave PR #21476 untouched.",
+      "created": "2026-11-25T04:46:24Z",
+      "hunk": "@@ -108,6 +112,93 @@ protected BedrockRuntimeAsyncClient configureBedrockRuntimeClient(\n     return telemetry.instrumentBedrockRuntimeClient(client);\n   }\n \n+  @ParameterizedTest\n+  @ValueSource(booleans = {false, true})\n+  void testInvokeModelWithResponseStreamConsumer(boolean captureMessageContent) {\n+    AwsSdkTelemetry telemetry =\n+        AwsSdkTelemetry.builder(testing.getOpenTelemetry())\n+            .setGenaiCaptureMessageContent(captureMessageContent)\n+            .build();\n+    BedrockRuntimeAsyncClientBuilder builder = BedrockRuntimeAsyncClient.builder();\n+    builder.overrideConfiguration(\n+        ClientOverrideConfiguration.builder()\n+            .addExecutionInterceptor(telemetry.createExecutionInterceptor())\n+            .build());\n+    configureClient(builder);\n+\n+    String modelId = \"amazon.titan-text-lite-v1\";\n+    SdkBytes body =\n+        SdkBytes.fromUtf8String(\n+            \"{\\\"inputText\\\":\\\"List out every country in the world\\\",\"\n+                + \"\\\"textGenerationConfig\\\":{\\\"maxTokenCount\\\":100,\\\"temperature\\\":0.8,\"\n+                + \"\\\"topP\\\":1,\\\"stopSequences\\\":[\\\"|\\\"]}}\");\n+    StringBuilder text = new StringBuilder();\n+    InvokeModelWithResponseStreamResponseHandler responseHandler =\n+        InvokeModelWithResponseStreamResponseHandler.builder()\n+            .subscriber(\n+                InvokeModelWithResponseStreamResponseHandler.Visitor.builder()\n+                    .onChunk(chunk -> {\n+                      JsonNode node = JsonNode.parser().parse(chunk.bytes().asByteArray());\n+                      Document result = node.visit(new DocumentUnmarshaller());\n+                      text.append(result.asMap().get(\"outputText\").asString());\n+                    })\n+                    .build())\n+            .build();\n+    AtomicInteger consumerCalls = new AtomicInteger();\n+    try (BedrockRuntimeAsyncClient client =\n+        telemetry.instrumentBedrockRuntimeClient(builder.build())) {\n+      client\n+          .invokeModelWithResponseStream(\n+              request -> {\n+                consumerCalls.incrementAndGet();\n+                request.modelId(modelId).body(body);\n+              },\n+              responseHandler)\n+          .join();\n+    }\n+\n+    assertThat(consumerCalls.get()).isEqualTo(1);\n+    assertThat(text.toString()).contains(\"Here is the list of every country in the world\");\n+    testing.waitAndAssertTraces(trace ->\n+        trace.hasSpansSatisfyingExactly(span ->\n+            span.hasName(\"text_completion amazon.titan-text-lite-v1\")\n+                .hasKind(SpanKind.CLIENT)\n+                .hasAttributesSatisfying(",
+      "id": "PRRT_kwDODJKVX867u9Ii",
+      "opened": "2026-11-25T04:46:24Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/testBedrockRuntime/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/Aws2BedrockRuntimeTest.java",
+      "replies": [
+        {
+          "at": "2026-11-25T04:56:11Z",
+          "body": "Updated in 22f5e74b. The focused test passes in both content-capture modes, and Spotless passes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21481#discussion_r4690566054"
+        }
+      ],
+      "reviewed": "6d7d66df44d03809123dacc2f853c2e9c26751c2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21481#discussion_r4690506351"
+    }
+  ]
+}

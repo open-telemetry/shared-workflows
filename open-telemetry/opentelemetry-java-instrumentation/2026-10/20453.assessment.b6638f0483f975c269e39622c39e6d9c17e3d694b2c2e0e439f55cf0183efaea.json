@@ -1,0 +1,78 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "255e6db403b5df6afd307b7fba861984815d0ad098063ee60ec9e0d6b8b34f9d",
+  "input_digest": "b6638f0483f975c269e39622c39e6d9c17e3d694b2c2e0e439f55cf0183efaea",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/77342ccaa93015e89ff0b5434571c3a3dce681e1/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlQuery.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2acd9a5f1153e725a3b80e9b90ad55b385576fe8/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlQuery.java"
+      ],
+      "id": "PRRT_kwDODJKVX86qgtRJ",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/77342ccaa93015e89ff0b5434571c3a3dce681e1/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlQuery.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2acd9a5f1153e725a3b80e9b90ad55b385576fe8/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlQuery.java"
+      ],
+      "id": "PRRT_kwDODJKVX86qgtYt",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/77342ccaa93015e89ff0b5434571c3a3dce681e1/instrumentation-api-incubator/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2acd9a5f1153e725a3b80e9b90ad55b385576fe8/instrumentation-api-incubator/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/880b4e04eaa217ab746914a9dcd477281a350ec6"
+      ],
+      "id": "PRRT_kwDODJKVX86qgwqy",
+      "kind": "improvement",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/880b4e04eaa217ab746914a9dcd477281a350ec6/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2acd9a5f1153e725a3b80e9b90ad55b385576fe8/CHANGELOG.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/768b211e0d6cb6640e9395967d7be2c7aa7a5616"
+      ],
+      "id": "PRRT_kwDODJKVX86qn1gX",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/768b211e0d6cb6640e9395967d7be2c7aa7a5616/instrumentation-api-incubator/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2acd9a5f1153e725a3b80e9b90ad55b385576fe8/instrumentation-api-incubator/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/82411d81afd11c69c2f9e57e26553e122ac8c23b"
+      ],
+      "id": "PRRT_kwDODJKVX86qoIob",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/82411d81afd11c69c2f9e57e26553e122ac8c23b/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlQuery.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2acd9a5f1153e725a3b80e9b90ad55b385576fe8/instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/SqlQuery.java"
+      ],
+      "id": "PRRT_kwDODJKVX86qtql6",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

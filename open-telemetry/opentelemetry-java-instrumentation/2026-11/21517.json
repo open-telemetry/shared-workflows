@@ -1,0 +1,46 @@
+{
+  "head": "6afc7066664c479c0ec935ecaa076e54c79cf227",
+  "merge": "a3d012d631f716773df0979117f1d5fcd5551243",
+  "merged": "2026-11-27T08:29:52Z",
+  "missing_roots": 0,
+  "number": 21517,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Simplify the existing Vert.x 5 HTTP client retention fix in this PR. Update this PR directly at its verified head `open-telemetry/opentelemetry-java-instrumentation:copilot/fix-vertx-http-client-fallback`, not a separate PR. Keep the branch GitHub Copilot cloud agent assigns, including any platform-assigned follow-up branch; do not rename it or create a replacement branch.\n\nIn the `vertx-http-client-5.0/javaagent` module, store the existing `io.vertx.core.net.SocketAddress` from `connection.remoteAddress()` directly in the response `VirtualField` instead of allocating and populating an `AddressAndPort` per response. Vert.x 5.0.0's built-in `SocketAddressImpl` stores only address data and has no reference to the connection or response; `ConnectionBase` returns that value for the standard transports. Keep capturing the address during response construction in `HttpClientResponseImplInstrumentation`. In `Vertx5HttpAttributesGetter`, read `hostAddress()` and `port()` from the stored address, preserving the existing null/absent behavior and emitted values. Do not retain the live `HttpConnection` in the field or add another wrapper, cast, or allocation.\n\nKeep the change scoped to this simplification. Leave unrelated telemetry and lifecycle handling alone. Do not restore `Vertx5HttpAttributesGetterTest` or its Gradle wiring; use the existing Vert.x 5 HTTP client tests for targeted validation.",
+      "created": "2026-11-26T04:36:28Z",
+      "hunk": "@@ -31,8 +32,8 @@ public class VertxClientSingletons {\n   public static final VirtualField<HttpClientRequest, Contexts> CONTEXTS =\n       VirtualField.find(HttpClientRequest.class, Contexts.class);\n \n-  private static final VirtualField<HttpClientResponse, HttpConnection> CONNECTION_FIELD =\n-      VirtualField.find(HttpClientResponse.class, HttpConnection.class);\n+  private static final VirtualField<HttpClientResponse, AddressAndPort> PEER_ADDRESS_FIELD =",
+      "id": "PRRT_kwDODJKVX868N95D",
+      "opened": "2026-11-26T04:36:28Z",
+      "path": "instrumentation/vertx/vertx-http-client/vertx-http-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/v5_0/VertxClientSingletons.java",
+      "replies": [
+        {
+          "at": "2026-11-26T04:44:14Z",
+          "body": "Updated in 6afc7066. The existing Vert.x 5 HTTP client integration tests passed; CodeQL skipped analysis because the Java database was too large.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21517#discussion_r4703982160"
+        }
+      ],
+      "reviewed": "2d32128e48759ceee4b7560393c7728f09abc6ed",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21517#discussion_r4703937429"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The existing Vert.x 5 tests do not check response collectability after an HTTP/1.x mid-body disconnect, so they would not detect a recurrence of this retention bug. Add an agent integration test with `otel.javaagent.experimental.field-injection.enabled=false` that receives headers, disconnects before the body completes, drops application references, and verifies that the response becomes collectible. Assert the exported peer address and port as well to cover telemetry preservation on this path.",
+      "created": "2026-11-26T04:51:09Z",
+      "hunk": "@@ -31,8 +31,8 @@ public class VertxClientSingletons {\n   public static final VirtualField<HttpClientRequest, Contexts> CONTEXTS =\n       VirtualField.find(HttpClientRequest.class, Contexts.class);\n \n-  private static final VirtualField<HttpClientResponse, HttpConnection> CONNECTION_FIELD =\n-      VirtualField.find(HttpClientResponse.class, HttpConnection.class);\n+  private static final VirtualField<HttpClientResponse, SocketAddress> PEER_ADDRESS_FIELD =\n+      VirtualField.find(HttpClientResponse.class, SocketAddress.class);",
+      "id": "PRRT_kwDODJKVX868OK2O",
+      "opened": "2026-11-26T04:51:09Z",
+      "path": "instrumentation/vertx/vertx-http-client/vertx-http-client-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/httpclient/v5_0/VertxClientSingletons.java",
+      "replies": [],
+      "reviewed": "6afc7066664c479c0ec935ecaa076e54c79cf227",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21517#discussion_r4704024680"
+    }
+  ]
+}

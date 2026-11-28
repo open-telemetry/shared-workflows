@@ -1,0 +1,25 @@
+{
+  "head": "8275a7710f22236fe39793d74d0b9bbd3ebbdeb3",
+  "merge": "6a6ea99587902650b0715495192adc7afb138f5f",
+  "merged": "2026-11-03T05:24:52Z",
+  "missing_roots": 0,
+  "number": 21150,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "chatgpt-codex-connector"
+      },
+      "body": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Update guidance when removing the VirtualField checker**\n\nThis replacement removes the only invocation of `AdviceVirtualFieldUsageChecker`, but `.github/agents/knowledge/javaagent-virtual-fields.md:116-119` still tells contributors that this checker rejects `VirtualField.find(...)` in non-inlined advice. Because repository code investigations are required to consult these knowledge articles, a future advice change can now rely on a CI safeguard that no longer exists; update that guidance to retain the prohibition without promising checker enforcement.\n\nAGENTS.md reference: [AGENTS.md:L20-L22](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8275a7710f22236fe39793d74d0b9bbd3ebbdeb3/AGENTS.md#L20-L22)\n\nUseful? React with 👍 / 👎.\n\n<!-- codex-code-review-finding:v1 -->",
+      "created": "2026-11-02T18:34:59Z",
+      "hunk": "@@ -53,21 +49,10 @@ public void applyAdviceToMethod(\n                 .advice(methodMatcher, adviceClassName)\n                 // default strategy used by AgentBuilder.Transformer.ForAdvice\n                 .with(AgentBuilder.PoolStrategy.Default.FAST)\n-                .include(getAdviceLocator(instrumentationModule.getClass().getClassLoader()))\n+                .include(instrumentationModule.getClass().getClassLoader())",
+      "id": "PRRT_kwDODJKVX86yzyOc",
+      "opened": "2026-11-02T18:34:59Z",
+      "path": "javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/TypeTransformerImpl.java",
+      "replies": [],
+      "reviewed": "8275a7710f22236fe39793d74d0b9bbd3ebbdeb3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21150#discussion_r4446251089"
+    }
+  ]
+}

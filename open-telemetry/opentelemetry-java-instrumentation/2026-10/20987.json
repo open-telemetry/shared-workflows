@@ -1,0 +1,94 @@
+{
+  "head": "b22304c84104ad31c5e45d32322e3595f6955bf7",
+  "merge": "1d01ef58a44bc9e3a635334585237eb6ed11d2ee",
+  "merged": "2026-10-30T13:36:13Z",
+  "missing_roots": 0,
+  "number": 20987,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to classify SOFA response errors without fabricating exceptions. The current TracingFilter.extractException() creates a synthetic SofaRpcException and marks SofaRpcRequest to suppress a fabricated rpc.status_code. Passing that exception to Instrumenter.end() also emits exception telemetry and an instrumentation stack trace even though no throwable occurred. Remove this synthetic-exception path for both message-bearing and flag-only response errors, and remove the now-unnecessary syntheticFallbackError request state.\n\nHave exception extraction return only real response throwables. Preserve an explicit async callback exception over a response throwable, and preserve real throwable classification over response-only error indicators. In SofaRpcAttributesGetter.getErrorType(), explicitly return the real SofaRpcException's valid protocol code, otherwise the real exception class name; only when there is no real exception, derive the response-error classification from response.isError() or HEAD_RESPONSE_ERROR equal to \"true\". Preserve this PR's SERVER_UNDECLARED_ERROR error.type classification for response-only failures, without constructing a SofaRpcException. A successful response yields null. Emit rpc.status_code only when an actual SofaRpcException provides a valid code.\n\nConfigure a SpanStatusExtractor for both client and server instrumenters to handle response-indicated errors independently of Throwable. Preserve existing legacy-only span-status behavior: message-bearing error responses remain errors, flag-only errors become errors only in rpc preview and rpc/dup modes, and success stays unset. Retain existing real-exception error status. Response-only failures must not generate fabricated exception span events or exception logs. Keep semconv mode handling in telemetry configuration/extraction rather than using it to manufacture a throwable.\n\nKeep this PR independent and parallel to PR #20879, which makes RpcAttributesGetter.getErrorType() authoritative and removes the common extractor's exception-class fallback. Do not merge or depend on that PR, modify its branch, or change the shared RPC getter/extractor contract here. Explicit final SOFA getter results must work with both the current extractor and #20879's future contract, including class-name fallback for non-SofaRpcException and out-of-range SofaRpcException codes.\n\nUpdate directly related SOFA getter and filter tests, including assertions for no fabricated exception telemetry and preserved real exceptions, response/callback precedence, actual-only rpc.status_code, and expected error.type and status across synchronous/asynchronous paths and legacy, preview, and duplicate modes. Cover both client and server response-error handling using existing test patterns. Run the narrow relevant formatting and test tasks. Keep changes scoped to this SOFA refactor and preserve the existing PR's draft/ready state; do not create another PR.",
+      "created": "2026-10-26T21:34:13Z",
+      "hunk": "@@ -108,7 +113,7 @@ private static Throwable extractException(\n     if (response.isError()\n         || \"true\".equals(response.getResponseProp(RemotingConstants.HEAD_RESPONSE_ERROR))) {\n       String errorMsg = response.getErrorMsg();\n-      if (errorMsg != null) {\n+      if (errorMsg != null || emitPreview) {",
+      "id": "PRRT_kwDODJKVX86wdqCs",
+      "opened": "2026-10-26T21:34:12Z",
+      "path": "instrumentation/sofa-rpc-5.4/library/src/main/java/io/opentelemetry/instrumentation/sofarpc/v5_4/TracingFilter.java",
+      "replies": [
+        {
+          "at": "2026-10-26T21:50:00Z",
+          "body": "Implemented in fe71e567. SOFA response flags now set error.type and status without synthesizing throwables; real exception precedence and actual-only rpc.status_code are covered for client/server across legacy, preview, duplicate, and exception-log modes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20987#discussion_r4382918235"
+        }
+      ],
+      "reviewed": "4adeba02a07bfb66725696d6c76793abff895fbe",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20987#discussion_r4382756972"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] For message-bearing error responses with no application throwable, removing the synthetic fallback makes both completion paths pass a null error to `Instrumenter.end()`, dropping the exception event or enabled exception log and its diagnostic message even in legacy-only mode. The new status extractor restores only the error status. Preserve the message-bearing fallback in legacy-only mode, retain synthetic `rpc.status_code` suppression wherever that fallback is used, and update the `ERROR_MESSAGE` regression assertions to verify the existing exception telemetry.",
+      "created": "2026-10-26T21:58:49Z",
+      "hunk": "@@ -94,8 +89,7 @@ private static boolean shouldSkipLocalCall(FilterInvoker invoker) {\n   }\n \n   @Nullable\n-  private static Throwable extractException(\n-      SofaRpcRequest sofaRpcRequest, @Nullable SofaResponse response) {\n+  private static Throwable extractException(@Nullable SofaResponse response) {",
+      "id": "PRRT_kwDODJKVX86weNIj",
+      "opened": "2026-10-26T21:58:49Z",
+      "path": "instrumentation/sofa-rpc-5.4/library/src/main/java/io/opentelemetry/instrumentation/sofarpc/v5_4/TracingFilter.java",
+      "replies": [
+        {
+          "at": "2026-10-26T22:01:20Z",
+          "body": "This is intentional in fe71e567. The requested change removes fabricated exceptions for both message-bearing and flag-only response errors, including legacy-only mode, because no actual throwable occurred. Message-bearing responses still set ERROR status in legacy-only mode; real exceptions still produce exception telemetry. The updated regression assertions cover that distinction. Restoring the synthetic fallback would undo the requested behavior.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20987#discussion_r4383008325"
+        }
+      ],
+      "reviewed": "fe71e567c72ff06df611b7f4ee089430bacc02cc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20987#discussion_r4382985903"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with a behavior-preserving cleanup of the duplicated SOFA response-error predicate. Do not create another PR.\n\nIn instrumentation/sofa-rpc-5.4/library/src/main/java/io/opentelemetry/instrumentation/sofarpc/v5_4/, add a package-private final SofaRpcResponseUtil class with a private constructor and a package-private static boolean isError(@Nullable SofaResponse response) method. The method must return response != null && (response.isError() || \"true\".equals(response.getResponseProp(RemotingConstants.HEAD_RESPONSE_ERROR))).\n\nUse SofaRpcResponseUtil.isError(response) in SofaRpcAttributesGetter.getErrorType() instead of its inline response-error condition. Keep real-exception handling first, preserve the current SERVER_UNDECLARED_ERROR fallback for response-only errors, and preserve actual-only rpc.status_code.\n\nSimplify SofaRpcSpanStatusExtractor.extract() to set StatusCode.ERROR when error != null || SofaRpcResponseUtil.isError(response). Remove the SpanStatusExtractor.getDefault().extract(...) delegation and the early return. Leave successful calls' span status unset. Remove imports made unnecessary by this cleanup.\n\nLeave SofaRpcTest.java, its existing responseOutcome parameterized test, and all 16 cases unchanged. Do not split or expand the test matrix or introduce shared test harnesses. Preserve the existing getter tests as well. This assignment changes no intended behavior, exception precedence, exception signal behavior, semantic-convention mode handling, or client/server wiring. Keep the scope to the shared predicate and its two production callers.\n\nRun the narrow relevant spotlessApply task directly before the targeted existing getter and filter tests, including the module's existing exception-log test variant. Do not run spotlessCheck first, clean, cleanTest, or bypass the build cache. Preserve this PR's draft/ready state.",
+      "created": "2026-10-29T14:40:25Z",
+      "hunk": "@@ -0,0 +1,34 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.instrumentation.sofarpc.v5_4;\n+\n+import com.alipay.sofa.rpc.common.RemotingConstants;\n+import com.alipay.sofa.rpc.core.response.SofaResponse;\n+import io.opentelemetry.api.trace.StatusCode;\n+import io.opentelemetry.instrumentation.api.instrumenter.SpanStatusBuilder;\n+import io.opentelemetry.instrumentation.api.instrumenter.SpanStatusExtractor;\n+import javax.annotation.Nullable;\n+\n+final class SofaRpcSpanStatusExtractor\n+    implements SpanStatusExtractor<SofaRpcRequest, SofaResponse> {\n+\n+  @Override\n+  public void extract(\n+      SpanStatusBuilder spanStatusBuilder,\n+      SofaRpcRequest request,\n+      @Nullable SofaResponse response,\n+      @Nullable Throwable error) {\n+    SpanStatusExtractor.getDefault().extract(spanStatusBuilder, request, response, error);",
+      "id": "PRRT_kwDODJKVX86xmkdP",
+      "opened": "2026-10-29T14:40:25Z",
+      "path": "instrumentation/sofa-rpc-5.4/library/src/main/java/io/opentelemetry/instrumentation/sofarpc/v5_4/SofaRpcSpanStatusExtractor.java",
+      "replies": [
+        {
+          "at": "2026-10-29T14:50:27Z",
+          "body": "Implemented in 61dd138c. Both callers now use `SofaRpcResponseUtil.isError()`; exception precedence, actual-only `rpc.status_code`, and the existing test matrix remain unchanged. Targeted Spotless and tests passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20987#discussion_r4413870130"
+        }
+      ],
+      "reviewed": "da2249b296bd85e5640f9bc202abf01309ee64b8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20987#discussion_r4413750786"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly so response-only SOFA failures use the standard error.type=\"_OTHER\" fallback instead of inventing the numeric SERVER_UNDECLARED_ERROR classification. This is a new user-approved decision that supersedes the earlier requirement to preserve SERVER_UNDECLARED_ERROR only for response-only failures. Do not create another PR.\n\nIn instrumentation/sofa-rpc-5.4/library/src/main/java/io/opentelemetry/instrumentation/sofarpc/v5_4/SofaRpcAttributesGetter.java, keep the real-exception handling first and replace the response-only branch with return SofaRpcResponseUtil.isError(response) ? \"_OTHER\" : null;. Remove the now-unused RpcErrorType import. Do not change SofaRpcResponseUtil, the simplified span-status extractor, or client/server wiring.\n\nPreserve actual exception classification and precedence: a real SofaRpcException with a valid code still supplies that code to both error.type and rpc.status_code; any other real exception, including an out-of-range SofaRpcException, still supplies its class name as error.type without rpc.status_code. Explicit async callback exceptions still take precedence over response throwables. A response error indicated only by the response error header or error message gets error.type=\"_OTHER\", ERROR span status, no rpc.status_code, and no fabricated exception span event or log. Success gets no error.type or rpc.status_code and leaves span status unset.\n\nUpdate the affected expectations in the existing SofaRpcAttributesGetterTest.java and SofaRpcTest.java, including span and metric error.type expectations for ERROR_FLAG and ERROR_MESSAGE. Keep the existing responseOutcome test and all 16 cases; do not split or expand the matrix or add a shared test harness. Keep genuine exception codes and existing exception-signal assertions intact. Do not change shared RPC APIs or unrelated instrumentation.\n\nRun the narrow relevant spotlessApply task directly before the targeted existing getter and filter tests, including the module's existing exception-log test variant. Do not run spotlessCheck first, clean, cleanTest, or bypass the build cache. Preserve this PR's draft/ready state.",
+      "created": "2026-10-29T15:08:20Z",
+      "hunk": "@@ -37,20 +38,21 @@ private static String getService(SofaRpcRequest request) {\n   @Nullable\n   public String getErrorType(\n       SofaRpcRequest request, @Nullable SofaResponse response, @Nullable Throwable error) {\n-    String rpcCode = getSofaRpcCode(error);\n-    if (rpcCode != null) {\n-      return rpcCode;\n+    if (error != null) {\n+      String sofaRpcCode = getSofaRpcCode(error);\n+      return sofaRpcCode != null ? sofaRpcCode : error.getClass().getName();\n     }\n-    return error == null ? null : error.getClass().getName();\n+\n+    if (SofaRpcResponseUtil.isError(response)) {\n+      return Integer.toString(RpcErrorType.SERVER_UNDECLARED_ERROR);",
+      "id": "PRRT_kwDODJKVX86xnXB1",
+      "opened": "2026-10-29T15:08:19Z",
+      "path": "instrumentation/sofa-rpc-5.4/library/src/main/java/io/opentelemetry/instrumentation/sofarpc/v5_4/SofaRpcAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-10-29T15:19:42Z",
+          "body": "Updated and pushed in `b22304c8`. Response-only failures now use `_OTHER`; real exception precedence and actual-only `rpc.status_code` remain unchanged. The getter and 16-case responseOutcome expectations were updated; targeted normal and exception-log tests passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20987#discussion_r4414225066"
+        }
+      ],
+      "reviewed": "61dd138cd09542f1f82a7a589794bba1713394fd",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20987#discussion_r4414088161"
+    }
+  ]
+}

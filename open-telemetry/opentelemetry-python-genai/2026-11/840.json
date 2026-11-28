@@ -1,0 +1,190 @@
+{
+  "head": "0147ee393e533ecddc6e71353cf007888e38cc7b",
+  "merge": "43337da8888aaeff130d9783151284bf75d10415",
+  "merged": "2026-11-20T22:31:00Z",
+  "missing_roots": 0,
+  "number": 840,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "hectorhdzg"
+      },
+      "body": "Could the new content_capturing_mode option be added to the LangChain and util-genai READMEs? Right now they only explain the environment variable, so users will not know that this programmatic option exists or that it takes precedence",
+      "created": "2026-10-06T17:55:49Z",
+      "hunk": "@@ -81,6 +81,7 @@ def _instrument(self, **kwargs: Any):\n             or load_completion_hook(),\n             instrumentation_scope_name=__package__,\n             instrumentation_scope_version=__version__,\n+            content_capturing_mode=kwargs.get(\"content_capturing_mode\"),",
+      "id": "PRRT_kwDOSbspP86pmAes",
+      "opened": "2026-10-06T17:55:49Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/__init__.py",
+      "replies": [
+        {
+          "at": "2026-10-07T17:36:51Z",
+          "body": "I wanted to have this PR as a protoype. This is not the final PR. I wanted to get an approval on the approach before proceeding with the changes.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/840#discussion_r4210011789"
+        }
+      ],
+      "reviewed": "0a442f86a61c8f19f8618e01dc0ac5ac385219f9",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/840#discussion_r4198722233"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "hectorhdzg"
+      },
+      "body": "Could we add tests for EVENT_ONLY and SPAN_AND_EVENT that verify where the content is recorded? The current tests only check whether capture is enabled, so they would not catch content being written to the span instead of the event, or vice versa.",
+      "created": "2026-10-06T17:56:03Z",
+      "hunk": "@@ -352,6 +354,28 @@ def test_should_capture_content_false_by_default(self):\n                     handler.should_capture_content(), expected_content_capture\n                 )\n \n+    @patch.dict(\n+        os.environ,\n+        {OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT: \"NO_CONTENT\"},\n+    )\n+    def test_programmatic_content_mode_overrides_environment(self):",
+      "id": "PRRT_kwDOSbspP86pmA2N",
+      "opened": "2026-10-06T17:56:03Z",
+      "path": "util/opentelemetry-util-genai/tests/test_handler_completion_hook.py",
+      "replies": [],
+      "reviewed": "0a442f86a61c8f19f8618e01dc0ac5ac385219f9",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/840#discussion_r4198724657"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This introduces a user-visible `instrument()` configuration option, but the LangChain README still documents only the environment variable (`README.rst:126-139`). Please document the `ContentCapturingMode` example and precedence here as required by the [instrumentation README rule](https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/.github/instructions/instrumentation.instructions.md#readme).",
+      "created": "2026-10-09T21:03:02Z",
+      "hunk": "@@ -81,6 +81,7 @@ def _instrument(self, **kwargs: Any):\n             or load_completion_hook(),\n             instrumentation_scope_name=__package__,\n             instrumentation_scope_version=__version__,\n+            content_capturing_mode=kwargs.get(\"content_capturing_mode\"),",
+      "id": "PRRT_kwDOSbspP86q8h0w",
+      "opened": "2026-10-09T21:03:03Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-langchain/src/opentelemetry/instrumentation/genai/langchain/__init__.py",
+      "replies": [],
+      "reviewed": "0a442f86a61c8f19f8618e01dc0ac5ac385219f9",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/840#discussion_r4234529203"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This public `TelemetryHandler` option changes util-genai behavior, but the PR only adds a LangChain changelog fragment. Package release selection reads each package's own `.changelog` directory (`scripts/eachdist.py:877-895`), so the util 1.3b0 release notes would omit this feature. Add `util/opentelemetry-util-genai/.changelog/840.added`, as required for each affected package by `AGENTS.md:175-181`.\n\nThis issue also appears on line 94 of the same file.",
+      "created": "2026-10-09T21:03:03Z",
+      "hunk": "@@ -91,6 +91,7 @@ def __init__(\n         completion_hook: CompletionHook | None = None,\n         instrumentation_scope_name: str | None = None,\n         instrumentation_scope_version: str | None = None,\n+        content_capturing_mode: ContentCapturingMode | None = None,",
+      "id": "PRRT_kwDOSbspP86q8h1W",
+      "opened": "2026-10-09T21:03:03Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/handler.py",
+      "replies": [],
+      "reviewed": "0a442f86a61c8f19f8618e01dc0ac5ac385219f9",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/840#discussion_r4234529262"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This duplicates the normalization, enum lookup, invalid-value warning, and fallback already implemented by `get_content_capturing_mode()` in `utils.py:39–53`. Keeping two parsers means fixes to accepted values or fallback behavior must be synchronized manually. Please extract a shared private parser used by both the environment reader and this constructor, while preserving the source-specific warning text.",
+      "created": "2026-11-19T18:35:18Z",
+      "hunk": "@@ -156,7 +164,26 @@ def __init__(\n             logger_provider,\n             schema_url=schema_url,\n         )\n-        self._content_capturing_mode = get_content_capturing_mode()\n+        if content_capturing_mode is None:\n+            content_capturing_mode = get_content_capturing_mode()\n+        elif isinstance(content_capturing_mode, str):\n+            mode_name = content_capturing_mode.strip()\n+            if not mode_name:\n+                content_capturing_mode = ContentCapturingMode.NO_CONTENT\n+            else:",
+      "id": "PRRT_kwDOSbspP865pttP",
+      "opened": "2026-11-19T18:35:18Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/handler.py",
+      "replies": [],
+      "reviewed": "723568d61ef61ae18c7e8c3f9d32f873032bf8b8",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/840#discussion_r4633325102"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`str` widens the public API without being documented anywhere (all READMEs show the enum). Could we take only the enum? That drops the second parser (it duplicates `get_content_capturing_mode()`), the `_logger`, and the `840.fixed` fragment.\n\n```suggestion\n        content_capturing_mode: ContentCapturingMode | None = None,\n```",
+      "created": "2026-11-20T04:19:40Z",
+      "hunk": "@@ -117,6 +121,7 @@ def __init__(\n         completion_hook: CompletionHook | None = None,\n         instrumentation_scope_name: str | None = None,\n         instrumentation_scope_version: str | None = None,\n+        content_capturing_mode: ContentCapturingMode | str | None = None,",
+      "id": "PRRT_kwDOSbspP8651anh",
+      "opened": "2026-11-20T04:30:35Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/handler.py",
+      "replies": [
+        {
+          "at": "2026-11-20T16:00:20Z",
+          "body": "Addressed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/840#discussion_r4644631671"
+        }
+      ],
+      "reviewed": "d42621e4c59d10e3c9ea6c1a9bc9b3e3ac599a6a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/840#discussion_r4638425307"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "With the enum-only signature this becomes:\n\n```suggestion\n        self._content_capturing_mode = (\n            get_content_capturing_mode()\n            if content_capturing_mode is None\n            else content_capturing_mode\n        )\n```",
+      "created": "2026-11-20T04:19:41Z",
+      "hunk": "@@ -156,7 +164,26 @@ def __init__(\n             logger_provider,\n             schema_url=schema_url,\n         )\n-        self._content_capturing_mode = get_content_capturing_mode()\n+        if content_capturing_mode is None:\n+            content_capturing_mode = get_content_capturing_mode()\n+        elif isinstance(content_capturing_mode, str):\n+            mode_name = content_capturing_mode.strip()\n+            if not mode_name:\n+                content_capturing_mode = ContentCapturingMode.NO_CONTENT\n+            else:\n+                try:\n+                    content_capturing_mode = ContentCapturingMode[\n+                        mode_name.upper()\n+                    ]\n+                except KeyError:\n+                    _logger.warning(\n+                        \"%s is not a valid option for `content_capturing_mode`. \"\n+                        \"Must be one of %s. Defaulting to `NO_CONTENT`.\",\n+                        mode_name,\n+                        \", \".join(mode.name for mode in ContentCapturingMode),\n+                    )\n+                    content_capturing_mode = ContentCapturingMode.NO_CONTENT\n+        self._content_capturing_mode = content_capturing_mode",
+      "id": "PRRT_kwDOSbspP8651ank",
+      "opened": "2026-11-20T04:30:35Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/handler.py",
+      "replies": [
+        {
+          "at": "2026-11-20T15:59:02Z",
+          "body": "Addressed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/840#discussion_r4644617381"
+        }
+      ],
+      "reviewed": "d42621e4c59d10e3c9ea6c1a9bc9b3e3ac599a6a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/840#discussion_r4638425313"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "This describes a feature added in this same PR, so there is no released behavior to fix. Suggest dropping this fragment.",
+      "created": "2026-11-20T04:19:41Z",
+      "hunk": "@@ -0,0 +1 @@\n+Parse programmatic content capture mode strings case-insensitively and warn on invalid values.",
+      "id": "PRRT_kwDOSbspP8651ann",
+      "opened": "2026-11-20T04:30:35Z",
+      "path": "util/opentelemetry-util-genai/.changelog/840.fixed",
+      "replies": [
+        {
+          "at": "2026-11-20T15:59:15Z",
+          "body": "Removed the changelog entry.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/840#discussion_r4644619846"
+        }
+      ],
+      "reviewed": "d42621e4c59d10e3c9ea6c1a9bc9b3e3ac599a6a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/840#discussion_r4638425319"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit:\n\n```suggestion\n```\n\nit's automate now, but comments can't be deleted automatically.\n\n(and in other places)",
+      "created": "2026-11-20T04:26:33Z",
+      "hunk": "@@ -23,3 +23,6 @@\n #\n # There is currently nothing to pin: claude-agent-sdk has no test-only dependency that isn't already\n # provided by a declared bound or by the shared test fixtures.\n+\n+# Drop this once opentelemetry-util-genai 1.4b0 is published.",
+      "id": "PRRT_kwDOSbspP8651gcL",
+      "opened": "2026-11-20T04:30:35Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-claude-agent-sdk/tests/requirements.oldest.txt",
+      "replies": [
+        {
+          "at": "2026-11-20T16:00:12Z",
+          "body": "Removed from both `claude-agent-sdk` and `crewai` instrumentations.",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/840#discussion_r4644630149"
+        }
+      ],
+      "reviewed": "d42621e4c59d10e3c9ea6c1a9bc9b3e3ac599a6a",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/840#discussion_r4638464170"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The module-level `_logger` is never referenced; event emission uses `self._logger` instead. This adds dead code unrelated to the configuration option. Please remove this declaration and the newly added `logging` import.",
+      "created": "2026-11-20T16:03:59Z",
+      "hunk": "@@ -102,6 +104,8 @@\n from opentelemetry.util.genai.utils import get_content_capturing_mode\n from opentelemetry.util.genai.version import __version__\n \n+_logger = logging.getLogger(__name__)",
+      "id": "PRRT_kwDOSbspP866EGe1",
+      "opened": "2026-11-20T16:03:59Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/handler.py",
+      "replies": [],
+      "reviewed": "44291060673992dc0d9db1af5950797ad2e7c237",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/840#discussion_r4644671646"
+    }
+  ]
+}

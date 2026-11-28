@@ -1,0 +1,23 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "3926c1af47400a5f932fea9f3fdb217e1cd515b7ce686a88a5cde85f4749ef76",
+  "input_digest": "2186404d990e516c12db6c910103b818d0ff8b8dccf34b93539cb8944f940e36",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/384038eca473b0d5ace4888ca3b6164d96ba9132/instrumentation/opentelemetry-instrumentation-genai-anthropic/pyproject.toml",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/384038eca473b0d5ace4888ca3b6164d96ba9132/instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/package.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/dfaaddb7e4ee25db6f11397563b2af0f3179a1d3/instrumentation/opentelemetry-instrumentation-genai-anthropic/pyproject.toml",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/blob/dfaaddb7e4ee25db6f11397563b2af0f3179a1d3/instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/package.py",
+        "https://github.com/open-telemetry/opentelemetry-python-genai/commit/364bb558b38976f0e7c05d23ea7628c21ce25102"
+      ],
+      "id": "PRRT_kwDOSbspP86vYupw",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

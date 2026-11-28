@@ -1,0 +1,40 @@
+{
+  "head": "7f38cc5081169bd39aab2c5bd41e93bf7daa2ce2",
+  "merge": "6ef062854f21c1d4a4edfb1d5c806e9bc2ef051d",
+  "merged": "2026-11-25T14:51:04Z",
+  "missing_roots": 0,
+  "number": 21483,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "chatgpt-codex-connector"
+      },
+      "body": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Place the new span-ending helpers after their callers**\n\nIn both modified `WrappedFutureCallback` classes, the new private `endSpan` method precedes `completed`, `failed`, and `cancelled`, which call it. The **Class organization** rule in `.github/instructions/java-style.instructions.md` explicitly requires “Place callers before callees.” Move `endSpan` below its callback callers in both modules to comply with the documented repository convention.\n\nAGENTS.md reference: [AGENTS.md:L20-L24](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8a2fbc56d35354861d3d13c6f54f9a0b9368daab/AGENTS.md#L20-L24)\n\nUseful? React with 👍 / 👎.\n\n<!-- codex-code-review-finding:v1 -->",
+      "created": "2026-11-25T13:11:38Z",
+      "hunk": "@@ -164,14 +161,16 @@ public WrappedFutureCallback(\n       this.delegate = delegate;\n     }\n \n+    private void endSpan(HttpResponse response, Exception exception) {",
+      "id": "PRRT_kwDODJKVX8676TlM",
+      "opened": "2026-11-25T13:11:38Z",
+      "path": "instrumentation/apache-httpasyncclient-4.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachehttpasyncclient/v4_1/ApacheHttpAsyncClientInstrumentation.java",
+      "replies": [],
+      "reviewed": "8a2fbc56d35354861d3d13c6f54f9a0b9368daab",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21483#discussion_r4695383834"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Response lookup now runs even when `context` is null, so a throwing getter or incompatible response attribute in a caller-supplied `HttpContext` can prevent callback delivery for suppressed requests or early termination. Move `getResponseFromHttpContext()` inside `endSpan`'s non-null-context branch and have all three terminal callbacks pass only the exception. The same change is needed in `instrumentation/apache-httpclient/apache-httpclient-5.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachehttpclient/v5_0/ApacheHttpAsyncClientInstrumentation.java:189`.",
+      "created": "2026-11-25T13:16:17Z",
+      "hunk": "@@ -164,14 +161,16 @@ public WrappedFutureCallback(\n       this.delegate = delegate;\n     }\n \n+    private void endSpan(HttpResponse response, Exception exception) {\n+      // context is null here when the span creation was suppressed\n+      if (context != null) {\n+        instrumenter().end(context, otelRequest, response, exception);\n+      }\n+    }\n+\n     @Override\n     public void completed(T result) {\n-      if (context == null) {\n-        // this is unexpected\n-        logger.fine(\"context was never set\");\n-      } else {\n-        instrumenter().end(context, otelRequest, getResponseFromHttpContext(), null);\n-      }\n+      endSpan(getResponseFromHttpContext(), null);",
+      "id": "PRRT_kwDODJKVX8676bbn",
+      "opened": "2026-11-25T13:16:17Z",
+      "path": "instrumentation/apache-httpasyncclient-4.1/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/apachehttpasyncclient/v4_1/ApacheHttpAsyncClientInstrumentation.java",
+      "replies": [],
+      "reviewed": "8a2fbc56d35354861d3d13c6f54f9a0b9368daab",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21483#discussion_r4695437174"
+    }
+  ]
+}

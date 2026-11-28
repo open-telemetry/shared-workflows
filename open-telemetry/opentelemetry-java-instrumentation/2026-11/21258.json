@@ -1,0 +1,31 @@
+{
+  "head": "82e862971fe217a7ddda99a00c08449c66e33e22",
+  "merge": "182a168ab5c537fd4a7bf73626c11e560bfee1c9",
+  "merged": "2026-11-20T17:18:04Z",
+  "missing_roots": 0,
+  "number": 21258,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Adding `QUERY` makes the public `setKnownMethods` Javadocs inaccurate: both overloads in `HttpClientAttributesExtractorBuilder`, `HttpServerAttributesExtractorBuilder`, `HttpSpanNameExtractorBuilder`, and `HttpServerRouteBuilder` still define the default set as RFC 9110 methods plus PATCH. That description implies `QUERY` is unrecognized by default. Please update those default-set descriptions to include `QUERY` as well.",
+      "created": "2026-11-18T22:47:53Z",
+      "hunk": "@@ -22,7 +22,8 @@ public final class HttpConstants {\n       unmodifiableSet(\n           new HashSet<>(\n               asList(\n-                  \"CONNECT\", \"DELETE\", \"GET\", \"HEAD\", \"OPTIONS\", \"PATCH\", \"POST\", \"PUT\", \"TRACE\")));\n+                  \"CONNECT\", \"DELETE\", \"GET\", \"HEAD\", \"OPTIONS\", \"PATCH\", \"POST\", \"PUT\", \"QUERY\",",
+      "id": "PRRT_kwDODJKVX865PThj",
+      "opened": "2026-11-18T22:47:53Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/HttpConstants.java",
+      "replies": [
+        {
+          "at": "2026-11-20T10:47:13Z",
+          "body": "Looking into this.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21258#discussion_r4641498110"
+        }
+      ],
+      "reviewed": "e2626039ae4aa21ac5d44ade0c233b4741ceeab0",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21258#discussion_r4621920971"
+    }
+  ]
+}

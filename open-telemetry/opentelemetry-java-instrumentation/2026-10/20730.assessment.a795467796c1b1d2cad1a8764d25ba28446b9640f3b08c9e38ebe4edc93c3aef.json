@@ -1,0 +1,31 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "a374077557bc882c572046e5b6a7184f93e49a76dfbc5dfa929cc14c33376b06",
+  "input_digest": "a795467796c1b1d2cad1a8764d25ba28446b9640f3b08c9e38ebe4edc93c3aef",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/519bcb36a0f0a7cf004f8629eb0d6c95caf7eafe/javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/TypeTransformerImpl.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d2a33ffdbaa84893e49d85525e43591288532539/javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/TypeTransformerImpl.java"
+      ],
+      "id": "PRRT_kwDODJKVX86t_1kb",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/519bcb36a0f0a7cf004f8629eb0d6c95caf7eafe/javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/indy/IndyTypeTransformerImpl.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d2a33ffdbaa84893e49d85525e43591288532539/javaagent-tooling/src/main/java/io/opentelemetry/javaagent/tooling/instrumentation/indy/IndyTypeTransformerImpl.java"
+      ],
+      "id": "PRRT_kwDODJKVX86t_1kp",
+      "kind": "bug",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

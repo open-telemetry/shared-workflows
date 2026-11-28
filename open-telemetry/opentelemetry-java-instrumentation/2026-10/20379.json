@@ -1,0 +1,250 @@
+{
+  "head": "13f6fb6b4ad775a546f96e540e4a759e81bff468",
+  "merge": "6e1c283c716dfbf8137b57049a4f9cd82aa53496",
+  "merged": "2026-10-06T19:35:11Z",
+  "missing_roots": 0,
+  "number": 20379,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] This makes the stable user-facing selectors `otel.semconv-stability.opt-in` (`database`/`database/dup`) and `general.db.semconv.*` stop affecting behavior in the current 2.33 release. `VERSIONING.md:10-20` permits incompatible configuration changes only in a major release (except names containing `experimental`/`preview` or `otel.javaagent.testing`), and none of these selectors qualify. Preserve the existing database resolution outside v3 preview and defer stable-only behavior there until 3.0.",
+      "created": "2026-10-04T01:08:28Z",
+      "hunk": "@@ -56,15 +56,7 @@ class SemconvSelectionResolver {\n   }\n \n   SemconvMode database() {\n-    SemconvDomain.Builder domain = SemconvDomain.builder(\"db\").flagKey(\"database\");\n-    if (v3Preview) {\n-      domain.defaultMode(SemconvMode.V1_STABLE);\n-    } else {\n-      domain\n-          .defaultMode(SemconvMode.V0_STABLE)\n-          .otherSupportedModes(SemconvMode.V1_STABLE, SemconvMode.V1_STABLE.withDualEmit());\n-    }\n-    return resolveSemconvSelection(domain.build());\n+    return SemconvMode.V1_STABLE;",
+      "id": "PRRT_kwDODJKVX86otltz",
+      "opened": "2026-10-04T01:08:29Z",
+      "path": "instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/internal/SemconvSelectionResolver.java",
+      "replies": [
+        {
+          "at": "2026-10-05T21:18:35Z",
+          "body": "This PR targets `3.0.0-SNAPSHOT`, as recorded in `version.gradle.kts`. This is the major release where the breaking change is intended, not a 2.33 release, so the current resolver behavior is intentional.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20379#discussion_r4188920915"
+        }
+      ],
+      "reviewed": "6fda660553edddad9850f7f9fcd1ed036b286ff8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20379#discussion_r4175630957"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] Use the exact attribute assertion here. The non-exact variant would still pass if the timeout metric also emitted a legacy attribute such as `pool.name`, so this test would not actually protect the stable-only contract it was added to verify.\n\nThis issue also appears on line 104 of the same file.",
+      "created": "2026-10-04T20:56:48Z",
+      "hunk": "@@ -55,4 +58,51 @@ void shouldSetSchemaUrl() {\n             hasScopeSchemaUrl(\n                 emitStableDatabaseSemconv() ? SchemaUrls.V1_44_0 : SchemaUrls.V1_24_0));\n   }\n+\n+  @Test\n+  void shouldAlwaysExportStablePoolMetrics() {\n+    InMemoryMetricReader metricReader = InMemoryMetricReader.create();\n+    SdkMeterProvider meterProvider =\n+        SdkMeterProvider.builder().registerMetricReader(metricReader).build();\n+    cleanup.deferCleanup(meterProvider);\n+    OpenTelemetrySdk openTelemetry =\n+        OpenTelemetrySdk.builder().setMeterProvider(meterProvider).build();\n+\n+    DbConnectionPoolMetrics metrics =\n+        DbConnectionPoolMetrics.create(\n+            openTelemetry, \"test\", \"test-pool\", Attributes.of(DB_NAMESPACE, \"potatoes\"));\n+    metrics.connectionTimeouts().add(1, metrics.getAttributes());\n+    metrics.connectionCreateTime().record(0.025, metrics.getAttributes());\n+\n+    assertThat(metricReader.collectAllMetrics())\n+        .satisfiesExactlyInAnyOrder(\n+            metric ->\n+                assertThat(metric)\n+                    .hasName(\"db.client.connection.timeouts\")\n+                    .hasUnit(\"{timeout}\")\n+                    .satisfies(hasScopeSchemaUrl(SchemaUrls.V1_44_0))\n+                    .hasLongSumSatisfying(\n+                        sum ->\n+                            sum.hasPointsSatisfying(\n+                                point ->\n+                                    point\n+                                        .hasValue(1)\n+                                        .hasAttributesSatisfying(\n+                                            equalTo(DB_CLIENT_CONNECTION_POOL_NAME, \"test-pool\"),\n+                                            equalTo(DB_NAMESPACE, \"potatoes\")))),",
+      "id": "PRRT_kwDODJKVX86o2dB0",
+      "opened": "2026-10-04T20:56:48Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbConnectionPoolMetricsTest.java",
+      "replies": [
+        {
+          "at": "2026-10-05T21:18:35Z",
+          "body": "Both the timeout and creation-time metric points now use `hasAttributesSatisfyingExactly`, so unexpected attributes fail the assertions.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20379#discussion_r4188920966"
+        }
+      ],
+      "reviewed": "36b123806fdfc8f82a10770179fcbbc7672c7917",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20379#discussion_r4179290459"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "delete this file",
+      "created": "2026-10-04T20:52:48Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX86o2bC9",
+      "opened": "2026-10-05T21:18:02Z",
+      "path": "docs/database-semconv-migration.md",
+      "replies": [
+        {
+          "at": "2026-10-05T21:18:35Z",
+          "body": "Deleted the guide and removed its links from the changelog and PR description. Both retain concrete migration guidance.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20379#discussion_r4188920903"
+        }
+      ],
+      "reviewed": "36b123806fdfc8f82a10770179fcbbc7672c7917",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20379#discussion_r4179278032"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "revert change to this file",
+      "created": "2026-10-04T20:52:56Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX86o2bND",
+      "opened": "2026-10-05T21:18:02Z",
+      "path": "declarative-config-bridge/src/test/java/io/opentelemetry/instrumentation/config/bridge/ConfigPropertiesBackedDeclarativeConfigPropertiesTest.java",
+      "replies": [
+        {
+          "at": "2026-10-05T21:18:35Z",
+          "body": "Removed the added test. This file now matches its pre-PR contents.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20379#discussion_r4188920944"
+        }
+      ],
+      "reviewed": "36b123806fdfc8f82a10770179fcbbc7672c7917",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20379#discussion_r4179278828"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "remove this test",
+      "created": "2026-10-04T20:56:28Z",
+      "hunk": "@@ -311,6 +310,54 @@ void stableOptInDupEmitsStableDatabaseAndCodeWhenV3PreviewIsEnabled() {\n     assertThat(code).isEqualTo(SemconvMode.V1_STABLE);\n   }\n \n+  @ParameterizedTest\n+  @ValueSource(booleans = {true, false})\n+  void databaseAlwaysUsesStableOnlySemconv(boolean v3Preview) {",
+      "id": "PRRT_kwDODJKVX86o2c4o",
+      "opened": "2026-10-05T21:18:02Z",
+      "path": "instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/internal/SemconvStabilityTest.java",
+      "replies": [
+        {
+          "at": "2026-10-05T21:18:35Z",
+          "body": "Removed `databaseAlwaysUsesStableOnlySemconv`. The mixed-domain tests and exported database telemetry tests remain.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20379#discussion_r4188920955"
+        }
+      ],
+      "reviewed": "36b123806fdfc8f82a10770179fcbbc7672c7917",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20379#discussion_r4179289533"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "use normal \"attributes exactly\" method",
+      "created": "2026-10-05T17:58:14Z",
+      "hunk": "@@ -102,9 +102,7 @@ void recordsSpanData() {\n     SpanData spanData = findSpan(\"get\");\n     assertThat(spanData.getKind()).isEqualTo(CLIENT);\n     assertThat(spanData.getStatus().getStatusCode()).isEqualTo(StatusCode.ERROR);\n-    assertThat(spanData.getAttributes().asMap())\n-        .containsEntry(stringKey(\"db.system\"), \"couchbase\")\n-        .containsEntry(longKey(\"db.couchbase.retries\"), 2L);\n+    assertThat(spanData.getAttributes().asMap()).containsOnly(entry(DB_SYSTEM_NAME, \"couchbase\"));",
+      "id": "PRRT_kwDODJKVX86pJuJT",
+      "opened": "2026-10-05T21:18:02Z",
+      "path": "instrumentation/couchbase/couchbase-common-3.0/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/couchbase/common/v3_0/CouchbaseTracerTest.java",
+      "replies": [
+        {
+          "at": "2026-10-05T21:18:35Z",
+          "body": "Replaced the map assertion with the SDK span assertion `hasAttributesSatisfyingExactly(equalTo(DB_SYSTEM_NAME, \"couchbase\"))` and removed the unused `entry` import.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20379#discussion_r4188920918"
+        }
+      ],
+      "reviewed": "0a2bc35c25b0fea52d59d2c0d0714da87ace340c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20379#discussion_r4187111974"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "is this test needed now?",
+      "created": "2026-10-05T17:59:26Z",
+      "hunk": "@@ -105,14 +105,16 @@ public PooledObject<Object> wrap(Object object) {\n   }\n \n   @Test\n-  void requestSkipsCapturedConnectionTargetForLegacySemconv() {\n+  void requestUsesCapturedConnectionTarget() {\n     Connection connection = new Connection(\"direct\", 6379);\n     JedisConfiguredTargets.setConnectionTarget(\n-        connection, RedisServerTarget.ofEndpoint(\"configured:6379\"));\n+        connection, RedisServerTarget.ofEndpoint(\"configured:6380\"));\n \n     JedisRequest request = JedisRequest.create(connection, Protocol.Command.GET, emptyList());\n \n-    assertThat(request.getServerTarget()).isNull();\n+    assertThat(request.getServerTarget())\n+        .extracting(RedisServerTarget::getAddress, RedisServerTarget::getPort)\n+        .containsExactly(\"configured\", 6380);\n   }",
+      "id": "PRRT_kwDODJKVX86pJwOn",
+      "opened": "2026-10-05T21:18:02Z",
+      "path": "instrumentation/jedis/jedis-3.0/javaagent-unit-tests/src/test/java/io/opentelemetry/javaagent/instrumentation/jedis/v3_0/JedisConfiguredTargetsTest.java",
+      "replies": [
+        {
+          "at": "2026-10-05T21:18:35Z",
+          "body": "Keeping this test. It verifies that `JedisRequest.create` carries the captured configured endpoint, `configured:6380`, rather than the physical connection, `direct:6379`. The neighboring tests cover target storage and context handling, not this request-construction wiring.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20379#discussion_r4188920908"
+        }
+      ],
+      "reviewed": "0a2bc35c25b0fea52d59d2c0d0714da87ace340c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20379#discussion_r4187125572"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "this could be rephrased better",
+      "created": "2026-10-05T18:01:56Z",
+      "hunk": "@@ -30,7 +30,7 @@ implementation(\"io.opentelemetry.instrumentation:instrumentation:opentelemetry-m\n \n The instrumentation is initialized by passing a command listener from\n `MongoTelemetry` to the `MongoClientSettings` builder. Pass the configured seed\n-list to `createCommandListener`. Stable telemetry then reports those seeds as\n+list to `createCommandListener`. Telemetry then reports those seeds as\n the logical server target.",
+      "id": "PRRT_kwDODJKVX86pJzvS",
+      "opened": "2026-10-05T21:18:02Z",
+      "path": "instrumentation/mongo/mongo-3.1/library/README.md",
+      "replies": [
+        {
+          "at": "2026-10-05T21:18:35Z",
+          "body": "Rephrased the initialization guidance to request the complete seed list used to configure the client and explain that endpoint attributes describe the configured deployment rather than the selected node. It also explains when `server.port` is omitted.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20379#discussion_r4188920920"
+        }
+      ],
+      "reviewed": "0a2bc35c25b0fea52d59d2c0d0714da87ace340c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20379#discussion_r4187149035"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "is this latest dep behavior desired (preserving quotes)? check other instrumentations and specification",
+      "created": "2026-10-05T18:03:26Z",
+      "hunk": "@@ -52,7 +53,8 @@ class KotlinSpringDataTest {\n       trace.hasSpansSatisfyingExactly({\n         it.hasName(\"CustomerRepository.findById\").hasNoParent()\n       }, {\n-        it.hasName(\"SELECT db.CUSTOMER\").hasParent(trace.getSpan(0))\n+        it.hasName(if (testLatestDeps()) \"SELECT \\\"CUSTOMER\\\"\" else \"SELECT CUSTOMER\")",
+      "id": "PRRT_kwDODJKVX86pJ1wN",
+      "opened": "2026-10-05T21:18:02Z",
+      "path": "instrumentation/spring/spring-data/spring-data-3.0/kotlin-testing/src/test/kotlin/io/opentelemetry/javaagent/instrumentation/spring/data/v3_0/KotlinSpringDataTest.kt",
+      "replies": [
+        {
+          "at": "2026-10-05T21:18:36Z",
+          "body": "Yes. The baseline uses Spring Data R2DBC 3.0.0, whose mapping context disables forced quoting. Latest dependencies use 4.1.1, which defaults to quoted identifiers, so the generated SQL contains `\"CUSTOMER\"`. The [v1.44.0 query-summary guidance](https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/docs/db/database-spans.md#generating-a-summary-of-the-query) explicitly shows quoted targets, and the shared SQL parser used by JDBC/R2DBC preserves them. Keeping the version-specific expectation.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20379#discussion_r4188921152"
+        }
+      ],
+      "reviewed": "0a2bc35c25b0fea52d59d2c0d0714da87ace340c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20379#discussion_r4187162250"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "I think we don't need ignoring case anymore?",
+      "created": "2026-10-05T18:17:03Z",
+      "hunk": "@@ -49,26 +48,23 @@ void webClientAndWebFluxAndR2dbc() {\n         .blockLast();\n \n     testing.waitAndAssertTraces(\n-        trace ->\n-            trace.hasSpansSatisfyingExactly(span -> span.hasName(\"CREATE TABLE testdb.player\")),\n+        trace -> trace.hasSpansSatisfyingExactly(span -> span.hasName(\"CREATE TABLE player\")),\n         trace ->\n             trace.hasSpansSatisfyingExactly(\n                 span -> HttpSpanDataAssert.create(span).assertClientGetRequest(\"/webflux\"),\n                 span -> HttpSpanDataAssert.create(span).assertServerGetRequest(\"/webflux\"),\n                 span ->\n                     span.hasKind(SpanKind.CLIENT)\n                         .satisfies(\n-                            s ->\n-                                assertThat(s.getName())\n-                                    .isEqualToIgnoringCase(\"SELECT testdb.PLAYER\"))\n-                        .hasAttribute(DB_NAME, \"testdb\")\n+                            s -> assertThat(s.getName()).isEqualToIgnoringCase(\"SELECT PLAYER\"))",
+      "id": "PRRT_kwDODJKVX86pKIOj",
+      "opened": "2026-10-05T21:18:02Z",
+      "path": "smoke-tests-otel-starter/spring-boot-reactive-common/src/main/java/io/opentelemetry/spring/smoketest/AbstractOtelReactiveSpringStarterSmokeTest.java",
+      "replies": [
+        {
+          "at": "2026-10-05T21:22:31Z",
+          "body": "d8b71cf6f9c51bc8f5a5b671247a279e80b1daed",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20379#discussion_r4188958258"
+        }
+      ],
+      "reviewed": "0a2bc35c25b0fea52d59d2c0d0714da87ace340c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20379#discussion_r4187281482"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Config] The migration note omits the configuration break introduced here: `database`/`database/dup` no longer affect `otel.semconv-stability.opt-in`, and the declarative `general.db.semconv.version` and `general.db.semconv.dual_emit` settings are removed. Existing users need these names and an explicit instruction to remove the declarative keys.",
+      "created": "2026-10-05T22:27:04Z",
+      "hunk": "@@ -6,6 +6,17 @@\n \n - Change the Java agent's `telemetry.distro.name` resource attribute from\n   `opentelemetry-java-instrumentation` to `opentelemetry-javaagent`.\n+- Database telemetry now uses schema version 1.44.0.\n+  Update telemetry queries and dashboards for `db.system.name`, `db.namespace`, `db.query.text`,",
+      "id": "PRRT_kwDODJKVX86pPgmr",
+      "opened": "2026-10-05T22:27:05Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "2a85fb779b996f897e8c1ebe44b1c4d227e081ea",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20379#discussion_r4189504896"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Naming] This example now configures RPC preview conventions, but the task is still named `testStableSemconv`. Rename the task and its `check` dependency so copied build logic accurately describes the mode being exercised.",
+      "created": "2026-10-05T22:27:04Z",
+      "hunk": "@@ -38,10 +38,10 @@ tasks {\n   }\n \n   val testStableSemconv by registering(Test::class) {\n-    jvmArgs(\"-Dotel.semconv-stability.opt-in=database\")\n+    jvmArgs(\"-Dotel.semconv-stability.preview=rpc\")",
+      "id": "PRRT_kwDODJKVX86pPgn2",
+      "opened": "2026-10-05T22:27:05Z",
+      "path": "instrumentation-docs/readme.md",
+      "replies": [],
+      "reviewed": "2a85fb779b996f897e8c1ebe44b1c4d227e081ea",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20379#discussion_r4189504999"
+    }
+  ]
+}

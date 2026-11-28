@@ -1,0 +1,52 @@
+{
+  "head": "f2e66ad2d852061ea0b039e92600b8eb71bbcbc2",
+  "merge": "152e91f065c97b4fb5cc73406b97233b92a38660",
+  "merged": "2026-11-16T23:10:43Z",
+  "missing_roots": 0,
+  "number": 21270,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "instead of `Charset.defaultCharset()` we should use the encoding that the server uses, `StandardCharsets.UTF_8` is probably better ",
+      "created": "2026-11-10T09:19:21Z",
+      "hunk": "@@ -466,16 +471,23 @@ private static String extractHttpErrorAsEvent(\n         // we want to record the error message from http response\n         Optional<InputStream> responseBody = context.responseBody();\n         if (responseBody.isPresent()) {\n+          byte[] errorBody;\n+          try {\n+            errorBody = IoUtils.toByteArray(responseBody.get());\n+          } catch (IOException e) {\n+            throw new UncheckedIOException(e);\n+          }\n           String errorMsg =\n               new BufferedReader(\n-                      new InputStreamReader(responseBody.get(), Charset.defaultCharset()))\n+                      new InputStreamReader(\n+                          new ByteArrayInputStream(errorBody), Charset.defaultCharset()))",
+      "id": "PRRT_kwDODJKVX861oV6f",
+      "opened": "2026-11-10T09:19:21Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/TracingExecutionInterceptor.java",
+      "replies": [
+        {
+          "at": "2026-11-12T07:35:50Z",
+          "body": "Switched to `UTF_8` in f2e66ad2d8.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21270#discussion_r4547591141"
+        }
+      ],
+      "reviewed": "156a41ab2b0bb88a7e63c40583f58d4539a3f38f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21270#discussion_r4523105338"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Wondering whether it would be better to limit the error size to something like 32kb and only read that much from the stream. Untested code follows\n```java\n          BufferedInputStream inputStream = new BufferedInputStream(responseBody.get());\n          inputStream.mark(ERROR_SIZE_LIMIT);\n          byte[] buffer = new byte[ERROR_SIZE_LIMIT];\n          try {\n            int size = inputStream.read(buffer);\n            if (size != -1) {\n              String errorMsg =\n                  StringUtils.truncate(new String(buffer, 0, size, UTF_8), ERROR_SIZE_LIMIT);\n              Attributes attributes =\n                  Attributes.of(\n                      HTTP_RESPONSE_STATUS_CODE, Long.valueOf(errorCode), HTTP_ERROR_MSG, errorMsg);\n              span.addEvent(HTTP_FAILURE_EVENT, attributes);\n            }\n            inputStream.reset();\n          } catch (IOException e) {\n            throw new UncheckedIOException(e);\n          }\n          return inputStream;\n```",
+      "created": "2026-11-10T09:29:21Z",
+      "hunk": "@@ -466,16 +471,23 @@ private static String extractHttpErrorAsEvent(\n         // we want to record the error message from http response\n         Optional<InputStream> responseBody = context.responseBody();\n         if (responseBody.isPresent()) {\n+          byte[] errorBody;\n+          try {\n+            errorBody = IoUtils.toByteArray(responseBody.get());",
+      "id": "PRRT_kwDODJKVX861ojjB",
+      "opened": "2026-11-10T09:29:21Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/TracingExecutionInterceptor.java",
+      "replies": [
+        {
+          "at": "2026-11-12T07:35:52Z",
+          "body": "Done in f2e66ad2d8, the body is read up to 32KB and then reset, so the SDK still reads the original stream.\nA few differences from the snippet:\n- reads in a loop, since a single `read` can return fewer bytes than requested\n- still records the event for an empty body, as before\n- keeps the `lines()` joining, so the message format doesn't change\n\nAlso mentioned the limit in the `setRecordIndividualHttpError` javadoc.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21270#discussion_r4547591408"
+        }
+      ],
+      "reviewed": "156a41ab2b0bb88a7e63c40583f58d4539a3f38f",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21270#discussion_r4523195867"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "1a603cf97bc1d586c0629545324e57f938973ade32c5426cea047439959a5a1b",
+  "input_digest": "f4be340035c5d3bfab8faa289cfa330771152edb5ad95b78f994d7cd9c9da3f3",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "id": "PRRT_kwDODJKVX86pxYw7",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d7188352c763337ae3931609760b2591d9d1c38e/instrumentation/micrometer/micrometer-1.5/testing/src/main/java/io/opentelemetry/instrumentation/micrometer/v1_5/AbstractDistributionSummaryTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/097170f6cae9228b701d0ed2ca102a8363680f8b/instrumentation/micrometer/micrometer-1.5/testing/src/main/java/io/opentelemetry/instrumentation/micrometer/v1_5/AbstractDistributionSummaryTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86qas4z",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d7188352c763337ae3931609760b2591d9d1c38e/instrumentation/micrometer/micrometer-1.5/testing/src/main/java/io/opentelemetry/instrumentation/micrometer/v1_5/AbstractTimerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/097170f6cae9228b701d0ed2ca102a8363680f8b/instrumentation/micrometer/micrometer-1.5/testing/src/main/java/io/opentelemetry/instrumentation/micrometer/v1_5/AbstractTimerTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86qas5_",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

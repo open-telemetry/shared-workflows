@@ -1,0 +1,124 @@
+{
+  "head": "234f657f785c5b4a4d9b50d9a7d8eb44441d411d",
+  "merge": "11a1bbaa819c31eecb5a073928bae4d31e0fe7d9",
+  "merged": "2026-10-02T22:17:40Z",
+  "missing_roots": 0,
+  "number": 793,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This failure finalizer only catches `Exception`, but async cancellation raises `asyncio.CancelledError`, which inherits directly from `BaseException`. If snapshot adoption or partial-response extraction raises cancellation, control exits before `invocation.fail(exc)` and before the finalized flag is set, leaving telemetry unfinished or permitting a second finalization. Catch `BaseException` for this best-effort telemetry block while continuing to pass the original `exc` to `fail`.",
+      "created": "2026-09-28T07:08:25Z",
+      "hunk": "@@ -131,6 +131,20 @@ def _stop(self) -> None:\n     def _fail(self, exc: BaseException) -> None:\n         if self._self_message_telemetry_finalized:\n             return\n+        try:\n+            self._adopt_sdk_snapshot()\n+            message = self._self_message\n+            if message is not None:\n+                capture_content = self._self_capture_content and bool(\n+                    message.content\n+                )\n+                _set_response_attributes(\n+                    self._self_invocation, message, capture_content\n+                )\n+        except Exception:  # pylint: disable=broad-exception-caught",
+      "id": "PRRT_kwDOSbspP86mkcUZ",
+      "opened": "2026-09-28T07:08:26Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/wrappers.py",
+      "replies": [
+        {
+          "at": "2026-09-29T06:36:05Z",
+          "body": "Fixed in `c9b2d404`: `_fail` in `wrappers.py` now handles `asyncio.CancelledError` during partial capture and finalizes with the original stream error.\r\n\r\n— girishkvs's Copilot 🤖",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/793#discussion_r4130361639"
+        }
+      ],
+      "reviewed": "8c6a6e53bc7214a29ee583330463b18fbfe10dea",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/793#discussion_r4119439485"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This best-effort capture path can also raise other `BaseException` subclasses (for example `KeyboardInterrupt`, `SystemExit`, or `GeneratorExit`). Because the shared stream wrapper marks itself finalized before calling `_fail`, one of those exceptions escapes here before `invocation.fail(exc)`, leaving the span unfinished and replacing the original stream error. Catch `BaseException` for this telemetry-only section so all capture failures are logged and the original `exc` is still used for finalization, as required by the [instrumentation exception-handling rule](https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/.github/instructions/instrumentation.instructions.md#5-exception-handling).",
+      "created": "2026-09-28T22:42:35Z",
+      "hunk": "@@ -131,6 +132,20 @@ def _stop(self) -> None:\n     def _fail(self, exc: BaseException) -> None:\n         if self._self_message_telemetry_finalized:\n             return\n+        try:\n+            self._adopt_sdk_snapshot()\n+            message = self._self_message\n+            if message is not None:\n+                capture_content = self._self_capture_content and bool(\n+                    message.content\n+                )\n+                _set_response_attributes(\n+                    self._self_invocation, message, capture_content\n+                )\n+        except (Exception, asyncio.CancelledError):  # pylint: disable=broad-exception-caught",
+      "id": "PRRT_kwDOSbspP86m4yh0",
+      "opened": "2026-09-28T22:42:36Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/wrappers.py",
+      "replies": [
+        {
+          "at": "2026-09-29T06:41:11Z",
+          "body": "Fixed in `c9b2d404`: `_fail` in `wrappers.py` catches `BaseException` around partial capture, so secondary errors cannot skip finalization or replace the original stream error.\r\n\r\n— girishkvs's Copilot 🤖",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/793#discussion_r4130400063"
+        }
+      ],
+      "reviewed": "b54ca3ac7312e7e8b4773b2be0c4fc6fce4c3f04",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/793#discussion_r4127723665"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "please remove try catch blocks, we only call instrumentation methods here that should never raise and we don't catch in other places.",
+      "created": "2026-09-29T22:51:02Z",
+      "hunk": "@@ -131,6 +131,20 @@ def _stop(self) -> None:\n     def _fail(self, exc: BaseException) -> None:\n         if self._self_message_telemetry_finalized:\n             return\n+        try:",
+      "id": "PRRT_kwDOSbspP86nUml-",
+      "opened": "2026-09-29T22:51:01Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/src/opentelemetry/instrumentation/genai/anthropic/wrappers.py",
+      "replies": [
+        {
+          "at": "2026-09-30T04:14:49Z",
+          "body": "Removed the added `try/except` from `_fail` in `92edcdc`.\n\n— kondv's Copilot 🤖",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/793#discussion_r4140745459"
+        }
+      ],
+      "reviewed": "c9b2d404c983ffa014871fc9de7be2a53133cbaa",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/793#discussion_r4139115149"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "Instead of adding a new test file with custom HTTP mock transports, we should just enrich our existing tests in `test_sync_messages.py` and `test_async_messages.py`:\n\n- https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_sync_messages.py#L1113-L1165\n- https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_async_messages.py#L716-L747\n\nIn `test_sync_messages_stream_interrupted_mid_iteration`, `ErrorInjectingStreamDelegate` currently fails on `self._count == 1` (right after `message_start` before content deltas arrive). \n\nWe can:\n1. Have `ErrorInjectingStreamDelegate` fail after a few chunks (`if self._count >= 3:`) so content deltas are received.\n2. Run with content capture enabled (`instrument_with_content` or parametrize `capture_content`).\n3. Assert that the resulting span preserves the partial `gen_ai.output.messages` and `gen_ai.usage.input_tokens`.\n",
+      "created": "2026-09-29T23:02:20Z",
+      "hunk": "@@ -0,0 +1,454 @@\n+# Copyright The OpenTelemetry Authors\n+# SPDX-License-Identifier: Apache-2.0\n+\n+from __future__ import annotations\n+\n+import asyncio\n+import json\n+from collections.abc import AsyncIterator, Callable, Iterator\n+from dataclasses import asdict\n+from types import SimpleNamespace\n+from unittest.mock import Mock\n+\n+import pytest\n+\n+try:\n+    import httpx2 as _http_lib\n+except ImportError:\n+    import httpx as _http_lib\n+from anthropic import Anthropic, AsyncAnthropic\n+\n+from opentelemetry.instrumentation.genai.anthropic import AnthropicInstrumentor\n+from opentelemetry.instrumentation.genai.anthropic.wrappers import (\n+    AsyncMessagesStreamWrapper,\n+    MessagesStreamWrapper,\n+    _MessagesStreamMixin,\n+)\n+from opentelemetry.semconv._incubating.attributes import (\n+    error_attributes as ErrorAttributes,\n+)\n+from opentelemetry.semconv._incubating.attributes import (\n+    gen_ai_attributes as GenAIAttributes,\n+)\n+from opentelemetry.test_util_genai.instrumentor import instrument\n+from opentelemetry.trace import StatusCode\n+from opentelemetry.util.genai.environment_variables import (\n+    OTEL_INSTRUMENTATION_GENAI_COMPLETION_HOOK,\n+)\n+from opentelemetry.util.genai.types import OutputMessage, TextPart\n+\n+\n+class _CaptureBaseError(BaseException):\n+    pass\n+\n+\n+_CAPTURE_ERRORS = (\n+    ValueError,\n+    asyncio.CancelledError,\n+    KeyboardInterrupt,\n+    SystemExit,\n+    GeneratorExit,\n+    _CaptureBaseError,\n+)\n+\n+\n+class _InterruptedResponse(",
+      "id": "PRRT_kwDOSbspP86nUw3Z",
+      "opened": "2026-09-29T23:02:19Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_partial_output.py",
+      "replies": [
+        {
+          "at": "2026-09-30T04:14:51Z",
+          "body": "Moved the partial-output and input-token checks into `test_sync_messages.py` and `test_async_messages.py`, using their existing delegates and cassettes (`92edcdc`).\n\n— kondv's Copilot 🤖",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/793#discussion_r4140745760"
+        }
+      ],
+      "reviewed": "c9b2d404c983ffa014871fc9de7be2a53133cbaa",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/793#discussion_r4139183143"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: `stream.close()` is redundant here and in the other tests since the `with` context manager already closes the stream and finalizes the span on exit.\n\n```suggestion\n```",
+      "created": "2026-09-30T21:00:43Z",
+      "hunk": "@@ -1158,11 +1170,39 @@ def __getattr__(self, name):\n             for _ in stream:\n                 pass\n \n+    assert raised.value is error\n+    stream.close()",
+      "id": "PRRT_kwDOSbspP86ntYgT",
+      "opened": "2026-09-30T21:01:26Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_sync_messages.py",
+      "replies": [],
+      "reviewed": "92edcdcc339a539e196a0fe1c3c7631685469a73",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/793#discussion_r4149298831"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: `await stream.close()` is redundant here as well since `async with` already closes the stream on exit.\n\n```suggestion\n```",
+      "created": "2026-09-30T21:00:44Z",
+      "hunk": "@@ -713,37 +719,83 @@ async def test_async_messages_stream_api_error(\n \n @pytest.mark.asyncio\n @pytest.mark.vcr()\n+@pytest.mark.cassette(\"test_async_messages_stream_interrupted_mid_iteration\")\n+@pytest.mark.parametrize(\"capture_content\", [True, False])\n+@pytest.mark.parametrize(\"fail_after\", [0, 1, 3])\n+@pytest.mark.parametrize(\n+    \"error_type\", [ConnectionError, asyncio.CancelledError]\n+)\n async def test_async_messages_stream_interrupted_mid_iteration(\n+    request,\n     span_exporter,\n     async_anthropic_client,\n-    instrument_no_content,\n+    capture_content,\n+    fail_after,\n+    error_type,\n     monkeypatch,\n ):\n     \"\"\"Mid-stream errors from AsyncMessages.stream propagate and record error.\"\"\"\n+    request.getfixturevalue(\n+        \"instrument_with_content\"\n+        if capture_content\n+        else \"instrument_no_content\"\n+    )\n     model = \"claude-haiku-4-5\"\n     messages = [{\"role\": \"user\", \"content\": \"Say hello in one word.\"}]\n \n     with pytest.raises(\n-        ConnectionError, match=\"connection reset during stream\"\n-    ):\n+        error_type, match=\"connection reset during stream\"\n+    ) as raised:\n         async with async_anthropic_client.messages.stream(\n             model=model,\n             max_tokens=100,\n             messages=messages,\n         ) as stream:\n-            monkeypatch.setattr(\n-                stream,\n-                \"stream\",\n-                _AsyncErrorInjectingStreamDelegate(stream.stream),\n+            delegate = _AsyncErrorInjectingStreamDelegate(\n+                stream.stream, fail_after=fail_after, error_type=error_type\n             )\n+            monkeypatch.setattr(stream, \"stream\", delegate)\n             async for _ in stream:\n                 pass\n \n+    assert raised.value is delegate.error\n+    await stream.close()",
+      "id": "PRRT_kwDOSbspP86ntYgj",
+      "opened": "2026-09-30T21:01:26Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-anthropic/tests/test_async_messages.py",
+      "replies": [],
+      "reviewed": "92edcdcc339a539e196a0fe1c3c7631685469a73",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/793#discussion_r4149298857"
+    }
+  ]
+}

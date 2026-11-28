@@ -1,0 +1,55 @@
+{
+  "head": "58bb1aaeabfbb3f0827bfb57e78503ad725fbaf1",
+  "merge": "85a6c5e885af8af51b1e788123e54f1480a1fec5",
+  "merged": "2026-11-26T13:44:28Z",
+  "missing_roots": 0,
+  "number": 21520,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "Took me a while to figure out that this construct is used to get the parent span in `parent` variable. I'll replace it with the usual `trace.getSpan(0)`",
+      "created": "2026-11-26T09:20:16Z",
+      "hunk": "@@ -291,30 +291,38 @@ void basicObservable() {\n   @Test\n   void observableFromCallableContextPropagation() throws InterruptedException {\n     CountDownLatch latch = new CountDownLatch(1);\n-    AtomicReference<String> traceId = new AtomicReference<>();\n-    AtomicReference<String> innerObservableTraceId = new AtomicReference<>();\n-    AtomicReference<String> endObservableTraceId = new AtomicReference<>();\n \n     createParentSpan(() -> {\n-      traceId.set(Span.current().getSpanContext().getTraceId());\n       Disposable unused =\n           Observable.fromCallable(\n                   () -> {\n-                    innerObservableTraceId.set(Span.current().getSpanContext().getTraceId());\n+                    testing().runWithSpan(\"callable\", () -> {});\n                     return \"success\";\n                   })\n               .subscribeOn(Schedulers.io())\n               .observeOn(Schedulers.single())\n               .subscribe(data -> {\n-                endObservableTraceId.set(Span.current().getSpanContext().getTraceId());\n+                testing().runWithSpan(\"subscriber\", () -> {});\n                 latch.countDown();\n               });\n       assertThat(unused).isNotNull();\n     });\n \n     assertThat(latch.await(10, SECONDS)).isTrue();\n-    assertThat(innerObservableTraceId.get()).isEqualTo(traceId.get());\n-    assertThat(endObservableTraceId.get()).isEqualTo(traceId.get());\n+    testing()\n+        .waitAndAssertTraces(trace ->\n+            trace\n+                .filteredOn(span -> span.getName().equals(PARENT))\n+                .singleElement()\n+                .satisfies(parent ->",
+      "id": "PRRT_kwDODJKVX868TNbF",
+      "opened": "2026-11-26T09:20:16Z",
+      "path": "instrumentation/rxjava/rxjava-2.0/testing/src/main/java/io/opentelemetry/instrumentation/rxjava/v2_0/AbstractRxJava2Test.java",
+      "replies": [],
+      "reviewed": "74cd8c36a7afb56e13539703f454c45a8c36a258",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21520#discussion_r4706170483"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Use `hasSpansSatisfyingExactly`: the callable probe finishes before the subscriber starts, and `TelemetryDataUtil` sorts the parent first and siblings by start time, independently of export order. The unordered assertion drops a deterministic ordering check required by `.github/instructions/java-tests.instructions.md:96–98`. Apply the same change in `AbstractRxJava2Test.java:314`.",
+      "created": "2026-11-26T09:25:01Z",
+      "hunk": "@@ -203,30 +203,34 @@ void twoOperationsFlowable() {\n   @Test\n   void observableFromCallableContextPropagation() throws InterruptedException {\n     CountDownLatch latch = new CountDownLatch(1);\n-    AtomicReference<String> traceId = new AtomicReference<>();\n-    AtomicReference<String> innerObservableTraceId = new AtomicReference<>();\n-    AtomicReference<String> endObservableTraceId = new AtomicReference<>();\n \n     createParentSpan(() -> {\n-      traceId.set(Span.current().getSpanContext().getTraceId());\n       Disposable unused =\n           Observable.fromCallable(\n                   () -> {\n-                    innerObservableTraceId.set(Span.current().getSpanContext().getTraceId());\n+                    testing().runWithSpan(\"callable\", () -> {});\n                     return \"success\";\n                   })\n               .subscribeOn(Schedulers.io())\n               .observeOn(Schedulers.single())\n               .subscribe(data -> {\n-                endObservableTraceId.set(Span.current().getSpanContext().getTraceId());\n+                testing().runWithSpan(\"subscriber\", () -> {});\n                 latch.countDown();\n               });\n       assertThat(unused).isNotNull();\n     });\n \n     latch.await();\n-    assertThat(innerObservableTraceId.get()).isEqualTo(traceId.get());\n-    assertThat(endObservableTraceId.get()).isEqualTo(traceId.get());\n+    testing()\n+        .waitAndAssertTraces(trace ->\n+            trace.hasSpansSatisfyingExactlyInAnyOrder(",
+      "id": "PRRT_kwDODJKVX868TWWP",
+      "opened": "2026-11-26T09:25:01Z",
+      "path": "instrumentation/rxjava/rxjava-common-3.0/testing/src/main/java/io/opentelemetry/instrumentation/rxjava/common/v3_0/AbstractRxJava3Test.java",
+      "replies": [],
+      "reviewed": "333ee8c94113ad450875f2b7e9c1279a390160d6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21520#discussion_r4706232013"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "laurit"
+      },
+      "body": "```suggestion\n            trace.hasSpansSatisfyingExactly(\n```",
+      "created": "2026-11-26T09:34:25Z",
+      "hunk": "@@ -291,30 +291,34 @@ void basicObservable() {\n   @Test\n   void observableFromCallableContextPropagation() throws InterruptedException {\n     CountDownLatch latch = new CountDownLatch(1);\n-    AtomicReference<String> traceId = new AtomicReference<>();\n-    AtomicReference<String> innerObservableTraceId = new AtomicReference<>();\n-    AtomicReference<String> endObservableTraceId = new AtomicReference<>();\n \n     createParentSpan(() -> {\n-      traceId.set(Span.current().getSpanContext().getTraceId());\n       Disposable unused =\n           Observable.fromCallable(\n                   () -> {\n-                    innerObservableTraceId.set(Span.current().getSpanContext().getTraceId());\n+                    testing().runWithSpan(\"callable\", () -> {});\n                     return \"success\";\n                   })\n               .subscribeOn(Schedulers.io())\n               .observeOn(Schedulers.single())\n               .subscribe(data -> {\n-                endObservableTraceId.set(Span.current().getSpanContext().getTraceId());\n+                testing().runWithSpan(\"subscriber\", () -> {});\n                 latch.countDown();\n               });\n       assertThat(unused).isNotNull();\n     });\n \n     assertThat(latch.await(10, SECONDS)).isTrue();\n-    assertThat(innerObservableTraceId.get()).isEqualTo(traceId.get());\n-    assertThat(endObservableTraceId.get()).isEqualTo(traceId.get());\n+    testing()\n+        .waitAndAssertTraces(trace ->\n+            trace.hasSpansSatisfyingExactlyInAnyOrder(",
+      "id": "PRRT_kwDODJKVX868TlVB",
+      "opened": "2026-11-26T09:34:25Z",
+      "path": "instrumentation/rxjava/rxjava-2.0/testing/src/main/java/io/opentelemetry/instrumentation/rxjava/v2_0/AbstractRxJava2Test.java",
+      "replies": [],
+      "reviewed": "333ee8c94113ad450875f2b7e9c1279a390160d6",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21520#discussion_r4706333243"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "head": "905ead1c738404966f3fddfa04cdac5b43a1fa80",
+  "merge": "40e088c5e014ddd73120c22375ea69a8c10abde9",
+  "merged": "2026-10-23T06:06:10Z",
+  "missing_roots": 0,
+  "number": 20894,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with only the following three user-requested follow-up changes. Preserve its draft state and existing base; do not create a separate PR as a workaround.\n\n1. Remove the redundant `equalTo(ERROR_TYPE, null)` assertion from `AbstractAws2ClientTest.testS3ServiceError` in `instrumentation/aws-sdk/aws-sdk-2.2/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/AbstractAws2ClientTest.java`. The surrounding `hasAttributesSatisfyingExactly(...)` already excludes unlisted attributes. Remove any import only if it becomes unused.\n\n2. Delete `instrumentation/aws-sdk/aws-sdk-2.2/library/src/test/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/AwsSdkHttpClientSuppressionAttributesExtractorTest.java`. It only checks the hard-coded getter result and does not exercise actual suppression. Do not replace it with another getter-only test or expand this into suppression changes.\n\n3. Change generic AWS schema selection from `SchemaUrls.V1_37_0` to `SchemaUrls.V1_44_0` in both AWS SDK versions' `internal/AwsSdkInstrumenterFactory.java`, under `instrumentation/aws-sdk/aws-sdk-1.11/library` and `instrumentation/aws-sdk/aws-sdk-2.2/library`. Update the directly corresponding generic AWS schema assertions, including `AbstractS3ClientTest.testServiceError` and `AbstractAws2ClientTest.testS3ServiceError`. The AWS convention in v1.44.0 still specifies the existing `rpc.system=\"aws-api\"`, separate `rpc.service`, and operation-only `rpc.method`; see https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/aws/sdk-spans.yaml. The fixed schema should represent AWS conventions independently of RPC configuration. Preserve specialized database, messaging, and GenAI schema overrides.\n\nKeep the rest of the PR's AWS/RPC decoupling intact, including independent HTTP suppression. In particular, preserve the SDK v1 `equalTo(ERROR_TYPE, AmazonS3Exception.class.getName())` expectation and current production error handling. Its exception-class value comes from existing HTTP extraction; changing error classification across SDK versions is outside these three requested items. Do not modify the `builder -> {}` customizer arguments or the common RPC API.\n\nFollow repository instructions and run the narrowest relevant formatting and validation for these changes. Do not wait for CI or merge the PR.",
+      "created": "2026-10-23T04:32:16Z",
+      "hunk": "@@ -341,7 +338,7 @@ private static <REQUEST, RESPONSE> Instrumenter<REQUEST, RESPONSE> createInstrum\n     InstrumenterBuilder<REQUEST, RESPONSE> builder =\n         Instrumenter.<REQUEST, RESPONSE>builder(\n                 openTelemetry, INSTRUMENTATION_NAME, spanNameExtractor)\n-            .setSchemaUrl(RpcSemconvSelection.Selection.forOpenTelemetry(openTelemetry).schemaUrl())\n+            .setSchemaUrl(SchemaUrls.V1_37_0)",
+      "id": "PRRT_kwDODJKVX86vePt0",
+      "opened": "2026-10-23T04:32:16Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/internal/AwsSdkInstrumenterFactory.java",
+      "replies": [
+        {
+          "at": "2026-10-23T04:40:25Z",
+          "body": "Addressed in commit `905ead1c`: removed the redundant v2 assertion and getter-only test, and updated generic AWS schema selection and corresponding S3 expectations to v1.44.0. Focused formatting and semconv tests pass; specialized overrides and the SDK v1 exception-class expectation are preserved.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20894#discussion_r4356146244"
+        }
+      ],
+      "reviewed": "51bf8b0b530c18af82b68bcc0dfc1d10fdf287a4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20894#discussion_r4356107952"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "`error.type` here is part of http semconv",
+      "created": "2026-10-23T04:43:12Z",
+      "hunk": "@@ -149,28 +144,27 @@ void testServiceError(String errorCode) {\n                             .hasStatus(StatusData.error())\n                             .hasException(emitExceptionAsSpanEvents() ? error : null)\n                             .hasNoParent()\n+                            .satisfies(hasScopeSchemaUrl(SchemaUrls.V1_44_0))\n                             .hasAttributesSatisfyingExactly(\n                                 equalTo(URL_FULL, endpoint.getServiceEndpoint()),\n                                 equalTo(HTTP_REQUEST_METHOD, \"GET\"),\n                                 equalTo(HTTP_RESPONSE_STATUS_CODE, null),\n                                 equalTo(SERVER_ADDRESS, \"127.0.0.1\"),\n                                 equalTo(SERVER_PORT, server.httpPort()),\n-                                equalTo(RPC_SYSTEM, emitOldRpcSemconv() ? \"aws-api\" : null),\n-                                equalTo(RPC_SERVICE, emitOldRpcSemconv() ? \"Amazon S3\" : null),\n-                                equalTo(RPC_METHOD, emitPreviewRpcSemconv() ? null : \"GetObject\"),\n-                                equalTo(\n-                                    RPC_SYSTEM_NAME, emitPreviewRpcSemconv() ? \"aws-api\" : null),\n+                                equalTo(RPC_SYSTEM, \"aws-api\"),\n+                                equalTo(RPC_SERVICE, \"Amazon S3\"),\n+                                equalTo(RPC_METHOD, \"GetObject\"),\n                                 equalTo(stringKey(\"aws.agent\"), experimental(\"java-aws-sdk\")),\n                                 equalTo(AWS_S3_BUCKET, \"someBucket\"),\n-                                equalTo(ERROR_TYPE, expectedErrorType))));\n+                                equalTo(ERROR_TYPE, AmazonS3Exception.class.getName()))));",
+      "id": "PRRT_kwDODJKVX86veXew",
+      "opened": "2026-10-23T04:43:11Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-1.11/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v1_11/AbstractS3ClientTest.java",
+      "replies": [],
+      "reviewed": "905ead1c738404966f3fddfa04cdac5b43a1fa80",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20894#discussion_r4356159587"
+    }
+  ]
+}

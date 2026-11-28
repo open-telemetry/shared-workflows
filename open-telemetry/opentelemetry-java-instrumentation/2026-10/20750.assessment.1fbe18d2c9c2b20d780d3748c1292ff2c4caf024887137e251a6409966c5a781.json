@@ -1,0 +1,52 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "daaded072ddd5ac58a00119cc166e2eac661a266dce5cabb5fa601b28878c4c7",
+  "input_digest": "1fbe18d2c9c2b20d780d3748c1292ff2c4caf024887137e251a6409966c5a781",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/730abc83e9ee2e45023afa9a2197137944495c71/instrumentation/aws-sdk/aws-sdk-2.2/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e0f6bfb9283d21aa0872df386d3b3220645be431/instrumentation/aws-sdk/aws-sdk-2.2/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/730abc83e9ee2e45023afa9a2197137944495c71/instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/CamelProcessMetricsTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e0f6bfb9283d21aa0872df386d3b3220645be431/instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/CamelProcessMetricsTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/730abc83e9ee2e45023afa9a2197137944495c71/instrumentation/spring/spring-ai-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e0f6bfb9283d21aa0872df386d3b3220645be431/instrumentation/spring/spring-ai-1.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/730abc83e9ee2e45023afa9a2197137944495c71/instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/RestCamelTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e0f6bfb9283d21aa0872df386d3b3220645be431/instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/RestCamelTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ud1Ei",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9a3a3d23df760bfa7d43ca14922d962530ba19b1/instrumentation/aws-sdk/aws-sdk-2.2/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/AbstractAws2BedrockRuntimeTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e0f6bfb9283d21aa0872df386d3b3220645be431/instrumentation/aws-sdk/aws-sdk-2.2/testing/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/AbstractAws2BedrockRuntimeTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9a3a3d23df760bfa7d43ca14922d962530ba19b1/instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/RestCamelTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e0f6bfb9283d21aa0872df386d3b3220645be431/instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/RestCamelTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86ug4my",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/49380c5067cf929ad8f7d8f9d166fde6010b5ce5/instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/RestCamelTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e0f6bfb9283d21aa0872df386d3b3220645be431/instrumentation/camel-2.20/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/camel/v2_20/RestCamelTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/49380c5067cf929ad8f7d8f9d166fde6010b5ce5/instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitMqTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/e0f6bfb9283d21aa0872df386d3b3220645be431/instrumentation/rabbitmq-2.7/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/rabbitmq/v2_7/RabbitMqTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86uhZU7",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

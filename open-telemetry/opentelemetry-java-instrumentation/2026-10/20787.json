@@ -1,0 +1,40 @@
+{
+  "head": "412c562df0c301146896f62cd627fd086619b42d",
+  "merge": "a8560d1d80e4fa7e891999ab462d174d056223cc",
+  "merged": "2026-10-21T06:14:03Z",
+  "missing_roots": 0,
+  "number": 20787,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] Non-blocking: “Remove them from constructors” restates the method-only restriction. `CONTRIBUTING.md:15–18` asks changelog entries to omit migration instructions inferable from the change. Please omit this sentence.",
+      "created": "2026-10-20T21:39:25Z",
+      "hunk": "@@ -4,6 +4,8 @@\n \n ### ⚠️ Breaking changes\n \n+- In `opentelemetry-instrumentation-annotations` 3.0, `@WithSpan` and\n+  `@AddingSpanAttributes` target methods only. Remove them from constructors.",
+      "id": "PRRT_kwDODJKVX86uiT-T",
+      "opened": "2026-10-20T21:39:26Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "5bd9fd5c1f7df4c5e9fb94553e42a41ec2fda066",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20787#discussion_r4330622403"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n- `@WithSpan` and `@AddingSpanAttributes` no longer allow targeting constructors\n  (which didn't work properly anyways).\n```",
+      "created": "2026-10-20T21:54:17Z",
+      "hunk": "@@ -4,6 +4,8 @@\n \n ### ⚠️ Breaking changes\n \n+- In `opentelemetry-instrumentation-annotations` 3.0, `@WithSpan` and\n+  `@AddingSpanAttributes` target methods only.",
+      "id": "PRRT_kwDODJKVX86uim2k",
+      "opened": "2026-10-20T21:54:17Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "009e6bf247d2a2a15e0c3998e6f8beec210df27a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20787#discussion_r4330748510"
+    }
+  ]
+}

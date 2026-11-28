@@ -1,0 +1,32 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "1cb095d1fd7c2de8023f57a8f4312eaac88db986ec4eb1beda60d1d3293ecce8",
+  "input_digest": "1fab9f047214774dbdbb65de87bf5c606ef84df006b6ddaa2b981c9d68820f71",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a35bec9c80373d02fb4a27f8d521796cff3528f7/instrumentation/spring/spring-jms/spring-jms-2.0/javaagent/src/version20Test/java/io/opentelemetry/javaagent/instrumentation/spring/jms/v2_0/SpringJmsBaselineTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3b42df7261c31f60fe265aaf12950bfe1a9af766/instrumentation/spring/spring-jms/spring-jms-2.0/javaagent/src/version20Test/java/io/opentelemetry/javaagent/instrumentation/spring/jms/v2_0/SpringJmsBaselineTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/9553fec883ce620029e00787766f66bab331cca2"
+      ],
+      "id": "PRRT_kwDODJKVX86vSFw4",
+      "kind": "bug",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/9553fec883ce620029e00787766f66bab331cca2/instrumentation/spring/spring-jms/spring-jms-2.0/javaagent/src/version20Test/java/io/opentelemetry/javaagent/instrumentation/spring/jms/v2_0/SpringJmsBaselineTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/3b42df7261c31f60fe265aaf12950bfe1a9af766/instrumentation/spring/spring-jms/spring-jms-2.0/javaagent/src/version20Test/java/io/opentelemetry/javaagent/instrumentation/spring/jms/v2_0/SpringJmsBaselineTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX86vTmtv",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    }
+  ]
+}

@@ -1,0 +1,181 @@
+{
+  "head": "55c58d89fba4c948df010af3321c1b51fcc51438",
+  "merge": "5fd995398d20b0f57e5f8f4cd141305bdbbedeb0",
+  "merged": "2026-11-14T02:38:34Z",
+  "missing_roots": 0,
+  "number": 1041,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "After `enrich_from_context()`, `_get_attributes()` also contains inner typed values, so an outer `attributes[GEN_AI_PROMPT_NAME] = \"outer\"` now loses to an inner `data.prompt_name = \"inner\"`, reversing the previous outer-wins behavior. The reordered event/metric merges have the same problem, as do `_embedding_invocation.py:228`, `_retrieval_invocation.py:275`, and `_fetch_response_invocation.py:362`. Preserve which values came from the outer invocation during enrichment so outer raw entries beat inner typed values while outer typed values still beat inner raw entries.",
+      "created": "2026-11-04T20:28:17Z",
+      "hunk": "@@ -929,10 +938,9 @@ def _apply_finish(self, error: Error | None = None) -> None:\n         self.data.metric_attributes = self.metric_attributes\n         if self._request_stream is not None:\n             self.data.request_stream = self._request_stream\n-        attributes: dict[str, AttributeValue] = {}\n+        attributes: dict[str, AttributeValue] = dict(self.attributes)\n         attributes.update(self._get_attributes())",
+      "id": "PRRT_kwDOSbspP86zyfX4",
+      "opened": "2026-11-04T20:28:18Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_inference_invocation.py",
+      "replies": [],
+      "reviewed": "e82212fe19d6e6684a23f99926e39684a917fcf3",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1041#discussion_r4472928603"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "rads-1996"
+      },
+      "body": "Copying typed values into `attributes` makes them override later updates too. For callers that enrich before finishing, setting `input_tokens = 10`, calling `enrich_from_context(...)`, then setting `input_tokens = 20` leaves the span reporting 10 while the token metric reports 20. The base revision reports 20 consistently. Could we preserve outer precedence without freezing these values, and cover this sequence in a regression test?",
+      "created": "2026-11-05T17:13:09Z",
+      "hunk": "@@ -863,6 +863,13 @@ def enrich_from_context(self, data: InferenceData) -> None:\n         prompt_variable = self.data.prompt_variable\n         tool_definitions = self.data.tool_definitions\n \n+        for k, v in (",
+      "id": "PRRT_kwDOSbspP860LjEV",
+      "opened": "2026-11-05T17:13:10Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_inference_invocation.py",
+      "replies": [
+        {
+          "at": "2026-11-05T21:14:50Z",
+          "body": "That scenario shouln't be possible because `enrich_from_context` is called just once internally inside `_finish`.. It shouldn't have been made public that is a mistake.. I've updated the name to be `_enrich_from_context`",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1041#discussion_r4486150961"
+        }
+      ],
+      "reviewed": "81fa84b7c33269af86e45de0d3e516583814e988",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1041#discussion_r4483586673"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "rads-1996"
+      },
+      "body": "Could we cover the raw/typed precedence cases for embeddings, retrieval, and fetch-response here too? The same logic is added to all four invocation types, but this test only exercises inference. Sharing the seeding logic would also help keep their behavior consistent.",
+      "created": "2026-11-05T17:13:28Z",
+      "hunk": "@@ -1088,6 +1088,139 @@ def test_inference_context_data_merge(self) -> None:\n         self.assertTrue(config_data.capture_content)",
+      "id": "PRRT_kwDOSbspP860Ljj4",
+      "opened": "2026-11-05T17:13:29Z",
+      "path": "util/opentelemetry-util-genai/tests/test_context.py",
+      "replies": [
+        {
+          "at": "2026-11-05T21:15:41Z",
+          "body": "Yeah good idea.. I've added tests.. also I moved all the merge logic to the base class in a shared function",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1041#discussion_r4486160248"
+        }
+      ],
+      "reviewed": "81fa84b7c33269af86e45de0d3e516583814e988",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1041#discussion_r4483589984"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "`_ContextData` is only used inside this module now - could we drop the alias (and its `__all__` entry) and use `ContextData` directly?",
+      "created": "2026-11-07T04:48:14Z",
+      "hunk": "@@ -120,6 +121,9 @@ def merge(self: Self, other: Self, *, overwrite: bool = True) -> None:\n                 self.metric_attributes.setdefault(k, v)\n \n \n+_ContextData = ContextData",
+      "id": "PRRT_kwDOSbspP860yRL8",
+      "opened": "2026-11-07T04:51:48Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [
+        {
+          "at": "2026-11-09T15:14:49Z",
+          "body": "Yes good catch.. removed",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1041#discussion_r4514331597"
+        }
+      ],
+      "reviewed": "9472839e3a8ad6bcbf17fe62530ae7be93af3b7d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1041#discussion_r4500153847"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "This reads `attributes` for metrics, which is documented as \"Not set on metrics\", and only covers input/output tokens on inference and embedding (agent, cache/reasoning tokens etc. don't get it). Now that `InferenceData`/`EmbeddingData` are public, inner instrumentations can set `usage_input_tokens` directly. How about dropping the fallback here?",
+      "created": "2026-11-07T04:48:14Z",
+      "hunk": "@@ -907,14 +907,23 @@ def _get_metric_attributes(self) -> dict[str, AttributeValue]:\n \n     def _get_metric_token_counts(self) -> dict[str, int]:\n         counts: dict[str, int] = {}\n-        if self.data.usage_input_tokens is not None:\n-            counts[GenAI.GenAiTokenTypeValues.INPUT.value] = (\n-                self.data.usage_input_tokens\n-            )\n-        if self.data.usage_output_tokens is not None:\n-            counts[GenAI.GenAiTokenTypeValues.OUTPUT.value] = (\n-                self.data.usage_output_tokens\n-            )\n+        input_tokens = self.data.usage_input_tokens\n+        if input_tokens is None:\n+            raw_input = self.attributes.get(GenAI.GEN_AI_USAGE_INPUT_TOKENS)\n+            if isinstance(raw_input, int) and not isinstance(raw_input, bool):\n+                input_tokens = raw_input",
+      "id": "PRRT_kwDOSbspP860yRMA",
+      "opened": "2026-11-07T04:51:48Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_inference_invocation.py",
+      "replies": [
+        {
+          "at": "2026-11-09T15:17:55Z",
+          "body": "Ack removing the fallback",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1041#discussion_r4514365469"
+        }
+      ],
+      "reviewed": "9472839e3a8ad6bcbf17fe62530ae7be93af3b7d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1041#discussion_r4500153852"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "The removal of public `enrich_from_context` and the new public `ContextData` are user-visible too - worth adding `1041.removed` / `1041.added` fragments.",
+      "created": "2026-11-07T04:48:14Z",
+      "hunk": "@@ -0,0 +1 @@\n+Preserve outer invocation typed attributes over colliding entries in `attributes` and `metric_attributes` dictionaries when enriching from context, and fall back to `gen_ai.usage.input_tokens` / `gen_ai.usage.output_tokens` in `attributes` when recording token usage metrics.",
+      "id": "PRRT_kwDOSbspP860yRMD",
+      "opened": "2026-11-07T04:51:48Z",
+      "path": "util/opentelemetry-util-genai/.changelog/1041.fixed",
+      "replies": [
+        {
+          "at": "2026-11-09T15:15:24Z",
+          "body": "Ack.. added the fragments",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1041#discussion_r4514337884"
+        }
+      ],
+      "reviewed": "9472839e3a8ad6bcbf17fe62530ae7be93af3b7d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1041#discussion_r4500153857"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "nit: the last clause describes an earlier approach rather than current behavior.\n```suggestion\n        Inner raw ``attributes`` and ``metric_attributes`` are ignored for keys\n        already set on the outer invocation via either typed fields or raw dicts.\n```",
+      "created": "2026-11-07T04:48:14Z",
+      "hunk": "@@ -349,10 +353,36 @@ def activate(self) -> Iterator[None]:\n         finally:\n             detach(token)\n \n+    def _get_attributes(self) -> dict[str, AttributeValue]:  # pylint: disable=no-self-use\n+        \"\"\"Return typed attributes for span/event recording.\"\"\"\n+        return {}\n+\n     def _get_metric_attributes(self) -> dict[str, AttributeValue]:\n         \"\"\"Return low-cardinality attributes for metric recording.\"\"\"\n         return self.metric_attributes\n \n+    def _merge_context_data(\n+        self, target: ContextData, source: ContextData\n+    ) -> None:\n+        \"\"\"Merge inner context data into ``target`` while preserving outer precedence.\n+\n+        Inner raw ``attributes`` and ``metric_attributes`` are ignored for keys\n+        already set on the outer invocation (via either typed fields or raw\n+        dicts), without copying outer typed values into ``self.attributes``.",
+      "id": "PRRT_kwDOSbspP860yRMF",
+      "opened": "2026-11-07T04:51:48Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_invocation.py",
+      "replies": [
+        {
+          "at": "2026-11-09T15:23:19Z",
+          "body": "Ack, fixed",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1041#discussion_r4514423774"
+        }
+      ],
+      "reviewed": "9472839e3a8ad6bcbf17fe62530ae7be93af3b7d",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1041#discussion_r4500153861"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Renaming `enrich_from_context` on the exported inference, embedding, retrieval, and fetch-response invocation classes makes existing callers raise `AttributeError`. Retain deprecated forwarding methods in all four classes, following the [API compatibility rule](https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/util/opentelemetry-util-genai/AGENTS.md#8-python-api-conventions). If removal is intentional, the PR must instead document which released instrumentations were checked in this repository and `opentelemetry-python-contrib`, as required by the [compatibility assessment rule](https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/.github/instructions/util-genai.instructions.md#3-api-backwards-compatibility).",
+      "created": "2026-11-11T19:30:13Z",
+      "hunk": "@@ -852,7 +852,7 @@ def _get_attributes(self) -> dict[str, AttributeValue]:\n         attrs.update({k: v for k, v in optional_attrs if v is not None})\n         return attrs\n \n-    def enrich_from_context(self, data: InferenceData) -> None:\n+    def _enrich_from_context(self, data: InferenceData) -> None:",
+      "id": "PRRT_kwDOSbspP862VDbo",
+      "opened": "2026-11-11T19:30:13Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_inference_invocation.py",
+      "replies": [],
+      "reviewed": "da2fd68f3775e5fb36cb8edb35e98eca1b181c3b",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1041#discussion_r4542372024"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Renaming `enrich_from_context` on the four exported invocation classes breaks existing callers with `AttributeError` after a util upgrade. Retain deprecated public forwarding methods, as required by the [API compatibility policy](https://github.com/open-telemetry/opentelemetry-python-genai/blob/main/.github/instructions/util-genai.instructions.md#3-api-backwards-compatibility); the same applies to `EmbeddingInvocation`, `RetrievalInvocation`, and `FetchResponseInvocation`. If removal is intentional, document which released instrumentations were checked in this repository and `opentelemetry-python-contrib`, and identify the change as breaking rather than non-breaking.",
+      "created": "2026-11-12T15:23:36Z",
+      "hunk": "@@ -852,7 +852,7 @@ def _get_attributes(self) -> dict[str, AttributeValue]:\n         attrs.update({k: v for k, v in optional_attrs if v is not None})\n         return attrs\n \n-    def enrich_from_context(self, data: InferenceData) -> None:\n+    def _enrich_from_context(self, data: InferenceData) -> None:",
+      "id": "PRRT_kwDOSbspP862sEXC",
+      "opened": "2026-11-12T15:23:37Z",
+      "path": "util/opentelemetry-util-genai/src/opentelemetry/util/genai/_inference_invocation.py",
+      "replies": [],
+      "reviewed": "55c58d89fba4c948df010af3321c1b51fcc51438",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1041#discussion_r4552414105"
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "9f0e0dfd850a3435fb6e5584dfc6ebf7d1b5e0bf549bd76db0613d8870b66146",
+  "input_digest": "5ce5b492be63bcb12cfc8b4e0cc36ba150bbe3cdf995bbdeb7e931427829067d",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d2d3b050e8d30c22b04b069ad3cd8172ef0f1b05/instrumentation/spring/spring-webmvc/spring-webmvc-6.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/webmvc/v6_0/boot/SpringBootBasedTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2026b88c2c054a067bcf3258ac3e1913569c1560/instrumentation/spring/spring-webmvc/spring-webmvc-6.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/webmvc/v6_0/boot/SpringBootBasedTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d2d3b050e8d30c22b04b069ad3cd8172ef0f1b05/instrumentation/spring/spring-webmvc/spring-webmvc-6.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/webmvc/v6_0/boot/SecurityConfig.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2026b88c2c054a067bcf3258ac3e1913569c1560/instrumentation/spring/spring-webmvc/spring-webmvc-6.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/spring/webmvc/v6_0/boot/SecurityConfig.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/a0723a0b8d1efd7b3aeb200a7f6d0b9311b4864a"
+      ],
+      "id": "PRRT_kwDODJKVX860xSVZ",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/a0723a0b8d1efd7b3aeb200a7f6d0b9311b4864a/muzzle/src/test/java/io/opentelemetry/javaagent/tooling/muzzle/ReferenceCollectorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2026b88c2c054a067bcf3258ac3e1913569c1560/muzzle/src/test/java/io/opentelemetry/javaagent/tooling/muzzle/ReferenceCollectorTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/bffa02f4b7ba568ba46cd2ae265e1e623b474e38"
+      ],
+      "id": "PRRT_kwDODJKVX860xhbq",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bffa02f4b7ba568ba46cd2ae265e1e623b474e38/muzzle/src/main/java/io/opentelemetry/javaagent/tooling/muzzle/ReferenceCollector.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2026b88c2c054a067bcf3258ac3e1913569c1560/muzzle/src/main/java/io/opentelemetry/javaagent/tooling/muzzle/ReferenceCollector.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/001b50c0ae5759c4a2c730df2f34e2942e4d73f3"
+      ],
+      "id": "PRRT_kwDODJKVX860xvHq",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX860z7_b",
+      "kind": null,
+      "status": "other"
+    }
+  ]
+}

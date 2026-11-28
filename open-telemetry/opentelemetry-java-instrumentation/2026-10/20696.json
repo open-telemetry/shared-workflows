@@ -1,0 +1,52 @@
+{
+  "head": "50333785d41e1e8896deb3bb6f405ca402fe4815",
+  "merge": "6f6de39b0f8096cc2bb42c4282d70af4dc06fa19",
+  "merged": "2026-10-19T06:08:36Z",
+  "missing_roots": 0,
+  "number": 20696,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Keep this existing PR focused on the indy migration by removing the optional nested FilterClient coverage added in Elasticsearch5TransportClientTest. Restore threeArgumentFilterClientTracksExplicitAddressChanges to its original @Test method without the boolean parameter and use one TestFilterClient around singleAddressClient. Restore TestFilterClient's constructor parameter to TransportClient and remove the now-unused parameterized-test imports.\n\nKeep the production indy conversions and the necessary test adaptations that access ElasticsearchTransportServerTargets and Endpoint through the isolated instrumentation class loader, including updateServerTarget and its reflection imports. Do not remove existing baseline coverage or add other coverage, refactors, or production changes. Preserve this PR's draft state, validate with appropriate existing targeted checks, and update its description only if it still claims the removed nested-wrapper coverage. This request applies only to this PR, not the other migration PRs or the tracking issue.",
+      "created": "2026-10-19T00:19:01Z",
+      "hunk": "@@ -200,10 +196,13 @@ void concurrentAddressChangesPublishFinalSnapshot() {\n     assertConfiguredTarget(hasDownAddress ? configuredAddressListWithMixedPorts() : null, null);\n   }\n \n-  @Test\n-  void threeArgumentFilterClientTracksExplicitAddressChanges() {\n+  @ParameterizedTest",
+      "id": "PRRT_kwDODJKVX86twDqK",
+      "opened": "2026-10-19T00:19:01Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-transport-5.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/v5_0/Elasticsearch5TransportClientTest.java",
+      "replies": [
+        {
+          "at": "2026-10-19T00:25:56Z",
+          "body": "Restored the original single-wrapper test and constructor type, kept the indy-compatible reflective helper access, and removed the nested-wrapper coverage claim. Focused test passed. Commit: `02b00cba`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20696#discussion_r4309417315"
+        }
+      ],
+      "reviewed": "c545093ea35d4d9524fc5f3980a6dd800b7b113a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20696#discussion_r4309395102"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Redesign this PR's Elasticsearch5TransportClientTest so the agent-backed integration test no longer accesses instrumentation internals or isolated helper class loaders. This user-directed redesign supersedes the earlier instruction to retain updateServerTarget and its reflective helper access.\n\nMove the sharedDefaultPortIsOmitted and sharedNonDefaultPortIsIncludedWithEachAddress formatting cases out of that integration test and into the existing ElasticsearchTransportServerTargetTest in instrumentation/elasticsearch/elasticsearch-transport-common-5.0/javaagent-unit-tests. Preserve both cases by testing the pure target formatter directly with two endpoints: two default-port 9300 endpoints produce an address list without ports and no separate port; two non-default-port 9400 endpoints include :9400 with each address and no separate port. Reuse the existing unit suite and straightforward assertions rather than adding a new abstraction or production test hook.\n\nRemove the two synthetic integration tests, updateServerTarget, AgentClassLoaderAccess, IndyModuleRegistry/reflection use, and imports/expected-value helpers made unused by that removal. Keep the remaining agent-backed integration coverage using public addTransportAddress/removeTransportAddress calls, FilterClient delegation, and assertions on exported telemetry. Preserve all production indy conversions, supported versions, and behavior. Do not bind extra servers to fixed ports, expose helpers to make tests work, restore the removed nested-wrapper coverage, or expand unrelated tests.\n\nApply the narrow scoped formatting tasks and run the relevant existing unit and integration tests where feasible. Preserve this existing PR's draft state and keep its description accurate, removing stale claims about nested FilterClient coverage or reflective snapshot-test access. This assignment is only for PR #20696; do not change the other migration PRs, the tracking issue, or the separate cloud-skill work.",
+      "created": "2026-10-19T00:40:31Z",
+      "hunk": "@@ -238,6 +232,36 @@ private static void clusterHealth(Client client) {\n     client.admin().cluster().prepareHealth().execute().actionGet(TIMEOUT);\n   }\n \n+  private void updateServerTarget(TransportClient client, int port)",
+      "id": "PRRT_kwDODJKVX86twOaq",
+      "opened": "2026-10-19T00:40:31Z",
+      "path": "instrumentation/elasticsearch/elasticsearch-transport-5.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/elasticsearch/transport/v5_0/Elasticsearch5TransportClientTest.java",
+      "replies": [
+        {
+          "at": "2026-10-19T00:48:49Z",
+          "body": "Moved both shared-port formatting cases to `ElasticsearchTransportServerTargetTest` and removed the reflective helper access and synthetic integration cases. The remaining focused unit and integration tests pass. Updated the PR description to reflect the new test coverage. Commit: `50333785`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20696#discussion_r4309494114"
+        }
+      ],
+      "reviewed": "02b00cba8d3916205be8ab851030de758493414b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20696#discussion_r4309465694"
+    }
+  ]
+}

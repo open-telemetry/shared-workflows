@@ -1,0 +1,124 @@
+{
+  "head": "9e5e608f4d46c00d98ea25813de4fe355ba1530a",
+  "merge": "3bc623e6470fda979d5af82c272370db36c70742",
+  "merged": "2026-11-26T13:43:50Z",
+  "missing_roots": 0,
+  "number": 21486,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`circuitBreakerName` is an identifier recorded in the `failsafe.circuit_breaker.name` attribute, not a metric name. Both emitted metric names are fixed by the implementation. Describe this as the circuit-breaker name so users do not expect this argument to rename the metrics.",
+      "created": "2026-11-25T15:19:18Z",
+      "hunk": "@@ -51,9 +51,17 @@ private FailsafeTelemetry(OpenTelemetry openTelemetry) {\n    * @param circuitBreakerName identifier of given {@link CircuitBreaker}\n    * @param <R> {@link CircuitBreaker}'s result type\n    * @return instrumented {@link CircuitBreaker}\n+   * @deprecated Use {@link #instrument(CircuitBreaker, String)} instead.\n    */\n+  @Deprecated\n   public <R> CircuitBreaker<R> createCircuitBreaker(\n       CircuitBreaker<R> delegate, String circuitBreakerName) {\n+    return instrument(delegate, circuitBreakerName);\n+  }\n+\n+  /** Returns an instrumented copy of the supplied circuit breaker with the given metric name. */",
+      "id": "PRRT_kwDODJKVX867-JO-",
+      "opened": "2026-11-25T15:19:20Z",
+      "path": "instrumentation/failsafe-3.0/library/src/main/java/io/opentelemetry/instrumentation/failsafe/v3_0/FailsafeTelemetry.java",
+      "replies": [
+        {
+          "at": "2026-11-25T18:47:22Z",
+          "body": "Updated the Javadoc to say that the circuit breaker name is recorded in the `failsafe.circuit_breaker.name` metric attribute.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21486#discussion_r4699385995"
+        }
+      ],
+      "reviewed": "442ce3859e5ed7558565bc3a9376c005c06ab6dc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21486#discussion_r4697034689"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "`retryPolicyName` supplies the `failsafe.retry_policy.name` attribute; it does not control the fixed counter or histogram names. Describe it as the retry-policy name rather than a metric name to make the new API's configuration contract accurate.",
+      "created": "2026-11-25T15:19:19Z",
+      "hunk": "@@ -85,8 +93,15 @@ public <R> CircuitBreaker<R> createCircuitBreaker(\n    * @param retryPolicyName identifier of given {@link RetryPolicy}\n    * @param <R> {@link RetryPolicy}'s result type\n    * @return instrumented {@link RetryPolicy}\n+   * @deprecated Use {@link #instrument(RetryPolicy, String)} instead.\n    */\n+  @Deprecated\n   public <R> RetryPolicy<R> createRetryPolicy(RetryPolicy<R> delegate, String retryPolicyName) {\n+    return instrument(delegate, retryPolicyName);\n+  }\n+\n+  /** Returns an instrumented copy of the supplied retry policy with the given metric name. */",
+      "id": "PRRT_kwDODJKVX867-JQL",
+      "opened": "2026-11-25T15:19:20Z",
+      "path": "instrumentation/failsafe-3.0/library/src/main/java/io/opentelemetry/instrumentation/failsafe/v3_0/FailsafeTelemetry.java",
+      "replies": [
+        {
+          "at": "2026-11-25T18:47:22Z",
+          "body": "Updated the Javadoc to say that the retry policy name is recorded in the `failsafe.retry_policy.name` metric attribute.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21486#discussion_r4699385950"
+        }
+      ],
+      "reviewed": "442ce3859e5ed7558565bc3a9376c005c06ab6dc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21486#discussion_r4697034805"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new public API deprecation notices omit the removal timing required by `.github/copilot-instructions.md:29`, leaving callers without a stated migration window. Add “May be removed in the next minor release” alongside each replacement for these alpha APIs. The same omission occurs in `HikariTelemetry.java:41,62` and `FailsafeTelemetry.java:54,96`.",
+      "created": "2026-11-25T15:19:19Z",
+      "hunk": "@@ -45,8 +45,18 @@ public static OkHttpTelemetryBuilder builder(OpenTelemetry openTelemetry) {\n    *\n    * @param baseClient the OkHttpClient to wrap\n    * @return an instrumented Call.Factory\n+   * @deprecated Use {@link #instrument(OkHttpClient)} instead.",
+      "id": "PRRT_kwDODJKVX867-JRX",
+      "opened": "2026-11-25T15:19:20Z",
+      "path": "instrumentation/okhttp/okhttp-3.0/library/src/main/java/io/opentelemetry/instrumentation/okhttp/v3_0/OkHttpTelemetry.java",
+      "replies": [
+        {
+          "at": "2026-11-25T18:47:22Z",
+          "body": "Added “May be removed in the next minor release” to all five public deprecation notices across OkHttp, HikariCP, and Failsafe.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21486#discussion_r4699385986"
+        }
+      ],
+      "reviewed": "442ce3859e5ed7558565bc3a9376c005c06ab6dc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21486#discussion_r4697034910"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The PR deprecates supported OkHttp, HikariCP, and Failsafe APIs, but `CHANGELOG.md` has no corresponding Unreleased deprecation entry. `CONTRIBUTING.md` requires a handwritten entry for deprecations. Add a short entry naming these aliases and their `instrument(...)` replacements; the explicitly internal Kafka helper need not be included.",
+      "created": "2026-11-25T15:19:19Z",
+      "hunk": "@@ -45,8 +45,18 @@ public static OkHttpTelemetryBuilder builder(OpenTelemetry openTelemetry) {\n    *\n    * @param baseClient the OkHttpClient to wrap\n    * @return an instrumented Call.Factory\n+   * @deprecated Use {@link #instrument(OkHttpClient)} instead.\n    */\n+  @Deprecated",
+      "id": "PRRT_kwDODJKVX867-JSZ",
+      "opened": "2026-11-25T15:19:20Z",
+      "path": "instrumentation/okhttp/okhttp-3.0/library/src/main/java/io/opentelemetry/instrumentation/okhttp/v3_0/OkHttpTelemetry.java",
+      "replies": [
+        {
+          "at": "2026-11-25T18:47:22Z",
+          "body": "Added an Unreleased deprecation entry naming the public aliases and their `instrument(...)` replacements. The Kafka helper is internal and was renamed directly, so it isn't listed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21486#discussion_r4699386032"
+        }
+      ],
+      "reviewed": "442ce3859e5ed7558565bc3a9376c005c06ab6dc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21486#discussion_r4697035010"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n  `HikariTelemetry.createMetricsTrackerFactory(...)`, and\n```",
+      "created": "2026-11-25T19:51:34Z",
+      "hunk": "@@ -579,6 +579,9 @@\n \n ### 🚫 Deprecations\n \n+- Deprecate `FailsafeTelemetry.createCircuitBreaker(...)`, `FailsafeTelemetry.createRetryPolicy(...)`,\n+  the one- and two-argument overloads of `HikariTelemetry.createMetricsTrackerFactory(...)`, and",
+      "id": "PRRT_kwDODJKVX868FKWX",
+      "opened": "2026-11-25T19:51:34Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "0eadc669682623a78b6203272359966cb5abc8c2",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21486#discussion_r4700084463"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Only the delegate-taking HikariCP overloads are deprecated; `createMetricsTrackerFactory()` remains supported and has no no-argument `instrument()` replacement. Please qualify the HikariCP entry as the delegate-taking overloads so the release notes do not imply that callers of the supported no-argument factory must migrate.",
+      "created": "2026-11-25T19:55:19Z",
+      "hunk": "@@ -579,6 +579,9 @@\n \n ### 🚫 Deprecations\n \n+- Deprecate `FailsafeTelemetry.createCircuitBreaker(...)`, `FailsafeTelemetry.createRetryPolicy(...)`,\n+  `HikariTelemetry.createMetricsTrackerFactory(...)`, and",
+      "id": "PRRT_kwDODJKVX868FQMW",
+      "opened": "2026-11-25T19:55:19Z",
+      "path": "CHANGELOG.md",
+      "replies": [],
+      "reviewed": "f1ab25646f5749fe290e2cd9b55ba238bc2ed52b",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/21486#discussion_r4700125006"
+    }
+  ]
+}

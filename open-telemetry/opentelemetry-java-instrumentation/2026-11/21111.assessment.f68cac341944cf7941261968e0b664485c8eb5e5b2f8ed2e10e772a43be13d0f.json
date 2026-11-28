@@ -1,0 +1,67 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "822fef8613d846ddf4ce3b0776f7317931bda06aa76f3846135bcb70eeabedcb",
+  "input_digest": "f68cac341944cf7941261968e0b664485c8eb5e5b2f8ed2e10e772a43be13d0f",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/72489030e8c997f2f2dc19f2f7e050476861e27b/testing-common/src/main/java/io/opentelemetry/instrumentation/testing/internal/DeltaPreferredInMemoryMetricExporter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/92bfd7987367f4347ecfd053ae10587d8318aeed/testing-common/src/main/java/io/opentelemetry/instrumentation/testing/internal/DeltaPreferredInMemoryMetricExporter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/72489030e8c997f2f2dc19f2f7e050476861e27b/testing/agent-exporter/src/main/java/io/opentelemetry/javaagent/testing/exporter/OtlpInMemoryMetricExporter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/92bfd7987367f4347ecfd053ae10587d8318aeed/testing/agent-exporter/src/main/java/io/opentelemetry/javaagent/testing/exporter/OtlpInMemoryMetricExporter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/0f1b60a1dfb4335253d1437f21dd28fcc2a5e4a7"
+      ],
+      "id": "PRRT_kwDODJKVX86yUX6c",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/0f1b60a1dfb4335253d1437f21dd28fcc2a5e4a7/docs/contributing/javaagent-test-infra.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/92bfd7987367f4347ecfd053ae10587d8318aeed/docs/contributing/javaagent-test-infra.md",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/ba00679bc58484767cff8c141c36ea9676a6764d"
+      ],
+      "id": "PRRT_kwDODJKVX86yUkMM",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ba00679bc58484767cff8c141c36ea9676a6764d/instrumentation/micrometer/micrometer-1.5/testing/src/main/java/io/opentelemetry/instrumentation/micrometer/v1_5/AbstractLongTaskTimerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/92bfd7987367f4347ecfd053ae10587d8318aeed/instrumentation/micrometer/micrometer-1.5/testing/src/main/java/io/opentelemetry/instrumentation/micrometer/v1_5/AbstractLongTaskTimerTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ba00679bc58484767cff8c141c36ea9676a6764d/testing-common/src/main/java/io/opentelemetry/instrumentation/testing/internal/DeltaPreferredInMemoryMetricExporter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/92bfd7987367f4347ecfd053ae10587d8318aeed/testing-common/src/main/java/io/opentelemetry/instrumentation/testing/internal/DeltaPreferredInMemoryMetricExporter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ba00679bc58484767cff8c141c36ea9676a6764d/testing/agent-exporter/src/main/java/io/opentelemetry/javaagent/testing/exporter/OtlpInMemoryMetricExporter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/92bfd7987367f4347ecfd053ae10587d8318aeed/testing/agent-exporter/src/main/java/io/opentelemetry/javaagent/testing/exporter/OtlpInMemoryMetricExporter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/ba00679bc58484767cff8c141c36ea9676a6764d/testing/agent-for-testing/src/test/java/io/opentelemetry/javaagent/testing/AgentMetricTemporalityTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/92bfd7987367f4347ecfd053ae10587d8318aeed/testing/agent-for-testing/src/test/java/io/opentelemetry/javaagent/testing/AgentMetricTemporalityTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/05dc7c5e60405b23e42c6c534820cc0c67fd6948"
+      ],
+      "id": "PRRT_kwDODJKVX86yUqUR",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/05dc7c5e60405b23e42c6c534820cc0c67fd6948/testing-common/src/test/java/io/opentelemetry/instrumentation/testing/DeltaPreferredMetricTemporalityTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/05dc7c5e60405b23e42c6c534820cc0c67fd6948/testing/agent-for-testing/src/test/java/io/opentelemetry/javaagent/testing/AgentMetricTemporalityTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/92bfd7987367f4347ecfd053ae10587d8318aeed/testing-common/src/test/java/io/opentelemetry/instrumentation/testing/DeltaPreferredMetricTemporalityTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/92bfd7987367f4347ecfd053ae10587d8318aeed/testing/agent-for-testing/src/test/java/io/opentelemetry/javaagent/testing/AgentMetricTemporalityTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/4b3edf906e207af5b958464821341244aab7e7ea"
+      ],
+      "id": "PRRT_kwDODJKVX86yU_TF",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

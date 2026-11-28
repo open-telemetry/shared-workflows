@@ -1,0 +1,31 @@
+{
+  "head": "7a130a13b6fc35ab183816a10fc322a5952cb7c3",
+  "merge": "d9d32c437f94b7f8747e74817733edfa673fcf89",
+  "merged": "2026-10-22T06:03:09Z",
+  "missing_roots": 0,
+  "number": 20809,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing PR directly to add the agreed opt-in ASCII-only prefix extraction to the shared Redis utility.\n\nAdd public static @Nullable String extractAscii(@Nullable String serverErrorLine) to the existing internal RedisErrorPrefix class in instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/internal/RedisErrorPrefix.java. Reuse extract(String) to select the first nonempty ASCII-space-delimited token, then return that token unchanged only if every character is at most U+007F; otherwise return null. Check only the extracted prefix, not error details. For example, WRONGTYPE followed by an ASCII space and Unicode details must still return WRONGTYPE, while a non-ASCII prefix must return null for the caller's normal exception-class fallback.\n\nKeep extract(String) behavior unchanged: only ASCII space separates tokens, leading ASCII spaces are skipped, null/empty/ASCII-space-only input returns null, and Unicode, case, punctuation, tabs, bare CR/LF characters and unrestricted token lengths remain literal. ASCII extraction is an explicit caller policy for unreliable legacy decoding, not a new Redis syntax restriction. It must likewise preserve ASCII case/punctuation/tabs/CR/LF and impose no length limit. Do not normalize or repair decoded text, parse arbitrary throwable messages, or handle RESP framing. Caller-specific server provenance, exception guards and fallback ownership remain outside this utility.\n\nExtend the existing RedisErrorPrefixTest with focused coverage for extractAscii: ordinary ASCII preservation, non-ASCII prefix rejection including after leading ASCII spaces, an ASCII prefix with non-ASCII details, the U+007F/U+0080 boundary, and null/empty/space-only input. Reuse the shared lexical cases only where it keeps the assertions clear; do not duplicate a second full lexical matrix or derive expected results using production-like parsing helpers. Preserve every existing test and this PR's five distinct CR/LF/CRLF/leading-NBSP cases. Keep expected values literal and directly in assertions or existing argument sets.\n\nThis shared API will later replace the identical checks in Lettuce 4.0/5.0 on PR20778 and Jedis 2/3/4+ on PR20792. Those callers currently have real decoder/provenance/completion regressions that must remain. They are separate coordinator-owned deliverables: do not modify their branches, attempt their adoption here, dispatch other tasks, stack/retarget PRs, or independently duplicate this new API into them. Rediscala, Redisson, Vert.x and manual-library Lettuce 5.1 keep Unicode-preserving extract(String) or their existing bounded byte path unless a concrete caller requirement separately changes.\n\nKeep this PR open as a draft against main on its existing head branch. Do not create a new PR as a workaround or merge anything. Do not post comments, replies or reviews, resolve threads, or change the title/description; the coordinator owns metadata. Add no configuration, module, dependency, generic utility class, boolean option, ByteBuffer overload or unrelated refactoring. The class is explicitly internal and unsupported; no public-API migration or hand-written normal-change changelog entry is requested.\n\nUse the repository-required JDK and normal caches. Run :instrumentation-api-incubator:spotlessApply directly before the narrow RedisErrorPrefixTest validation, then relevant affected module checks when feasible. Do not run clean, force reruns or disable caches. Report exact commands/results and concrete blockers rather than claiming unrun checks passed. This assignment is only the shared helper and its focused central tests; preserve current client behavior.",
+      "created": "2026-10-22T01:33:20Z",
+      "hunk": "@@ -42,7 +42,15 @@ private static Stream<Arguments> serverErrorLines() {\n         argumentSet(\"leading tab\", \"\\tERR detail\", \"\\tERR\"),\n         argumentSet(\"tab only\", \"\\t\", \"\\t\"),\n         argumentSet(\"spaces before tab\", \"  \\tERR detail\", \"\\tERR\"),\n+        argumentSet(\"embedded carriage return\", \"Code\\rsuffix detail\", \"Code\\rsuffix\"),",
+      "id": "PRRT_kwDODJKVX86vBBGf",
+      "opened": "2026-10-22T01:33:20Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/internal/RedisErrorPrefixTest.java",
+      "replies": [
+        {
+          "at": "2026-10-22T01:42:31Z",
+          "body": "Implemented in 7a130a13.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20809#discussion_r4343746730"
+        }
+      ],
+      "reviewed": "535ae33fda36c3a40d6fc3df4a70cd115a73469a",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20809#discussion_r4343699778"
+    }
+  ]
+}

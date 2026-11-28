@@ -1,0 +1,31 @@
+{
+  "head": "c71ed84aeaefea5f72a24d5a25417685e7649942",
+  "merge": "178b5753d4baf1dc94637ccc44d1b83c5187a692",
+  "merged": "2026-10-22T06:02:02Z",
+  "missing_roots": 0,
+  "number": 20825,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to finish the original Cassandra 3.0.0 baseline coverage repair. Keep it draft and do not create another PR.\n\nThe completed task introduced CassandraClientTest.batchScenarios() using .idempotent(testLatestDeps()), but javaagent/build.gradle.kts does not forward the testLatestDeps project property to the test JVM. TestLatestDeps caches Boolean.getBoolean(\"testLatestDeps\"), and -PtestLatestDeps=true changes dependency resolution without setting that JVM property. Consequently the new assertion still expects false when testing driver 3.11.5, whose empty batch is idempotent. The repository explicitly documents this requirement in .github/agents/knowledge/gradle-conventions.md under \"testLatestDeps Test JVM Property\".\n\nAdd the existing repository-standard forwarding of otelProps.testLatestDeps to the relevant Cassandra integration Test tasks. Preserve all changes already delivered, the 3.0.0 minimum, Guava 19 constraint, latest 3.x coverage and the intended false-on-3.0.0/true-on-latest assertion. Do not change production instrumentation or force the batch flag to hide the driver behavior.\n\nRun the narrowest formatter immediately before validation. Verify the selected Cassandra runtime is 3.0.0 in baseline mode and 3.11.5 in pinned latest mode, then exercise the complete relevant Cassandra integration suite in both modes. The prior task reported baseline success but could not execute latest because of JDK 27 provisioning and unrelated agent configuration failures. Where supported by repository tooling, use an installed supported JDK and an explicit testJavaVersion rather than changing unrelated build behavior. If validation remains blocked, retain exact error evidence instead of claiming success. This follow-up is only for the missing test-mode forwarding and tightly coupled validation; leave unrelated modules unchanged.",
+      "created": "2026-10-22T02:18:07Z",
+      "hunk": "@@ -751,7 +752,7 @@ private static Stream<Arguments> batchScenarios() {\n                 .spanName(\"BATCH\")\n                 .querySummary(\"BATCH\")\n                 .batchSize(0)\n-                .idempotent(true)\n+                .idempotent(testLatestDeps())",
+      "id": "PRRT_kwDODJKVX86vBiWv",
+      "opened": "2026-10-22T02:18:07Z",
+      "path": "instrumentation/cassandra/cassandra-3.0/javaagent/src/test/java/io/opentelemetry/javaagent/instrumentation/cassandra/v3_0/CassandraClientTest.java",
+      "replies": [
+        {
+          "at": "2026-10-22T02:28:27Z",
+          "body": "Added the standard JVM-property forwarding in c71ed84a. Narrow formatting passed; runtime resolution confirms baseline 3.0.0 and pinned latest 3.11.5. The complete baseline suite passed all 28 tests with `-PtestJavaVersion=21`, and the launch log confirms `-DtestLatestDeps=false`.\n\nLatest execution with `-PtestLatestDeps=true -PtestJavaVersion=21` remains blocked before tests by Helidon's unavailable JDK 27 compiler/toolchain provisioning (build scan: https://gradle.com/s/pjnl67oelzxbc). Adding `--configure-on-demand` instead fails because `:javaagent:bootstrapLibs` is mutated after `licenseReportDependencies` consumption (https://gradle.com/s/tpq2nriwhqgmy). No unrelated build changes were made. This PR remains draft.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20825#discussion_r4343974083"
+        }
+      ],
+      "reviewed": "c4cfde47a898f2d148a5e760070b8c899f3ff9a3",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20825#discussion_r4343924603"
+    }
+  ]
+}

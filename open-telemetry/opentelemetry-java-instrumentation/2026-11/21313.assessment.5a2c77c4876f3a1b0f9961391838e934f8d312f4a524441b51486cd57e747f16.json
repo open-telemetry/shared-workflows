@@ -1,0 +1,159 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "fd24a8df77ff3b953d02b708c7f9c4fef25285b6539813326e8d8f3901007dfe",
+  "input_digest": "5a2c77c4876f3a1b0f9961391838e934f8d312f4a524441b51486cd57e747f16",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d27bc7602064fb935abbab38a147d42ce00ea2e8/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/network/internal/SocketAddressUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2c04c1e8327cce4229d4db2928369594f195788c/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/network/internal/SocketAddressUtil.java"
+      ],
+      "id": "PRRT_kwDODJKVX864NFP1",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bb813fc9bfe19e1acc0bd95fbd59544f283db6f1/instrumentation-api/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bb813fc9bfe19e1acc0bd95fbd59544f283db6f1/instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/semconv/network/NetworkAttributesExtractorSocketAddressTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bb813fc9bfe19e1acc0bd95fbd59544f283db6f1/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/network/internal/SocketAddressUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/bb813fc9bfe19e1acc0bd95fbd59544f283db6f1/instrumentation/grpc-1.6/library/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2c04c1e8327cce4229d4db2928369594f195788c/instrumentation-api/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2c04c1e8327cce4229d4db2928369594f195788c/instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/semconv/network/NetworkAttributesExtractorSocketAddressTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2c04c1e8327cce4229d4db2928369594f195788c/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/network/internal/SocketAddressUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2c04c1e8327cce4229d4db2928369594f195788c/instrumentation/grpc-1.6/library/build.gradle.kts"
+      ],
+      "id": "PRRT_kwDODJKVX864NNzx",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/eacb2a5dc97d0cb0a8523434090788180175572f/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/network/internal/SocketAddressUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/eacb2a5dc97d0cb0a8523434090788180175572f/instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/semconv/network/NetworkAttributesExtractorSocketAddressTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2c04c1e8327cce4229d4db2928369594f195788c/instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/internal/GrpcSocketAddressUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2c04c1e8327cce4229d4db2928369594f195788c/instrumentation/grpc-1.6/library/src/unixSocketTest/java/io/opentelemetry/instrumentation/grpc/v1_6/internal/GrpcSocketAddressUtilTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2c04c1e8327cce4229d4db2928369594f195788c/instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/semconv/network/NetworkAttributesExtractorSocketAddressTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX864NfBI",
+      "kind": "test coverage gap",
+      "regressed": false,
+      "status": "unclear"
+    },
+    {
+      "id": "PRRT_kwDODJKVX864QGvx",
+      "kind": null,
+      "original": "PRRT_kwDODJKVX864NfBI",
+      "status": "duplicate"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/8f3211a13a4752ffc70f1b3188a2c90bf8135f48/instrumentation/grpc-1.6/library/src/test/java/io/opentelemetry/instrumentation/grpc/v1_6/GrpcNetworkAttributesTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2c04c1e8327cce4229d4db2928369594f195788c/instrumentation/grpc-1.6/library/src/test/java/io/opentelemetry/instrumentation/grpc/v1_6/GrpcNetworkAttributesTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX864RLCw",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/05f400fb4e905e0c14d0a183fe6082e0848decd3/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/network/internal/SocketAddressUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2c04c1e8327cce4229d4db2928369594f195788c/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/network/internal/SocketAddressUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2c04c1e8327cce4229d4db2928369594f195788c/instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/internal/GrpcSocketAddressUtil.java"
+      ],
+      "id": "PRRT_kwDODJKVX864duRj",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "unaddressed"
+    },
+    {
+      "id": "PRRT_kwDODJKVX864d7q_",
+      "kind": null,
+      "status": "other"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/05f400fb4e905e0c14d0a183fe6082e0848decd3/instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/semconv/network/NetworkAttributesExtractorSocketAddressTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2c04c1e8327cce4229d4db2928369594f195788c/instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/semconv/network/NetworkAttributesExtractorSocketAddressTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX864d801",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/05f400fb4e905e0c14d0a183fe6082e0848decd3/instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/semconv/network/NetworkAttributesExtractorSocketAddressTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2c04c1e8327cce4229d4db2928369594f195788c/instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/semconv/network/NetworkAttributesExtractorSocketAddressTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX864uT0T",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/02ecb02f349bc20c15eab6dc3fbd772d4e3e7deb/instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/semconv/network/NetworkAttributesExtractorSocketAddressTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2c04c1e8327cce4229d4db2928369594f195788c/instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/semconv/network/NetworkAttributesExtractorSocketAddressTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX865TPcd",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5a4542b34052c566493ee0b77cc3e03b8cc6fd34/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/network/internal/SocketAddressUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2c04c1e8327cce4229d4db2928369594f195788c/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/network/internal/SocketAddressUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/5a4542b34052c566493ee0b77cc3e03b8cc6fd34/instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/semconv/network/NetworkAttributesExtractorSocketAddressTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2c04c1e8327cce4229d4db2928369594f195788c/instrumentation-api/src/test/java/io/opentelemetry/instrumentation/api/semconv/network/NetworkAttributesExtractorSocketAddressTest.java"
+      ],
+      "id": "PRRT_kwDODJKVX865VAg5",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c8a3a4ed4f9552cded6139ebc61452ea9e63d3fa/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/network/internal/SocketAddressUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c8a3a4ed4f9552cded6139ebc61452ea9e63d3fa/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/network/NetworkAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2c04c1e8327cce4229d4db2928369594f195788c/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/network/internal/UnixSocketAddress.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2c04c1e8327cce4229d4db2928369594f195788c/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/network/internal/SocketAddressUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2c04c1e8327cce4229d4db2928369594f195788c/instrumentation-api/src/main/java/io/opentelemetry/instrumentation/api/semconv/network/NetworkAttributesGetter.java"
+      ],
+      "id": "PRRT_kwDODJKVX865VK1I",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    },
+    {
+      "change_timing": "unknown",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/997c187e3964ca2549fecd11e9fddae81b0f38a0/instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/internal/GrpcClientNetworkAttributesGetter.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/997c187e3964ca2549fecd11e9fddae81b0f38a0/instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/internal/GrpcSocketAddressUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2c04c1e8327cce4229d4db2928369594f195788c/instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/GrpcRequest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2c04c1e8327cce4229d4db2928369594f195788c/instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/internal/GrpcSocketAddressUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/2c04c1e8327cce4229d4db2928369594f195788c/instrumentation/grpc-1.6/library/src/main/java/io/opentelemetry/instrumentation/grpc/v1_6/GrpcNetworkAttributesGetter.java"
+      ],
+      "id": "PRRT_kwDODJKVX865VmU3",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

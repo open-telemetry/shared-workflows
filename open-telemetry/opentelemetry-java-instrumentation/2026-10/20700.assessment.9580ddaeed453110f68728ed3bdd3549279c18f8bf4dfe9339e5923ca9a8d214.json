@@ -1,0 +1,41 @@
+{
+  "assessment_version": "b125ab435e1a3ad3546cdfb38f9d035a482f782453edb36fea88c1f02c5bb226",
+  "evidence_digest": "face8b082915f77cddce1348a43cf5141ddeffc9a3618abe2cdabf53f01bc220",
+  "input_digest": "9580ddaeed453110f68728ed3bdd3549279c18f8bf4dfe9339e5923ca9a8d214",
+  "model": "gpt-6.2-sol",
+  "reasoning_effort": "high",
+  "threads": [
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/da89ab61a9bcc30ca15f45a2aa8a5a9211a9f2f1/instrumentation/hbase/hbase-client-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/HbaseInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/da89ab61a9bcc30ca15f45a2aa8a5a9211a9f2f1/instrumentation/hbase/hbase-client-common-1.0/javaagent/src/main/java/org/apache/hadoop/hbase/ipc/OpenTelemetryCallUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c0911a4f2708350a89d8e47cdc6c377864c2b29c/instrumentation/hbase/hbase-client-2.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/hbase/client/v2_0/HbaseInstrumentationModule.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c0911a4f2708350a89d8e47cdc6c377864c2b29c/instrumentation/hbase/hbase-client-common-1.0/javaagent/src/main/java/org/apache/hadoop/hbase/ipc/OpenTelemetryCallUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/304704245fdf3813c83ffff63c270fc4b8cff363"
+      ],
+      "id": "PRRT_kwDODJKVX86txGNm",
+      "kind": "improvement",
+      "regressed": true,
+      "status": "unaddressed"
+    },
+    {
+      "change_timing": "dated_after_publication",
+      "evidence": [
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d610129375f5f6535271049f8845fefb654e1669/instrumentation/hbase/hbase-client-common-1.0/javaagent-unit-tests/src/indyTest/java/org/apache/hadoop/hbase/ipc/OpenTelemetryCallUtilIndyTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c0911a4f2708350a89d8e47cdc6c377864c2b29c/instrumentation/hbase/hbase-client-common-1.0/javaagent-unit-tests/src/indyTest/java/org/apache/hadoop/hbase/ipc/OpenTelemetryCallUtilIndyTest.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d610129375f5f6535271049f8845fefb654e1669/instrumentation/hbase/hbase-client-1.4/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c0911a4f2708350a89d8e47cdc6c377864c2b29c/instrumentation/hbase/hbase-client-1.4/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d610129375f5f6535271049f8845fefb654e1669/instrumentation/hbase/hbase-client-2.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c0911a4f2708350a89d8e47cdc6c377864c2b29c/instrumentation/hbase/hbase-client-2.0/javaagent/build.gradle.kts",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/d610129375f5f6535271049f8845fefb654e1669/instrumentation/hbase/hbase-client-common-1.0/javaagent/src/main/java/org/apache/hadoop/hbase/ipc/OpenTelemetryCallUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/c0911a4f2708350a89d8e47cdc6c377864c2b29c/instrumentation/hbase/hbase-client-common-1.0/javaagent/src/main/java/org/apache/hadoop/hbase/ipc/OpenTelemetryCallUtil.java",
+        "https://github.com/open-telemetry/opentelemetry-java-instrumentation/commit/35eb3fca79f1e353c7e7a5a37f3c386aafa0a965"
+      ],
+      "id": "PRRT_kwDODJKVX86txXn0",
+      "kind": "improvement",
+      "regressed": false,
+      "status": "addressed"
+    }
+  ]
+}

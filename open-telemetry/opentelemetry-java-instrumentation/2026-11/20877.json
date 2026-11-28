@@ -1,0 +1,298 @@
+{
+  "head": "353e6d3aa6cbdcd74bf8eb470737359d851eaed7",
+  "merge": "93c97c33717f523f0865b8c172faabb27938dd2d",
+  "merged": "2026-11-08T00:47:37Z",
+  "missing_roots": 0,
+  "number": 20877,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Apply the user's requested simplification directly to this existing database PR #20877. The user approved replacing awkward interface-default fallback delegation with the direct nullable exception-class expression in four non-HTTP getter-family PRs. This assignment is ONLY this PR; do not create another PR or update other branches.\n\nKeep getErrorType() authoritative for the final error.type and retain its default method. In overrides that fall back to the exception-only getter default, replace the fallback-only interface-qualified super.getErrorType(request, response, error) call with the equivalent direct expression: error == null ? null : error.getClass().getName(). A local guard that already proves the throwable is non-null can simply return its class name. Apply this to affected production overrides and changed test fixtures; preserve ordinary inheritance that performs additional classification rather than merely supplying this fallback. Do not introduce a helper, common base class, cross-domain abstraction, flag, or new API to hide the expression.\n\nRevise the affected DbClientAttributesGetter.getErrorType Javadoc so it explains the final-value contract and how an override can return the exception class as fallback without recommending or requiring interface-default delegation. Update this PR's existing breaking-change CHANGELOG entry wherever it mandates or demonstrates such delegation, keeping it concise and not adding a second entry. Keep default exception fallback, no-error null, custom classifications, explicit-null omission, and direct extractor writes exactly as implemented. Delegation remains technically possible, but it is no longer the prescribed migration pattern.\n\nInclude DbClientAttributesGetter and inherited SqlClientAttributesGetter overrides. Preserve the exact throwable currently passed to each default call: Elasticsearch transport uses its unwrapped cause; OpenSearch Java deliberately falls back using originalError rather than its inspection-only unwrapped local. Preserve JDBC vendor-code/SQLSTATE priority, Redis prefix handling, exceptionless Lettuce _OTHER, DynamoDB codes, cancellation, and Mongo/Spymemcached direct span-status consumer behavior. The expressions must be behavior-equivalent to each removed default call, not mechanically based on a variable named error.\n\nThis is a behavior-preserving simplification of already verified code. Preserve every existing protocol/service-code precedence rule, selected exception identity, cancellation case, deliberate null omission, _OTHER rule, span status, metrics, lifecycle, and semconv selection. Preserve this PR's current base and draft/ready state. Other getter families, HTTP PR #20881, and held Dubbo PR #20782 are out of scope. HTTP needs its role-specific status/exception/_OTHER default policy and must not be simplified to this expression. Do not implement span-status alignment or make getErrorType mandatory.\n\nFollow CONTRIBUTING.md and applicable repository instructions. Do not add Nullable annotations in test code. Keep focused existing default/custom/null and affected-override tests, adjusting only what this simplification requires. Apply the narrowest applicable spotlessApply directly before the targeted behavioral validation, run relevant central extractor and affected-module tests where feasible, and report genuine blockers without unrelated fixes. Acceptance is no fallback-only super delegation remaining for this getter family in the migrated overrides, equivalent telemetry behavior, and Javadoc/changelog guidance consistent with the direct expression. Leave PR title/body edits and review-thread handling to the coordinator.",
+      "created": "2026-10-23T02:01:42Z",
+      "hunk": "@@ -65,18 +65,21 @@ default Map<String, String> getDbQueryParameters(REQUEST request) {\n   }\n \n   /**\n-   * Returns a description of a class of error the operation ended with.\n+   * Returns the final {@code error.type} describing the class of error the operation ended with, or",
+      "id": "PRRT_kwDODJKVX86vclVq",
+      "opened": "2026-10-23T02:01:42Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-10-23T02:15:56Z",
+          "body": "Applied the direct nullable exception-class fallback across the database getter overrides and updated the Javadoc/changelog guidance. Targeted formatting and all central and affected-module tests passed. Commit: `3dd958d1`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20877#discussion_r4355461106"
+        }
+      ],
+      "reviewed": "f29aa16b989141bc91f1b957bd0ffebcd741bbf5",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20877#discussion_r4355393633"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Complete and refresh this existing database/SQL PR #20877 directly on its existing head branch. Do not create another PR, change its main base or draft state, or update other branches. The user approved the final 3.0 design below.\n\nKeep DbClientAttributesGetter.getErrorType as a default method returning error == null ? null : error.getClass().getName(). getErrorType returns the final error.type; null intentionally omits it even with a Throwable. Database and SQL extractors must use this result without any fallback. Overrides use direct nullable exception-class fallback when appropriate, not Interface.super.getErrorType. Preserve deliberate omissions and existing protocol-code precedence, exception unwrapping, _OTHER, success/cancellation policies, span status, and matching span/metric classification.\n\nAudit all current main implementations, including shared/inherited getters, not just this PR's old diff. In particular, VertxRedisClientAttributesGetter currently delegates to an error-prefix helper that returns null for unclassified exceptions and still relies on extractor fallback, but is absent from this PR's migration; account for it and any other newly landed getters. Cover custom classifications, exception fallback, and authoritative null.\n\nKeep status extraction independent of final classification. getErrorType must not call getDbResponseStatusCode because that API can also represent success, and status extraction must not call getErrorType because it can return exception-class or fallback values. Where extraction genuinely overlaps, retain a separate narrowly named error-code/raw-code helper, as with DynamoDB's getServiceErrorCode. Preserve the separate status-emission work in #20953 if it has landed in main; do not import its unmerged branch or implement its status feature in this PR. Do not mix in new richer classifications or automatic span-status alignment.\n\nRefresh against current main by merging main into this PR head if necessary, never the reverse; do not rebase. Record the pre-update head and verify it remains on the first-parent chain before pushing. Keep concise API/breaking-change documentation and run repository-prescribed narrow formatting and relevant tests. Do not edit the PR title/description, reply to human comments, resolve unrelated threads, merge PRs, or wait for CI. Stop after scoped work is committed and pushed.",
+      "created": "2026-10-25T20:30:44Z",
+      "hunk": "@@ -65,18 +65,20 @@ default Map<String, String> getDbQueryParameters(REQUEST request) {\n   }\n \n   /**\n-   * Returns a description of a class of error the operation ended with.\n+   * Returns the final {@code error.type} describing the class of error the operation ended with, or",
+      "id": "PRRT_kwDODJKVX86wEsx0",
+      "opened": "2026-10-25T20:30:43Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-10-25T20:40:24Z",
+          "body": "Merged current main (`dba159d2`) into this branch with pre-update head `0a03118` retained in the first-parent chain. Added Vert.x Redis exception-class fallback and focused coverage in `8787f63f`; central and affected-module tests pass. `#20953` is not present on current main.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20877#discussion_r4372318036"
+        }
+      ],
+      "reviewed": "0a03118418d3513eed2ab6eff3b36055efde5215",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20877#discussion_r4372283504"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing PR #20877 directly with a documentation-only refinement. Preserve its existing head branch, base, draft state, and all runtime behavior. Do not create a follow-up PR or update other PRs. The earlier implementation attempt is complete; this is a new, separately scoped user request.\n\nSimplify the getErrorType Javadoc in DbClientAttributesGetter. The user explicitly rejected migration-oriented emphasis such as \"even when an exception is available\" and \"Attribute extractors use the returned value without any further fallback.\" Also remove the override fallback recipe and its example expression from this Javadoc. Describe the API as it is now: \"Returns the {@code error.type} value for the operation, or {@code null} to omit the attribute.\" Follow with \"The default implementation returns the exception class name, or {@code null} if there is no exception.\" Keep the relevant low-cardinality and custom-value guidance. Avoid language about what extractors used to do, finality contrasts, or how overrides retain a former fallback.\n\nOnly change the directly related source documentation. Preserve the default implementation and all other code, tests, telemetry, public signatures, and existing CHANGELOG migration guidance. Do not alter the PR title or description; the coordinator owns metadata. Follow repository Javadoc style and apply the narrow formatting task if needed. Behavioral tests are unnecessary for this documentation-only change. Do not merge main or sibling branches merely for this wording edit, rebase, wait for CI, reply to human comments, or resolve unrelated threads. Commit and push only this scoped documentation refinement to this PR.",
+      "created": "2026-10-25T21:03:15Z",
+      "hunk": "@@ -65,18 +65,20 @@ default Map<String, String> getDbQueryParameters(REQUEST request) {\n   }\n \n   /**\n-   * Returns a description of a class of error the operation ended with.\n+   * Returns the final {@code error.type} describing the class of error the operation ended with, or",
+      "id": "PRRT_kwDODJKVX86wFAHm",
+      "opened": "2026-10-25T21:03:15Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-10-25T21:05:42Z",
+          "body": "Updated the Javadoc as requested; commit `cce2f53c`. The change is documentation-only, with runtime code and CHANGELOG unchanged.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20877#discussion_r4372417600"
+        }
+      ],
+      "reviewed": "8787f63f272fc3a0db38a847aec71e262fc6ca6c",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20877#discussion_r4372407344"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "```suggestion\n   * Returns the {@code error.type} value for the operation.\n```",
+      "created": "2026-10-25T23:49:32Z",
+      "hunk": "@@ -65,18 +65,17 @@ default Map<String, String> getDbQueryParameters(REQUEST request) {\n   }\n \n   /**\n-   * Returns a description of a class of error the operation ended with.\n+   * Returns the {@code error.type} value for the operation, or {@code null} to omit the attribute.",
+      "id": "PRRT_kwDODJKVX86wGXNw",
+      "opened": "2026-10-25T23:49:32Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientAttributesGetter.java",
+      "replies": [],
+      "reviewed": "cce2f53c81c5654410ed9e967bbaa26283953b80",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20877#discussion_r4372987153"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Apply the following consolidated user-requested refactor directly to existing PR #20877. Preserve the existing head branch, base, draft state and all other current edits. Commit and push to this PR, not a new follow-up PR. Earlier contract and Javadoc work is complete; this is a new user request. Keep emitted classifications and the established database getter/extractor contract unchanged.\n\nFor the LettuceRedisErrorType helpers in instrumentation/lettuce/lettuce-4.0/javaagent and instrumentation/lettuce/lettuce-5.0/javaagent, keep getErrorType as the method name and make each helper return the complete classification: the existing extracted Redis server-error prefix when available, otherwise the original exception's class name, or null for a null error. Preserve RedisCommandExecutionException type checks, ASCII-only prefix extraction, malformed/non-ASCII rejection and all existing prefix rules. Keep the lower-level shared RedisErrorPrefix utility code-only; do not broaden its contract. Simplify every directly affected LettuceDbAttributesGetter and LettuceBatchAttributesGetter caller to return LettuceRedisErrorType.getErrorType(error) directly, removing duplicated exception fallback. Do not add wrapping, cause unwrapping, or cancellation changes.\n\nIn instrumentation/vertx/vertx-redis-client/vertx-redis-client-4.0/javaagent, similarly make VertxRedisClientError.getErrorType(Throwable) return the complete classification: the existing captured server-error prefix when available, otherwise the original exception's class name, or null when no error exists. Simplify VertxRedisClientAttributesGetter.getErrorType to return that helper directly. Do not change server-error capture, VirtualField association, UTF-8 decoding, nested response-error discovery or any other response inspection behavior.\n\nIn instrumentation/clickhouse/clickhouse-client-common-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/client/common/v0_5/ClickHouseAttributesGetter.java, retain the injected Function<Throwable, String> errorCodeExtractor and its code-only contract. It is a useful version adapter: the v1 singleton extracts ClickHouseException.getErrorCode(), while v2 extracts ServerException.getCode(); the shared module should not depend on both client APIs or gain reflection. Keep exception-class fallback once in the common getter, not duplicated in both adapters. Rename the local errorType to errorCode and replace the nested ternary with an early-return if for a non-null errorCode followed by the simple nullable-exception expression. Preserve code-zero handling and all adapter behavior.\n\nIn instrumentation/vertx/vertx-sql-client/vertx-sql-client-common-4.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/sqlclient/common/v4_0/VertxSqlClientAttributesGetter.java, rename the static responseStatusExtractor field to errorCodeExtractor, createResponseStatusExtractor to createErrorCodeExtractor, and the responseStatusExtractor(String, String) factory to errorCodeExtractor(String, String), updating references consistently. This is an internally cached compatibility function, not user configuration or constructor injection. Retain the existing reflection selection of DatabaseException.getSqlState() and the older PgException.getCode(), including lookup/invocation failure behavior and precedence. Keep the original-exception class fallback once in getErrorType. Use an errorCode local, an early-return if for a non-null code, and a simple nullable-exception expression rather than a nested ternary. Do not turn this into a general response-status getter or make error classifiers call a getDbResponseStatusCode method.\n\nKeep the scope to these helpers and directly affected callers/coverage. Preserve service-code precedence, null handling, telemetry, span status, interface defaults and Javadocs, semantic-convention gating and cancellation. Do not change other database getters or PRs, add broad catches, refactor unrelated compatibility mechanisms, or restore extractor fallback. Add or adapt focused coverage where needed for null, ordinary exceptions, available server codes and unavailable/invalid prefix fallback, preserving all existing expectations. Apply the narrow relevant formatting tasks and run the smallest relevant tests; accurately report any execution blockers. Do not wait for CI, merge main or sibling branches, rebase, reply to human comments, resolve unrelated threads, or alter the PR title or description; the coordinator handles metadata.",
+      "created": "2026-10-25T23:58:49Z",
+      "hunk": "@@ -56,7 +56,8 @@ public String getDbNamespace(ClickHouseDbRequest request) {\n   @Override\n   public String getErrorType(\n       ClickHouseDbRequest request, @Nullable Void response, @Nullable Throwable error) {\n-    return errorCodeExtractor.apply(error);\n+    String errorType = errorCodeExtractor.apply(error);",
+      "id": "PRRT_kwDODJKVX86wGb2A",
+      "opened": "2026-10-25T23:58:49Z",
+      "path": "instrumentation/clickhouse/clickhouse-client-common-0.5/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/clickhouse/client/common/v0_5/ClickHouseAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-10-26T00:13:37Z",
+          "body": "Implemented in `0f33740d`. Existing classification precedence and fallback behavior are preserved; the targeted tests passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20877#discussion_r4373062289"
+        }
+      ],
+      "reviewed": "e309e4cc266f7ceb1920cb3c3243dbe2430a5e68",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20877#discussion_r4373016784"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Apply these two user-requested naming-only changes directly to existing PR #20877. Preserve its existing branch, base, draft/ready state and all other edits. Commit and push this scoped update to the existing PR, not a new follow-up PR. The previous helper cleanup is a separate completed assignment; do not repeat or undo it.\n\nIn instrumentation/rediscala-1.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaAttributesGetter.java, rename the local receiving RedisErrorPrefix.extract(error.getMessage()) from errorType to errorPrefix, updating its null check and return. It is a parsed Redis prefix rather than the complete classification.\n\nIn instrumentation/lettuce/lettuce-5.1/library/src/main/java/io/opentelemetry/instrumentation/lettuce/v5_1/LettuceResponse.java, rename the redisErrorType field and corresponding constructor parameter to redisErrorPrefix, and rename getRedisErrorType() to getRedisErrorPrefix(). Update all directly affected references, including the local in LettuceDbAttributesGetter.getErrorType to redisErrorPrefix and any existing tests using the accessor. Preserve the complete getter name getErrorType, its prefix precedence, _OTHER classification for failure without an exposed exception, original-exception class fallback and null behavior. The response accessor still returns only the stored prefix, not a complete operation classification.\n\nKeep RedisErrorPrefix.extract() and extractAscii() unchanged. Do not change parsing, server-error provenance, response creation, failure detection, cancellation, telemetry, exception handling, public interface contracts, or any other behavior. Do not add abstractions, replacement APIs, unrelated cleanup, tests or dependencies merely for these renames. Use narrow formatting and existing relevant Rediscala/Lettuce 5.1 tests, and report execution blockers accurately. Do not alter this PR's title or description; metadata belongs to the coordinator. Do not update other PRs, wait for CI, merge main or sibling branches, rebase, reply to humans or resolve unrelated threads.",
+      "created": "2026-10-26T00:19:48Z",
+      "hunk": "@@ -52,10 +52,13 @@ public String getErrorType(\n     // Rediscala wraps decoded Redis error replies in ReplyErrorException. RESP errors start with an\n     // error prefix; a missing prefix preserves the shared exception-class fallback.\n     // https://redis.io/docs/latest/develop/reference/protocol-spec/#resp-errors\n-    if (!(error instanceof ReplyErrorException)) {\n-      return null;\n+    if (error instanceof ReplyErrorException) {",
+      "id": "PRRT_kwDODJKVX86wGlZ9",
+      "opened": "2026-10-26T00:19:47Z",
+      "path": "instrumentation/rediscala-1.8/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/rediscala/v1_8/RediscalaAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-10-26T00:28:49Z",
+          "body": "Applied the requested naming-only changes and updated the Lettuce 5.1 caller/tests. Commit: `d249c0a3`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20877#discussion_r4373105155"
+        }
+      ],
+      "reviewed": "0f33740d34f088fd131f3726f3515ad680c57bd8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20877#discussion_r4373079366"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Integrate existing PR #20877 with its new parent PR #20953, whose branch is copilot/trask-database-response-status. Update this existing PR directly, keep it draft, preserve that parent base, and do not create another PR or modify the parent's branch. The parent is the database response-status implementation, and this PR remains the complete-error-getter ownership change. Resolve both intents rather than choosing either side.\n\nGitHub's server-side attempt to merge the parent into this PR returned HTTP 409, leaving this PR's branch unchanged. Incorporate the entire verified parent branch into this PR's existing head, resolve its conflicts, and keep both changes. Prefer a merge of the parent into this existing head so the original PR head remains on the first-parent chain. The parent head must actually be an ancestor of the delivered head; copying selected files without integrating the parent history does not complete the requested branch preparation. If your available tools cannot update the branch history, report that precise blocker and distinguish any partial code delivery. Do not claim the branch is integrated based only on changed files or a bot response.\n\nPreserve this PR's final-classification contract: getErrorType() supplies the complete emitted error.type, an explicit null is final, the common extractor adds no fallback, and the default getter returns the original supplied exception's class name or null. Overrides and complete domain helpers explicitly implement their fallback. Do not call Interface.super.getErrorType() or a response-status getter from an error getter.\n\nPreserve all parent behavior: the new default getDbResponseStatusCode() API, independent response-status emission and semantic-convention gating, protocol-specific raw status/code capture, successful statuses where supported, parent tests, API reports, metadata and relevant documentation. Response-status getters and their code-only extraction helpers must never return exception class names or _OTHER merely because complete classification does. Keep raw extraction separate from classification, sharing a narrowly named partial helper when both getters need the same protocol value.\n\nReview every shared file, including DynamoDB, ClickHouse, JDBC, R2DBC, Lettuce versions, MongoDB, OpenSearch, Vert.x SQL/Redis, Rediscala and Spymemcached, plus the common getter/extractor and tests. Preserve the complete Lettuce error helpers and Redis prefix naming already established in this PR while retaining partial raw status extraction for the new parent getters. Preserve the original exception when inspecting or unwrapping a different throwable. Preserve Vert.x reflective compatibility and the parent's Oracle connection-error status exclusion. Keep classification precedence, cancellation, span status, metric dimensions, and existing no-exception failures unchanged. Do not discard parent-only files or alter unrelated code while resolving overlap.\n\nAdapt existing targeted tests to cover raw status and complete error classification separately, including successful status handling where applicable, protocol errors, ordinary exceptions, missing raw codes, and explicit-null getter overrides that suppress all extractor fallback. Retain coverage of response-status attributes introduced by the parent. Apply narrow formatting and run the relevant common database and affected-module tests as feasible in the cloud environment. Verify the parent-ancestor and original-head-first-parent conditions and report exact test commands with actual outcomes or blockers. Do not wait for CI, merge a pull request, force-push unrelated branches, modify PR metadata, reply to humans, or resolve unrelated threads.",
+      "created": "2026-10-26T03:12:23Z",
+      "hunk": "@@ -65,18 +65,17 @@ default Map<String, String> getDbQueryParameters(REQUEST request) {\n   }\n \n   /**\n-   * Returns a description of a class of error the operation ended with.\n+   * Returns the {@code error.type} value for the operation.",
+      "id": "PRRT_kwDODJKVX86wH81K",
+      "opened": "2026-10-26T03:12:23Z",
+      "path": "instrumentation-api-incubator/src/main/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-10-26T03:43:42Z",
+          "body": "Merged the parent branch into this PR in `5aefe873`; the original head remains the first parent, and the parent head is an ancestor. Targeted database/API and affected-module tests passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20877#discussion_r4373758546"
+        }
+      ],
+      "reviewed": "d249c0a389cc7dbdc0623173ef62414929eaa499",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20877#discussion_r4373651893"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] The exception-fallback example spells out a migration already implied by the preceding statement that the getter supplies the final value. CONTRIBUTING.md's Changelog section asks entries to omit instructions that merely restate the change. Please keep the code example in the PR description and end this entry after the null-omission behavior.",
+      "created": "2026-10-26T03:52:53Z",
+      "hunk": "@@ -4,6 +4,9 @@\n \n ### ⚠️ Breaking changes\n \n+- `DbClientAttributesGetter.getErrorType()` now returns the final `error.type`; returning `null`\n+  omits it even with an exception. Overrides wanting exception-class fallback can return\n+  `error == null ? null : error.getClass().getName()`.",
+      "id": "PRRT_kwDODJKVX86wIRqk",
+      "opened": "2026-10-26T03:52:53Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-10-26T04:00:27Z",
+          "body": "Removed the redundant fallback instructions in ff84c45d182fb2c7f66cf193dd80fb6e0d939015. The changelog entry now ends after the null-omission behavior; the fallback example remains in the PR description.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20877#discussion_r4373819217"
+        }
+      ],
+      "reviewed": "5aefe873bc5d19140858ed02fcb5633d26ace244",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20877#discussion_r4373789131"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update existing PR #20877 directly with this documentation-only follow-up. Keep it draft and preserve its base copilot/trask-database-response-status, merged parent ancestry, all implementation and tests. Do not modify the parent PR or create another PR.\n\nLatest-head Copilot review 5647159538 raised one accepted finding at https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20877#discussion_r4373789131. CONTRIBUTING.md's Changelog section requires omitting migration instructions that merely restate the change. In CHANGELOG.md, shorten only the DbClientAttributesGetter.getErrorType() breaking-change entry to say that it now returns the final error.type and returning null omits it even with an exception. Remove the following sentence beginning 'Overrides wanting exception-class fallback'. The existing PR description already contains the useful fallback code example, so no description change is needed or requested.\n\nDo not change production code, tests, other changelog entries, PR metadata, branch bases or draft states. Preserve merge 5aefe873bc5d19140858ed02fcb5633d26ace244 and parent be5f9cca5f355c80471c6c95071636c8c49f9adf in the existing history. Use the repository-standard targeted Markdown lint as feasible and report its actual outcome; no Java build or tests are needed for this documentation-only edit. Do not wait for CI, merge or rebase branches, merge a PR, reply to humans, or resolve review threads.",
+      "created": "2026-10-26T03:54:30Z",
+      "hunk": "@@ -4,6 +4,9 @@\n \n ### ⚠️ Breaking changes\n \n+- `DbClientAttributesGetter.getErrorType()` now returns the final `error.type`; returning `null`",
+      "id": "PRRT_kwDODJKVX86wIS2x",
+      "opened": "2026-10-26T03:54:30Z",
+      "path": "CHANGELOG.md",
+      "replies": [
+        {
+          "at": "2026-10-26T03:57:41Z",
+          "body": "Shortened the changelog entry as requested, removing the redundant fallback example. Commit: `ff84c45d`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20877#discussion_r4373808334"
+        }
+      ],
+      "reviewed": "5aefe873bc5d19140858ed02fcb5633d26ace244",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20877#discussion_r4373796409"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Rename only these two test methods directly in existing PR #20877: shouldUseCustomFinalClassification to shouldUseCustomClassification in instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientAttributesExtractorTest.java, and spanAndMetricUseFinalClassification to spanAndMetricUseClassification in instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientMetricsTest.java. The word Final is unnecessary in these names. Preserve all assertions, test cases, production behavior, and unrelated changes. Update any directly affected references if needed. Commit and push to this existing PR head; do not create another PR, merge, or rebase. Run narrow formatting and the relevant existing tests, reporting any execution blockers accurately. Acceptance criteria: both old method names are absent, both replacement names are present, and no behavior changes are introduced.",
+      "created": "2026-10-26T17:12:28Z",
+      "hunk": "@@ -178,18 +178,64 @@ void shouldExtractNoAttributesIfNoneAreAvailable() {\n   }\n \n   @Test\n-  void shouldUseExceptionClassWhenErrorTypeIsUnavailable() {\n+  void shouldInheritExceptionClassFallback() {\n+    TestAttributesGetter getter = new TestAttributesGetter();\n     AttributesExtractor<Map<String, String>, Void> underTest =\n-        DbClientAttributesExtractor.create(new TestAttributesGetter());\n+        DbClientAttributesExtractor.create(getter);\n     IllegalStateException error = new IllegalStateException();\n \n+    assertThat(getter.getErrorType(emptyMap(), null, error))\n+        .isEqualTo(IllegalStateException.class.getName());\n+    assertThat(getter.getErrorType(emptyMap(), null, null)).isNull();\n+\n     AttributesBuilder attributes = Attributes.builder();\n     underTest.onEnd(attributes, Context.root(), emptyMap(), null, error);\n \n     assertThat(attributes.build())\n         .containsOnly(entry(ERROR_TYPE, IllegalStateException.class.getName()));\n   }\n \n+  @Test\n+  void shouldOmitErrorTypeWithoutError() {\n+    AttributesBuilder attributes = Attributes.builder();\n+    DbClientAttributesExtractor.create(new TestAttributesGetter())\n+        .onEnd(attributes, Context.root(), emptyMap(), null, null);\n+\n+    assertThat(attributes.build()).isEmpty();\n+  }\n+\n+  @Test\n+  void shouldUseCustomFinalClassification() {",
+      "id": "PRRT_kwDODJKVX86wXs9C",
+      "opened": "2026-10-26T17:12:28Z",
+      "path": "instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientAttributesExtractorTest.java",
+      "replies": [
+        {
+          "at": "2026-10-26T17:21:46Z",
+          "body": "Renamed both requested test methods without changing assertions or test logic. Formatting and both targeted test classes passed. Commit: `0a239ca0`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20877#discussion_r4380316814"
+        }
+      ],
+      "reviewed": "ff84c45d182fb2c7f66cf193dd80fb6e0d939015",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20877#discussion_r4380229841"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this existing PR #20877 directly with a behavior-preserving conversion of ONLY the following five directly nested ternary expressions. The user explicitly approved these five snippets. Do not create another PR or modify other ternaries. Preserve this PR's existing head branch, base branch and draft/ready state.\n\n1. instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/DynamoDbAttributesGetter.java, getErrorType, currently `return serviceErrorCode != null ? serviceErrorCode : error == null ? null : error.getClass().getName();`.\n\n2. instrumentation/mongo/mongo-3.1/library/src/main/java/io/opentelemetry/instrumentation/mongo/v3_1/internal/MongoDbAttributesGetter.java, getErrorType, currently `return errorCode != null ? errorCode : error == null ? null : error.getClass().getName();`.\n\n3. instrumentation/opensearch/opensearch-java-3.0/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchAttributesGetter.java, getErrorType, currently `return statusCode != null && (statusCode >= 400 || statusCode < 100) ? statusCode.toString() : error == null ? null : error.getClass().getName();`.\n\n4. instrumentation-api-incubator/src/test/java/io/opentelemetry/instrumentation/api/incubator/semconv/db/DbClientMetricsTest.java, the `assertThat(expectedErrorType).isEqualTo(...)` expectation currently `classification.equals(\"custom\") ? \"CUSTOM\" : classification.equals(\"default\") ? IllegalStateException.class.getName() : null`.\n\n5. instrumentation/opensearch/opensearch-java-3.0/javaagent/src/unitTests/java/io/opentelemetry/javaagent/instrumentation/opensearch/v3_0/OpenSearchAttributesGetterTest.java, the `assertThat(getter.getErrorType(request, null, error)).isEqualTo(...)` expectation currently `statusCode >= 400 || statusCode < 100 ? Integer.toString(statusCode) : error instanceof CompletionException ? CompletionException.class.getName() : OpenSearchException.class.getName()`.\n\nFollow .github/instructions/java-style.instructions.md's conditional-expression rule: use straightforward early returns, if/else, or named intermediate values to remove direct nesting. Keep readable simple ternaries. Its test exception applies to inline attribute-assertion expected values, not the two ordinary value assertions above. Keep test expectations independent of the production method being asserted; do not introduce a helper or abstraction solely to compute a short expected value. Preserve all code/status precedence, null handling, exception-class choices, telemetry and current test scenarios. No unrelated cleanup or behavioral changes.\n\nApply the narrowest relevant spotlessApply tasks directly before focused validation, then run the smallest existing tests covering these five changes. Accurately report any execution blockers. Commit and push the changes to this PR's existing head. Do not wait for CI, merge or rebase branches, change PR metadata, or reply to human review comments.",
+      "created": "2026-11-06T22:21:24Z",
+      "hunk": "@@ -81,7 +81,10 @@ public String getErrorType(\n       ExecutionAttributes executionAttributes,\n       @Nullable Response response,\n       @Nullable Throwable error) {\n-    return getServiceErrorCode(error);\n+    String serviceErrorCode = getServiceErrorCode(error);\n+    return serviceErrorCode != null\n+        ? serviceErrorCode",
+      "id": "PRRT_kwDODJKVX860t0Kk",
+      "opened": "2026-11-06T22:21:24Z",
+      "path": "instrumentation/aws-sdk/aws-sdk-2.2/library/src/main/java/io/opentelemetry/instrumentation/awssdk/v2_2/internal/DynamoDbAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-11-06T22:30:55Z",
+          "body": "Converted the five requested nested ternaries without changing behavior. Formatting and focused tests passed. Commit: `beeb4165`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20877#discussion_r4498301166"
+        }
+      ],
+      "reviewed": "40bded34880beb5496fb5c477767e630a3b33a83",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20877#discussion_r4498233453"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update existing PR #20877 directly to decouple getErrorType() from getDbResponseStatusCode(). Target the verified head repository open-telemetry/opentelemetry-java-instrumentation and branch copilot/implement-database-getter. Keep the branch assigned by GitHub Copilot cloud agent, including any platform-assigned follow-up branch; do not rename it or create a replacement branch. Do not create a duplicate PR or modify the parent branch.\n\nThe user wants these getters independent because error.type and db.response.status_code are not coupled at the semantic-convention level, and response-status getters may return non-error codes in the future. At current head 512581bdc592aa0dbcbdd9cc5a6ed3a8121d4aa1, SpymemcachedAttributesGetter.getErrorType() calls the public getDbResponseStatusCode(request, response, error) and treats every non-null result as an error. Remove that direct dependency. Keep error classification explicitly error-only; if sharing extraction, use a narrowly named private error-only helper rather than calling the public response-status getter. Preserve all existing success/passive-status exclusions, cancellation behavior, OperationException handling, exception fallback, span status and metrics. Do not broaden status-code emission in this cleanup.\n\nJdbcAttributesGetter.getErrorType() calls a private two-argument overload named getDbResponseStatusCode(DbRequest, SQLException), also used by the public getter. Rename that private raw-code extraction helper distinctly so sharing extraction does not imply delegation to the public getter. Preserve SQLTimeoutException classification, SQLSTATE/vendor-code precedence, the 00000 exclusion from error classification, and current response-status behavior. Audit production getErrorType implementations for any other dependency on the public database response-status getter and remove such dependencies if present, without changing existing output. The shared DbClientAttributesGetter default and DbClientAttributesExtractor already read these attributes independently; retain that behavior and do not add a common coupling or fallback.\n\nAdd or adapt focused tests demonstrating independent status and error classification, including successful/passive statuses and cancellation where relevant. Preserve existing protocol error values and exception fallback. Follow CONTRIBUTING.md and applicable instructions; run narrow spotlessApply directly before targeted behavioral tests and report actual outcomes or blockers. Keep this PR's base and draft/ready state. Do not edit PR title or description, merge PRs, resolve threads, or fix unrelated issues. Acceptance is no public getDbResponseStatusCode invocation from getErrorType, a distinct name for JDBC's private raw extraction helper, and behavior-preserving tests.",
+      "created": "2026-11-07T16:11:01Z",
+      "hunk": "@@ -69,12 +69,16 @@ public String getDbResponseStatusCode(\n   public String getErrorType(\n       SpymemcachedRequest request, @Nullable Object response, @Nullable Throwable error) {\n     if (error != null && !(error instanceof OperationException)) {\n-      return null;\n+      return error.getClass().getName();\n     }\n     if (response instanceof Future && ((Future<?>) response).isCancelled()) {\n-      return null;\n+      return error == null ? null : error.getClass().getName();\n+    }\n+    String responseStatusCode = getDbResponseStatusCode(request, response, error);",
+      "id": "PRRT_kwDODJKVX8604OSt",
+      "opened": "2026-11-07T16:11:01Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-11-07T16:23:50Z",
+          "body": "Decoupled Spymemcached error classification from the public response-status getter and renamed JDBC’s private SQL status extraction helper. The production getter audit found no other direct dependencies. Committed as `403ff3b2`.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20877#discussion_r4502718264"
+        }
+      ],
+      "reviewed": "512581bdc592aa0dbcbdd9cc5a6ed3a8121d4aa1",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20877#discussion_r4502656262"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[General] This helper duplicates the complete status filtering already implemented in `getDbResponseStatusCode()` at lines 46–64, including every success, non-error, and cancellation exclusion. Please replace that getter's body with `return getErrorStatusCode(response);` so the two getter APIs remain independent without maintaining two copies of the same policy.",
+      "created": "2026-11-07T16:32:19Z",
+      "hunk": "@@ -69,12 +69,38 @@ public String getDbResponseStatusCode(\n   public String getErrorType(\n       SpymemcachedRequest request, @Nullable Object response, @Nullable Throwable error) {\n     if (error != null && !(error instanceof OperationException)) {\n-      return null;\n+      return error.getClass().getName();\n     }\n     if (response instanceof Future && ((Future<?>) response).isCancelled()) {\n+      return error == null ? null : error.getClass().getName();\n+    }\n+    String errorStatusCode = getErrorStatusCode(response);\n+    if (errorStatusCode != null) {\n+      return errorStatusCode;\n+    }\n+    return error == null ? null : error.getClass().getName();\n+  }\n+\n+  @Nullable\n+  private static String getErrorStatusCode(@Nullable Object response) {\n+    OperationStatus status = SpymemcachedSingletons.getResponseStatus(response);",
+      "id": "PRRT_kwDODJKVX8604cy5",
+      "opened": "2026-11-07T16:32:20Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-11-07T16:49:39Z",
+          "body": "Fixed in 353e6d3a. Both getters now use the private error-only filter, so the filtering policy has one implementation and getErrorType() never calls the public response-status getter. Added regression coverage for that independence and for successful/passive statuses.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20877#discussion_r4502834073"
+        }
+      ],
+      "reviewed": "403ff3b226d52f1beb615d241c196e748ab10498",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20877#discussion_r4502753584"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Complete the in-scope decoupling cleanup on existing PR #20877, targeting open-telemetry/opentelemetry-java-instrumentation branch copilot/implement-database-getter at current head 403ff3b226d52f1beb615d241c196e748ab10498. The previous coding attempt ended and its delivery was inspected. Keep the branch assigned by GitHub Copilot cloud agent, including any platform-assigned follow-up branch; do not rename it or create a replacement branch. Update this PR directly, not a duplicate PR or its parent.\n\nThe latest Copilot review identified duplicated status-filtering policy in SpymemcachedAttributesGetter: getDbResponseStatusCode still has the full filter while the new private getErrorStatusCode(response) repeats it exactly. Replace the public response-status getter body with return getErrorStatusCode(response); retain the private explicitly error-only helper and keep getErrorType calling that helper directly, never the public getter. Sharing today's error-only extraction helper is compatible with independent getter contracts: a future change to response-status emission must not broaden error classification. Preserve all current emitted values, exclusions, exception priority, cancellation and nonblocking extraction behavior. Leave the verified JDBC private helper rename unchanged.\n\nComplete focused regression coverage for this separation in existing Spymemcached tests. Demonstrate that getErrorType does not invoke the public response-status getter, for example with a spy whose public getter would return a non-error code if called, and verify no-error remains null. Cover successful and passive statuses plus a real protocol error using existing fixtures; keep existing cancellation and exception tests. Avoid a new abstraction or production configurability solely for tests. Run narrow spotlessApply directly before targeted relevant tests and report actual outcomes or genuine blockers. Follow CONTRIBUTING.md and applicable repository instructions. Preserve base and draft state. Do not edit PR metadata, resolve threads, merge PRs, or fix unrelated issues.",
+      "created": "2026-11-07T16:38:17Z",
+      "hunk": "@@ -69,12 +69,38 @@ public String getDbResponseStatusCode(\n   public String getErrorType(\n       SpymemcachedRequest request, @Nullable Object response, @Nullable Throwable error) {\n     if (error != null && !(error instanceof OperationException)) {\n-      return null;\n+      return error.getClass().getName();\n     }\n     if (response instanceof Future && ((Future<?>) response).isCancelled()) {\n+      return error == null ? null : error.getClass().getName();\n+    }\n+    String errorStatusCode = getErrorStatusCode(response);",
+      "id": "PRRT_kwDODJKVX8604glG",
+      "opened": "2026-11-07T16:38:17Z",
+      "path": "instrumentation/spymemcached-2.12/javaagent/src/main/java/io/opentelemetry/javaagent/instrumentation/spymemcached/v2_12/SpymemcachedAttributesGetter.java",
+      "replies": [
+        {
+          "at": "2026-11-07T16:47:21Z",
+          "body": "Implemented and pushed as `353e6d3a`. The public response-status getter now delegates to the existing error-only filter; regression coverage verifies independence and success/passive statuses. Spotless and the targeted tests passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20877#discussion_r4502823616"
+        }
+      ],
+      "reviewed": "403ff3b226d52f1beb615d241c196e748ab10498",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20877#discussion_r4502779665"
+    }
+  ]
+}

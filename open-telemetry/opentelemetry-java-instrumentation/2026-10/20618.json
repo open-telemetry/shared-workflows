@@ -1,0 +1,31 @@
+{
+  "head": "64220061c6084803e0d9bd01ec3b76f6ce98f380",
+  "merge": "49accfabe708dab7d1f1a6778a9b00f43140641a",
+  "merged": "2026-10-16T19:29:28Z",
+  "missing_roots": 0,
+  "number": 20618,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot revert this file",
+      "created": "2026-10-15T17:26:47Z",
+      "hunk": "",
+      "id": "PRRT_kwDODJKVX86s450J",
+      "opened": "2026-10-15T17:26:47Z",
+      "path": "instrumentation/lettuce/lettuce-5.1/library/src/test/java/io/opentelemetry/instrumentation/lettuce/v5_1/OpenTelemetryTracingTest.java",
+      "replies": [
+        {
+          "at": "2026-10-15T17:33:50Z",
+          "body": "Reverted in 6a11380d. Production code is unchanged; existing Lettuce library tests and Spotless passed.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20618#discussion_r4286243951"
+        }
+      ],
+      "reviewed": "da05b2eb2d9c700c1a333ea6b48eca73e3b3cad8",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20618#discussion_r4286174844"
+    }
+  ]
+}

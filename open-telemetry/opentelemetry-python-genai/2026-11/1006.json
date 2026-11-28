@@ -1,0 +1,82 @@
+{
+  "head": "2b17c6f9acea96aa128173343a601f880a86c7b3",
+  "merge": "fd6c5aff726718b80a42b713ab7009af5fe601d0",
+  "merged": "2026-11-03T05:33:26Z",
+  "missing_roots": 0,
+  "number": 1006,
+  "repo": "open-telemetry/opentelemetry-python-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "After suspension, `_ModelStreamWrapper.__del__()` still finalizes outside `_execution_context()`, so instrumented completion-hook work can become a child of the caller's span instead of `chat` when an unfinished stream is garbage-collected. Wrap `_finalize_success()` in the execution context, preserving the existing success-finalization behavior. Apply the same change to the agent stream destructor at `patch.py:440` so its completion hook runs under `invoke_agent`.",
+      "created": "2026-10-29T03:32:19Z",
+      "hunk": "@@ -297,6 +297,7 @@ def __init__(\n     ) -> None:\n         super().__init__(stream, invocation=invocation)\n         self._self_inference = invocation\n+        invocation.suspend()",
+      "id": "PRRT_kwDOSbspP86xZ9os",
+      "opened": "2026-10-29T03:32:19Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-smolagents/src/opentelemetry/instrumentation/genai/smolagents/patch.py",
+      "replies": [],
+      "reviewed": "0a6e9fa9d441dfc24a7b32eae4aac0b50211c3c5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1006#discussion_r4408423056"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This suspension relies on the base stream wrapper reactivating the invocation during reads, but that behavior was introduced in util-genai 1.3b0 (see its CHANGELOG.md, “Changed”). This package still allows util-genai >=1.2b0, so a supported installation can now run the model generator with the chat invocation suspended throughout, losing its execution context and child-span parenting. Raise the util-genai minimum to >=1.3b0 in the same PR.",
+      "created": "2026-10-29T03:32:19Z",
+      "hunk": "@@ -297,6 +297,7 @@ def __init__(\n     ) -> None:\n         super().__init__(stream, invocation=invocation)\n         self._self_inference = invocation\n+        invocation.suspend()",
+      "id": "PRRT_kwDOSbspP86xZ9pG",
+      "opened": "2026-10-29T03:32:19Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-smolagents/src/opentelemetry/instrumentation/genai/smolagents/patch.py",
+      "replies": [],
+      "reviewed": "0a6e9fa9d441dfc24a7b32eae4aac0b50211c3c5",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1006#discussion_r4408423087"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "rads-1996"
+      },
+      "body": "Could we also close the wrapped stream inside this context? On abandonment, the generator’s `finally` runs after `__del__` returns, so it still executes outside the agent span. The current tests surface this as `generator ignored GeneratorExit` warnings.",
+      "created": "2026-10-29T15:48:26Z",
+      "hunk": "@@ -424,15 +426,20 @@ def __init__(\n         # invocation to the base class.\n         super().__init__(stream)\n         self._self_agent_invocation = invocation\n+        invocation.suspend()\n         self._self_agent = agent\n         self._self_capture_content = capture_content\n         self._self_final_output: object = None\n         self._self_saw_final = False\n         self._self_finished = False\n \n+    def _execution_context(self) -> AbstractContextManager[None]:\n+        return self._self_agent_invocation.activate()\n+\n     def __del__(self) -> None:\n         try:\n-            self._finalize_success()\n+            with self._execution_context():\n+                self._finalize_success()",
+      "id": "PRRT_kwDOSbspP86xoffR",
+      "opened": "2026-10-29T15:48:26Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-smolagents/src/opentelemetry/instrumentation/genai/smolagents/patch.py",
+      "replies": [
+        {
+          "at": "2026-10-30T05:12:07Z",
+          "body": "done in 9512eb2, the GeneratorExit warning is gone as well. \r\nthanks!",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1006#discussion_r4420643027"
+        }
+      ],
+      "reviewed": "4cbc7ca09ad02c053ee85c1b0ccc013e4e9c2fd4",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1006#discussion_r4414571981"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "This covers the caller side, but nothing checks that `chat` is still current while the model generator runs (the agent test has `_SpanningCodeModel` for that). Something like this would catch a regression in the per-read activation:\n\n```python\ndef test_generate_stream_reads_under_the_chat_span(\n    instrument_with_content, span_exporter\n) -> None:\n    model = transformers_model()\n    seen = []\n\n    def chunks():\n        for text in [\"In \", \"Paris\"]:\n            seen.append(get_current_span().get_span_context().span_id)\n            yield text\n\n    model.streamer = chunks()\n    list(model.generate_stream(messages=MESSAGES))\n\n    (chat,) = spans_by_operation(span_exporter.get_finished_spans(), \"chat\")\n    assert seen == [chat.context.span_id] * 2\n```",
+      "created": "2026-10-31T20:23:41Z",
+      "hunk": "@@ -652,6 +652,27 @@ def test_generate_stream_is_lazy_and_records_the_drained_response(\n     assert attr(span, GenAI.GEN_AI_RESPONSE_FINISH_REASONS) is None\n \n \n+def test_generate_stream_is_current_only_while_read(\n+    instrument_with_content, span_exporter, tracer_provider\n+) -> None:\n+    model = transformers_model(stream_chunks=[\"In \", \"Paris\"])\n+    stream = model.generate_stream(messages=MESSAGES)\n+    assert get_current_span() is INVALID_SPAN\n+\n+    next(stream)\n+    assert get_current_span() is INVALID_SPAN\n+    with tracer_provider.get_tracer(\"test\").start_as_current_span(\"caller\"):\n+        pass\n+    list(stream)\n+\n+    (caller,) = [\n+        span\n+        for span in span_exporter.get_finished_spans()\n+        if span.name == \"caller\"\n+    ]\n+    assert caller.parent is None",
+      "id": "PRRT_kwDOSbspP86yUT2K",
+      "opened": "2026-10-31T20:24:43Z",
+      "path": "instrumentation/opentelemetry-instrumentation-genai-smolagents/tests/test_models.py",
+      "replies": [
+        {
+          "at": "2026-11-01T10:17:36Z",
+          "body": "added it in 2b17c6f, thanks!",
+          "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1006#discussion_r4435219187"
+        }
+      ],
+      "reviewed": "9512eb29d7f9abbf80797dd985fe0f6fa7f8dc03",
+      "url": "https://github.com/open-telemetry/opentelemetry-python-genai/pull/1006#discussion_r4433175104"
+    }
+  ]
+}

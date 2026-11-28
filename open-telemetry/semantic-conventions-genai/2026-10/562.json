@@ -1,0 +1,184 @@
+{
+  "head": "b68e6390e180a01198d5842be83e04cbd50c28b4",
+  "merge": "760c1da52f3a30ed0e940f519b5adc314271747a",
+  "merged": "2026-10-26T19:12:48Z",
+  "missing_roots": 0,
+  "number": 562,
+  "repo": "open-telemetry/semantic-conventions-genai",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The inference-span override at `model/gen-ai/spans.yaml:239-242` still tells instrumentation to record the exact model actually used. That conflicts with this returned-value definition in the multi-inference or fallback case this change addresses. Update or remove that override so the generated inference convention consistently says to preserve the model name returned for the whole response.\n\nThis issue also appears in the following locations of the same file:\n- line 282\n- line 341",
+      "created": "2026-10-02T20:33:35Z",
+      "hunk": "@@ -199,12 +199,12 @@ attributes:\n     stability: development\n   - key: gen_ai.response.id\n     type: string\n-    brief: The unique identifier for the completion.\n+    brief: The identifier returned in the response.\n     examples: ['chatcmpl-123']\n     stability: development\n   - key: gen_ai.response.model\n     type: string\n-    brief: The name of the model that generated the response.\n+    brief: The model name returned in the response.",
+      "id": "PRRT_kwDOSUeMrM6oe5WB",
+      "opened": "2026-10-02T20:33:36Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [],
+      "reviewed": "4a88e1c6674b83c984d58a97101bdff5e299406d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/562#discussion_r4169596954"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "This adds a new provider/server span topology, but no reference scenario demonstrates a real model-provider or model-server library producing nested inference spans from its API. The unchanged attribute names do not make reference coverage N/A; please add an end-to-end library scenario for this topology, or defer the claim until it can be demonstrated.",
+      "created": "2026-10-02T20:33:36Z",
+      "hunk": "@@ -177,13 +177,20 @@ spans:\n         Semantic conventions for individual GenAI systems and frameworks MAY specify different span name format\n         and MUST follow the overall [guidelines for span names](https://github.com/open-telemetry/opentelemetry-specification/blob/v1.56.0/specification/trace/api.md#span).\n     brief: >\n-      This span represents a client call to Generative AI model or service that generates\n-      a response or requests a tool call based on the input prompt.\n+      This span represents a logical client call to a Generative AI model or service.\n+      The model generates a response or requests a tool call based on the input.\n     note: |\n       **Span kind** SHOULD be `CLIENT` and MAY be set to `INTERNAL` on spans representing\n       call to models running in the same process. It's RECOMMENDED to use `CLIENT` kind\n       when the GenAI system being instrumented usually runs in a different process than its\n       client or when the GenAI call happens over instrumented protocol such as HTTP.\n+\n+      One client request may involve server-side tool calls and multiple\n+      inference operations. The model provider or server, when instrumented,\n+      may record them as nested inference spans.",
+      "id": "PRRT_kwDOSUeMrM6oe5W-",
+      "opened": "2026-10-02T20:33:36Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "4a88e1c6674b83c984d58a97101bdff5e299406d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/562#discussion_r4169597054"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The fragment omits the change to `gen_ai.response.id`, even though its definition is also changed from a unique completion identifier to the identifier returned for the response. Include it so the release note covers all consumer-visible clarifications in this PR.",
+      "created": "2026-10-02T20:33:36Z",
+      "hunk": "@@ -0,0 +1 @@\n+Clarify that an inference span may have nested inference spans recorded by the model provider, and that `gen_ai.response.model` and usage attributes reflect what the provider reports for the whole request.",
+      "id": "PRRT_kwDOSUeMrM6oe5Xg",
+      "opened": "2026-10-02T20:33:36Z",
+      "path": "changelog.d/562.clarification.md",
+      "replies": [],
+      "reviewed": "4a88e1c6674b83c984d58a97101bdff5e299406d",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/562#discussion_r4169597112"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "lmolkova"
+      },
+      "body": "a typical instrumentation has no knowledge of fine-tuning, it can only return what's in the model client api",
+      "created": "2026-10-02T20:57:36Z",
+      "hunk": "@@ -229,10 +236,6 @@ spans:\n         requirement_level: recommended\n       - ref: gen_ai.response.model\n         requirement_level: recommended\n-        note: >\n-          If available. The name of the GenAI model that provided the response. If the model is supplied by a vendor,",
+      "id": "PRRT_kwDOSUeMrM6ofU4s",
+      "opened": "2026-10-02T20:57:36Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "fdc223183a3ea001a06afee8c7c6b60aeb6de849",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/562#discussion_r4169775916"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "I think we should be more vague or maybe more specific here about what spans may be nested.\n\nAcross providers, it could be much more than just inference: execute tool, execute tool via MCP, subagents (in the case of Gemini Interactions API [with `agent` set](https://docs.cloud.google.com/gemini-enterprise-agent-platform/reference/models/interactions-api#request-body), RAG, etc\n\n",
+      "created": "2026-10-05T18:09:23Z",
+      "hunk": "@@ -177,13 +177,20 @@ spans:\n         Semantic conventions for individual GenAI systems and frameworks MAY specify different span name format\n         and MUST follow the overall [guidelines for span names](https://github.com/open-telemetry/opentelemetry-specification/blob/v1.56.0/specification/trace/api.md#span).\n     brief: >\n-      This span represents a client call to Generative AI model or service that generates\n-      a response or requests a tool call based on the input prompt.\n+      This span represents a logical client call to Generative AI model or \n+      service that generates a response or requests a tool call based on the input prompt.\n     note: |\n       **Span kind** SHOULD be `CLIENT` and MAY be set to `INTERNAL` on spans representing\n       call to models running in the same process. It's RECOMMENDED to use `CLIENT` kind\n       when the GenAI system being instrumented usually runs in a different process than its\n       client or when the GenAI call happens over instrumented protocol such as HTTP.\n+\n+      One client request may involve server-side tool calls and multiple\n+      inference operations. The model provider or server, when instrumented,\n+      may record them as nested inference spans.",
+      "id": "PRRT_kwDOSUeMrM6pJ95R",
+      "opened": "2026-10-05T18:14:05Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-10-11T00:43:24Z",
+          "body": "fixed in https://github.com/lmolkova/semantic-conventions-genai/commit/ff5f51ee",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/562#discussion_r4239751763"
+        }
+      ],
+      "reviewed": "d643b715d384bb439282701eeb4bf93583941421",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/562#discussion_r4187214852"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "aabmass"
+      },
+      "body": "nit would be nice to link to the entity https://opentelemetry.io/docs/specs/semconv/registry/entities/service/",
+      "created": "2026-10-05T18:13:01Z",
+      "hunk": "@@ -177,13 +177,20 @@ spans:\n         Semantic conventions for individual GenAI systems and frameworks MAY specify different span name format\n         and MUST follow the overall [guidelines for span names](https://github.com/open-telemetry/opentelemetry-specification/blob/v1.56.0/specification/trace/api.md#span).\n     brief: >\n-      This span represents a client call to Generative AI model or service that generates\n-      a response or requests a tool call based on the input prompt.\n+      This span represents a logical client call to Generative AI model or \n+      service that generates a response or requests a tool call based on the input prompt.\n     note: |\n       **Span kind** SHOULD be `CLIENT` and MAY be set to `INTERNAL` on spans representing\n       call to models running in the same process. It's RECOMMENDED to use `CLIENT` kind\n       when the GenAI system being instrumented usually runs in a different process than its\n       client or when the GenAI call happens over instrumented protocol such as HTTP.\n+\n+      One client request may involve server-side tool calls and multiple\n+      inference operations. The model provider or server, when instrumented,\n+      may record them as nested inference spans.\n+\n+      Telemetry consumers should group inference spans by `service.name`",
+      "id": "PRRT_kwDOSUeMrM6pKCvm",
+      "opened": "2026-10-05T18:14:05Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [],
+      "reviewed": "d643b715d384bb439282701eeb4bf93583941421",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/562#discussion_r4187246304"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "The new provider-side nesting guidance has no reference scenario demonstrating its span boundaries and usage. The OpenAI and Anthropic scenarios observe client SDK calls; Google GenAI's nested tool spans cover client-side execution, not provider-side inference. These do not establish how a model-serving library exposes the proposed nested operations. The reference requirements in `.github/instructions/evaluate-reference.instructions.md:7-9` require scenarios to back convention changes. Please add a runnable scenario around a model-serving library API with values read from that library, or defer the provider-side recording guidance.",
+      "created": "2026-10-16T17:48:12Z",
+      "hunk": "@@ -177,13 +177,20 @@ spans:\n         Semantic conventions for individual GenAI systems and frameworks MAY specify different span name format\n         and MUST follow the overall [guidelines for span names](https://github.com/open-telemetry/opentelemetry-specification/blob/v1.56.0/specification/trace/api.md#span).\n     brief: >\n-      This span represents a client call to Generative AI model or service that generates\n-      a response or requests a tool call based on the input prompt.\n+      This span represents a logical client call to Generative AI model or \n+      service that generates a response or requests a tool call based on the input prompt.\n     note: |\n       **Span kind** SHOULD be `CLIENT` and MAY be set to `INTERNAL` on spans representing\n       call to models running in the same process. It's RECOMMENDED to use `CLIENT` kind\n       when the GenAI system being instrumented usually runs in a different process than its\n       client or when the GenAI call happens over instrumented protocol such as HTTP.\n+\n+      One client request may involve multiple server-side inference operations.\n+      The model provider or server, when instrumented, may record those operations\n+      as nested inference spans.",
+      "id": "PRRT_kwDOSUeMrM6tUD2l",
+      "opened": "2026-10-16T17:48:12Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-10-20T02:35:37Z",
+          "body": "Agree with Copilot here — it would be helpful for me to understand how this is intended to be used for Anthropic's Messages API server-side spans: https://platform.claude.com/docs/en/manage-claude/opentelemetry#a-messages-api-request",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/562#discussion_r4320544676"
+        }
+      ],
+      "reviewed": "1bdd3a2e858560c0d2ae790d1a962b3ae89281fc",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/562#discussion_r4297604029"
+    },
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "Grouping by `service.name` does not prevent double-counting within a provider. Its request span and nested inference spans can share the same service resource. If the request reports 100 tokens and its children total 100, summing that group yields 200. Please clarify that consumers must choose request-level or individual-inference accounting and avoid summing overlapping usage, even within one service. Update the model and regenerate the docs.",
+      "created": "2026-10-16T17:48:12Z",
+      "hunk": "@@ -177,13 +177,20 @@ spans:\n         Semantic conventions for individual GenAI systems and frameworks MAY specify different span name format\n         and MUST follow the overall [guidelines for span names](https://github.com/open-telemetry/opentelemetry-specification/blob/v1.56.0/specification/trace/api.md#span).\n     brief: >\n-      This span represents a client call to Generative AI model or service that generates\n-      a response or requests a tool call based on the input prompt.\n+      This span represents a logical client call to Generative AI model or \n+      service that generates a response or requests a tool call based on the input prompt.\n     note: |\n       **Span kind** SHOULD be `CLIENT` and MAY be set to `INTERNAL` on spans representing\n       call to models running in the same process. It's RECOMMENDED to use `CLIENT` kind\n       when the GenAI system being instrumented usually runs in a different process than its\n       client or when the GenAI call happens over instrumented protocol such as HTTP.\n+\n+      One client request may involve multiple server-side inference operations.\n+      The model provider or server, when instrumented, may record those operations\n+      as nested inference spans.\n+\n+      Telemetry consumers should group inference spans by [`service.name`](https://opentelemetry.io/docs/specs/semconv/registry/entities/service/)\n+      when counting operations or tokens.",
+      "id": "PRRT_kwDOSUeMrM6tUD3Z",
+      "opened": "2026-10-16T17:48:12Z",
+      "path": "model/gen-ai/spans.yaml",
+      "replies": [
+        {
+          "at": "2026-10-17T19:18:53Z",
+          "body": "nested client inference spans are not expected in reality or cover the same call and should be collapsed into one.",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/562#discussion_r4304124198"
+        },
+        {
+          "at": "2026-10-20T02:35:37Z",
+          "body": "@lmolkova I think Copilot is correct here, in our case there is no separate service name, the span for the Messages API call and the inference calls for each server-side tool loop iteration are emitted from the same service. There needs to be some way for users to distinguish them to avoid double-counting (that's why I had proposed to split the spans into two, but if we keep them the same and just say they are recursively nesteable, there is no distinction)",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/562#discussion_r4320560288"
+        }
+      ],
+      "reviewed": "1bdd3a2e858560c0d2ae790d1a962b3ae89281fc",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/562#discussion_r4297604103"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "felixfbecker"
+      },
+      "body": "This feels unintuitive to me on a nested span. In the Anthropic Messages API, we already report token usage per server-side tool loop iteration. But the OTEL span for each iteration would then have the total, and the total would be on both the span for the whole request and on its child spans, as opposed to the child spans adding up to the total. As a user if I see a nested inference span, I'd assume the tokens on that span are for that inference operation only.\r\nExample trace for reference: https://platform.claude.com/docs/en/manage-claude/opentelemetry#a-messages-api-request",
+      "created": "2026-10-20T01:30:19Z",
+      "hunk": "@@ -279,6 +279,7 @@ attributes:\n     type: int\n     brief: The number of tokens used in the GenAI input (prompt).\n     note: |\n+      The value SHOULD reflect the usage reported by the provider for the whole request.",
+      "id": "PRRT_kwDOSUeMrM6uKqwQ",
+      "opened": "2026-10-20T02:35:37Z",
+      "path": "model/gen-ai/registry.yaml",
+      "replies": [
+        {
+          "at": "2026-10-21T17:41:05Z",
+          "body": "how would instrumentation for client SDK know that someone under reported usage already? ",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/562#discussion_r4340006775"
+        },
+        {
+          "at": "2026-10-21T19:09:39Z",
+          "body": "it can't. It's on observability platforms and the user to use appropriate filters in their dashboards to avoid double counting.\n\nBut some users may _want_ to see the fine-grained token usage of each iteration of the server-side tool loop, which they can't if instrumentations follow this added sentence here (if I understand it correctly, I'm interpreting \"whole request\" to mean the whole Messages API request).",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/562#discussion_r4340861913"
+        },
+        {
+          "at": "2026-10-26T05:06:06Z",
+          "body": "I updated the brief slightly and moved brief update from base attribute definitions to this specific client inference span in https://github.com/open-telemetry/semantic-conventions-genai/pull/562/commits/0a616d4ad2097820b4068359f8992c1bd8fd5430",
+          "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/562#discussion_r4374108681"
+        }
+      ],
+      "reviewed": "65a42bf0f5507d5f3c4b8e42abcc48fd07f82cd5",
+      "url": "https://github.com/open-telemetry/semantic-conventions-genai/pull/562#discussion_r4320579228"
+    }
+  ]
+}

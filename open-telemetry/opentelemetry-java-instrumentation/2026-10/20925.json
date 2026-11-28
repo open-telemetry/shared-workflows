@@ -1,0 +1,136 @@
+{
+  "head": "b8c1ffed3c131c130d45d02a9fcb1e7531d043f9",
+  "merge": "8a751005ae52fd418d6e2ad18b32bba132e7dca8",
+  "merged": "2026-10-26T07:53:20Z",
+  "missing_roots": 0,
+  "number": 20925,
+  "repo": "open-telemetry/opentelemetry-java-instrumentation",
+  "threads": [
+    {
+      "author": {
+        "__typename": "Bot",
+        "login": "copilot-pull-request-reviewer"
+      },
+      "body": "[Testing] `testLatestDeps()` reads a JVM system property, but this module never forwards the Gradle property to its test tasks. Even with `-PtestLatestDeps=true`, this returns false, so all new Vert.x 3.x regression cases are skipped and `VertxWebServer` never registers their routes. Configure the `version3Test` test task with `systemProperty(\"testLatestDeps\", otelProps.testLatestDeps)` so latest-3.x runs actually exercise the fix.",
+      "created": "2026-10-23T23:55:13Z",
+      "hunk": "@@ -5,9 +5,16 @@\n \n package io.opentelemetry.javaagent.instrumentation.vertx.web.v3_0;\n \n+import static io.opentelemetry.instrumentation.testing.util.TestLatestDeps.testLatestDeps;\n+\n import io.vertx.core.AbstractVerticle;\n \n class VertxHttpServerTest extends AbstractVertxHttpServerTest {\n+  @Override\n+  protected boolean supportsMultiHandlerRoutes() {\n+    return testLatestDeps();",
+      "id": "PRRT_kwDODJKVX86vzsji",
+      "opened": "2026-10-23T23:55:14Z",
+      "path": "instrumentation/vertx/vertx-web-3.0/javaagent/src/version3Test/java/io/opentelemetry/javaagent/instrumentation/vertx/web/v3_0/VertxHttpServerTest.java",
+      "replies": [
+        {
+          "at": "2026-10-24T00:12:08Z",
+          "body": "Fixed in f3e8f2fbe6fe576d4a84da88eb1f91903f0ab5ac. The version3Test task now forwards otelProps.testLatestDeps as a JVM system property, so the new regression cases and fixtures are enabled in latest-dependency mode while the baseline Vert.x 3.0 skip is preserved.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20925#discussion_r4365243493"
+        }
+      ],
+      "reviewed": "f510767acf3340de3b6323eaed067876b8ce83cc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20925#discussion_r4365176639"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to address the in-scope regression-coverage finding from Copilot review 5635650595. The new Vert.x 3 regression fixture and test both call TestLatestDeps.testLatestDeps(), which reads the test JVM system property, but instrumentation/vertx/vertx-web-3.0/javaagent/build.gradle.kts does not forward the Gradle testLatestDeps flag. As a result, -PtestLatestDeps=true still skips every new multiHandlerRoute case for Vert.x 3 and never installs those routes. Forward otelProps.testLatestDeps to the version3Test JVM using the repository's existing systemProperty(\"testLatestDeps\", otelProps.testLatestDeps) pattern, or an equally scoped correct implementation. Run narrow formatting and the relevant latest-3.x multiHandlerRoute regression cases and verify they actually execute rather than being skipped. Retain the intended skip for baseline Vert.x 3.0, which replaces rather than appends handlers. Preserve the existing route-composition fix, nested/mounted path behavior, and standard/virtual-thread coverage. Keep this follow-up limited to enabling and validating the regression coverage already requested. Do not create another PR or modify PR titles or descriptions.",
+      "created": "2026-10-24T00:00:53Z",
+      "hunk": "@@ -5,9 +5,16 @@\n \n package io.opentelemetry.javaagent.instrumentation.vertx.web.v3_0;\n \n+import static io.opentelemetry.instrumentation.testing.util.TestLatestDeps.testLatestDeps;\n+\n import io.vertx.core.AbstractVerticle;\n \n class VertxHttpServerTest extends AbstractVertxHttpServerTest {\n+  @Override\n+  protected boolean supportsMultiHandlerRoutes() {\n+    return testLatestDeps();",
+      "id": "PRRT_kwDODJKVX86vzv3x",
+      "opened": "2026-10-24T00:00:53Z",
+      "path": "instrumentation/vertx/vertx-web-3.0/javaagent/src/version3Test/java/io/opentelemetry/javaagent/instrumentation/vertx/web/v3_0/VertxHttpServerTest.java",
+      "replies": [
+        {
+          "at": "2026-10-24T00:08:09Z",
+          "body": "Fixed in `f3e8f2fb`: `version3Test` now forwards `otelProps.testLatestDeps` to its test JVM, leaving the baseline Vert.x 3.0 skip unchanged. `spotlessKotlinCheck` passed. The latest-3.x regression run could not reach test discovery because unrelated project configuration requires unavailable Java 27 and Foojay resolution was offline.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20925#discussion_r4365229115"
+        }
+      ],
+      "reviewed": "f510767acf3340de3b6323eaed067876b8ce83cc",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20925#discussion_r4365199000"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the two test-fixture refactors the user requested after reviewing the current implementation.\n\nFirst, remove the version3Test VertxWebServer.addMultiHandlerRoutes override that conditionally calls super only when testLatestDeps() is true, and remove its now-unused static import. Register the shared fixture routes unconditionally. Keep the existing handler-chain-support assumption in the regression test, so baseline Vert.x 3.0 still skips the unsupported multi-handler cases and latest-3.x runs exercise them. Preserve forwarding of the testLatestDeps property to the test JVM. Vert.x 3.0 replaces rather than appends handlers; ensure unused fixture registration does not disturb existing baseline tests.\n\nSecond, replace the DeploymentOptions-returning deploymentOptions() factory hook in AbstractVertxHttpServerTest with a protected void configureDeploymentOptions(DeploymentOptions options) hook whose default implementation is empty. Construct DeploymentOptions and apply common settings in setupServer(), call the configuration hook on that instance before deploying, then deploy with it. In VertxVirtualThreadHttpServerTest, override this hook and set options.setThreadingModel(ThreadingModel.VIRTUAL_THREAD), without obtaining and returning an object through super.deploymentOptions(). Keep common port/configuration and instance-count settings unchanged.\n\nPreserve the route-composition fix, nested/mounted routing behavior, span identity/custom-attribute assertions, and standard and virtual-thread regression coverage. Keep this change scoped to these two fixture refactors and directly necessary adjustments. Run narrow formatting and relevant baseline/latest Vert.x 3 and standard/virtual-thread tests when feasible, and report any environment blocker accurately. Do not create another PR or modify the PR title or description.",
+      "created": "2026-10-24T03:41:02Z",
+      "hunk": "@@ -0,0 +1,16 @@\n+/*\n+ * Copyright The OpenTelemetry Authors\n+ * SPDX-License-Identifier: Apache-2.0\n+ */\n+\n+package io.opentelemetry.javaagent.instrumentation.vertx.web.v3_0;\n+\n+import io.vertx.core.DeploymentOptions;\n+import io.vertx.core.ThreadingModel;\n+\n+class VertxVirtualThreadHttpServerTest extends Vertx41HttpServerTest {\n+  @Override\n+  protected DeploymentOptions deploymentOptions() {",
+      "id": "PRRT_kwDODJKVX86v1TYr",
+      "opened": "2026-10-24T03:41:02Z",
+      "path": "instrumentation/vertx/vertx-web-3.0/javaagent/src/version45Test/java/io/opentelemetry/javaagent/instrumentation/vertx/web/v3_0/VertxVirtualThreadHttpServerTest.java",
+      "replies": [
+        {
+          "at": "2026-10-24T03:53:53Z",
+          "body": "Addressed in `26465662`: the Vert.x 3 route override is removed, and deployment options now use the mutating configuration hook. Formatting and targeted baseline checks passed; latest-3.x and Vert.x 4 test execution was blocked by the unavailable Java 27 toolchain. The full Vert.x 3 suite also has six `requestWithNonStandardHttpMethod()` failures (`HttpMethod.TEST`).",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20925#discussion_r4365899291"
+        }
+      ],
+      "reviewed": "f3e8f2fbe6fe576d4a84da88eb1f91903f0ab5ac",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20925#discussion_r4365869960"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Fix the CI regression on this PR directly. The deterministic fix-ci bundle for PR 20925 identifies failing common/test3 jobs across Java 8, 11, 17, 21, 25 and 27. Representative job 120771654877 has :instrumentation:vertx:vertx-web-3.0:javaagent:version3Test failing with 35 tests completed, 6 failed, 8 skipped. All six failures are VertxHttpServerTest.requestWithNonStandardHttpMethod(), with IllegalArgumentException: No enum constant io.vertx.core.http.HttpMethod.TEST from HttpMethod.valueOf -> HttpServerRequestImpl.method -> RouteImpl.matches -> RoutingContextImplBase.iterateNext, followed by timeout waiting for a trace. This is not an unrelated baseline failure: investigate the new top-level method-restricted fixture routes in AbstractVertxWebServer.addMultiHandlerRoutes, now unconditionally registered in baseline Vert.x 3.0. Those routes can force the old router to decode the unsupported TEST method before reaching the existing generic handler.\n\nPreserve the user's requested unconditional fixture registration and configureDeploymentOptions mutating hook. Fix fixture registration/matching so the new GET regression endpoints do not break the existing nonstandard-HTTP-method test in Vert.x 3.0. Consider method-agnostic fixture routes if appropriate, since these regression requests already use GET, but verify the concrete library matching behavior rather than hiding the failure by disabling the existing test. Do not restore the testLatestDeps-gated server override or weaken routing/span regression assertions. Preserve nested/mounted route composition, genuine repeated segments, and standard/virtual-thread coverage. Run narrow formatting and the baseline version3Test suite including requestWithNonStandardHttpMethod; run relevant latest-version regression tests when feasible and report genuine toolchain blockers. Keep the change limited to this introduced CI regression. Update this PR directly, do not create another PR, and do not modify its title or description.",
+      "created": "2026-10-24T04:11:10Z",
+      "hunk": "@@ -30,8 +31,34 @@ public abstract class AbstractVertxWebServer extends AbstractVerticle {\n \n   abstract void end(HttpServerResponse response);\n \n+  void addMultiHandlerRoutes(Router router) {\n+    router.route(\"/precedence/*\").handler(RoutingContext::next);\n+    for (String path :\n+        new String[] {\"/standard\", \"/virtual\", \"/repeat/repeat\", \"/precedence/:id\"}) {\n+      router\n+          .get(path)\n+          .handler(",
+      "id": "PRRT_kwDODJKVX86v1d9Z",
+      "opened": "2026-10-24T04:11:10Z",
+      "path": "instrumentation/vertx/vertx-web-3.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/web/v3_0/AbstractVertxWebServer.java",
+      "replies": [
+        {
+          "at": "2026-10-24T04:20:33Z",
+          "body": "Fixed in `1167ac2d`: the added fixture routes are now method-agnostic, avoiding Vert.x 3.0's `HttpMethod.TEST` decoding before path matching. The full Vert.x 3.0 baseline suite passes, including `requestWithNonStandardHttpMethod`; latest-3.x execution remains blocked by unavailable Java 27/Foojay resolution in this sandbox.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20925#discussion_r4365964637"
+        }
+      ],
+      "reviewed": "264656622c3cbe4d7841d6fbfe6aa44fff760416",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20925#discussion_r4365940805"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly to address the user's explicit request for the previously missed issue in https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20925#pullrequestreview-5636821761: use exact span attribute assertions in the new multiHandlerRoute regression test in instrumentation/vertx/vertx-web-3.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/web/v3_0/AbstractVertxHttpServerTest.java.\n\nReplace hasAttributesSatisfying with hasAttributesSatisfyingExactly and assert the complete expected HTTP server attribute set alongside HTTP_ROUTE, http.target, first-handler-span-id, and custom-prop. Reuse existing HTTP server assertion helpers and repository patterns where appropriate rather than duplicating logic or introducing unnecessary abstractions. Account for the supported Vert.x/Netty versions and telemetry modes actually exercised by these suites, including dynamic ports and values. Follow .github/instructions/java-tests.instructions.md, use semconv AttributeKey constants when available, and keep short expected values local to assertions. Preserve the current route names and route composition, genuine repeated segments, nested/mounted paths, span identity, custom attributes, standard/virtual-thread coverage, unconditional method-agnostic fixture registration, and configureDeploymentOptions hook.\n\nKeep changes focused on satisfying this exact-assertion review finding and directly necessary adjustments. Run narrow formatting and relevant multiHandlerRoute tests across versioned suites when feasible, checking that intended regression cases run rather than skip. Report toolchain limitations accurately instead of weakening expectations to avoid failures. Do not create another PR or modify its title or description.",
+      "created": "2026-10-24T04:30:40Z",
+      "hunk": "@@ -70,6 +77,47 @@ void subRouterRouteIncludesMountPath() {\n     assertTheTraces(1, null, null, null, method, SUB_ROUTER_PATH_PARAM);\n   }\n \n+  @ParameterizedTest\n+  @CsvSource({\n+    \"/standard, /standard, /standard\",\n+    \"/virtual, /virtual, /virtual\",\n+    \"/repeat/repeat, /repeat/repeat, GET /repeat/repeat\",\n+    \"/precedence/123, /precedence/:id, GET /precedence/:id\",\n+    \"/vertx-app/standard, /vertx-app/standard, /vertx-app/standard\",\n+    \"/vertx-app/child/standard, /vertx-app/child/standard, /vertx-app/child/standard\",\n+    \"/vertx-app/child/repeat/repeat, /vertx-app/child/repeat/repeat, GET /vertx-app/child/repeat/repeat\"\n+  })\n+  void multiHandlerRoute(String path, String expectedRoute, String expectedName) {\n+    assumeTrue(\n+        supportsMultiHandlerRoutes(), \"Vert.x 3.0 replaces rather than appends route handlers\");\n+    AggregatedHttpResponse response =\n+        client\n+            .get(address.resolve(path).toString().replace(\"http://\", \"h1c://\"))\n+            .aggregate()\n+            .join();\n+\n+    assertThat(response.status().code()).isEqualTo(200);\n+    testing.waitAndAssertTraces(\n+        trace ->\n+            trace.hasSpansSatisfyingExactly(\n+                span ->\n+                    span.hasName(expectedName)\n+                        .hasKind(SpanKind.SERVER)\n+                        .hasNoParent()\n+                        .hasSpanId(response.contentUtf8())\n+                        .hasAttributesSatisfying(",
+      "id": "PRRT_kwDODJKVX86v1lRz",
+      "opened": "2026-10-24T04:30:40Z",
+      "path": "instrumentation/vertx/vertx-web-3.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/web/v3_0/AbstractVertxHttpServerTest.java",
+      "replies": [
+        {
+          "at": "2026-10-24T04:43:45Z",
+          "body": "Updated in `46d011fb` with `hasAttributesSatisfyingExactly` covering the complete server and fixture attribute set, including dynamic port values. `spotlessJavaCheck`, the Vert.x 4.1 suite, and Vert.x 4.5.3 standard/virtual-thread regression cases passed. The latest-dependency run was blocked during unrelated Helidon configuration because Java 27 is unavailable.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20925#discussion_r4366017050"
+        }
+      ],
+      "reviewed": "1167ac2d27f0bdce265dfd8df98a013652c22cf9",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20925#discussion_r4365988504"
+    },
+    {
+      "author": {
+        "__typename": "User",
+        "login": "trask"
+      },
+      "body": "@copilot Update this PR directly with the user's requested simplification: test the route-duplication regression purely through exported telemetry, without adding custom span attributes or returning span IDs through HTTP responses.\n\nIn AbstractVertxWebServer.addMultiHandlerRoutes, remove the fixture-added http.target, first-handler-span-id, and custom-prop attributes. Remove span-ID response plumbing and finish with a simple response. Keep the multiple handlers and next() calls that reproduce route composition. Preserve the deliberate span-name override for /standard and /virtual and its existing expected-name assertions, since custom-name precedence is already covered by these cases.\n\nIn AbstractVertxHttpServerTest.multiHandlerRoute, remove the three corresponding attribute expectations and hasSpanId(response.contentUtf8()). Keep exact assertions for one exported server span, its expected name, kind, parent, HTTP_ROUTE and the full standard HTTP attribute set, including dynamic ports. Do not replace the removed checks with response headers, RoutingContext state, other side channels, child spans, or new custom attributes. This test should focus on route composition rather than separately proving the current context in each handler. This user-directed change supersedes the earlier request to preserve fixture custom attributes and handler/exported span identity.\n\nPreserve the production fix, mounted and nested routes, genuine repeated path segments, route precedence, standard and virtual-thread coverage, unconditional method-agnostic fixture registration, version3 latest-dependency forwarding and baseline skip, and configureDeploymentOptions hook. Keep the change focused, remove unused imports, run narrow formatting and relevant regression tests when feasible, and report actual validation blockers. Update this PR directly rather than creating another PR. Do not modify the PR title or description.",
+      "created": "2026-10-24T16:39:36Z",
+      "hunk": "@@ -70,6 +89,58 @@ void subRouterRouteIncludesMountPath() {\n     assertTheTraces(1, null, null, null, method, SUB_ROUTER_PATH_PARAM);\n   }\n \n+  @ParameterizedTest\n+  @CsvSource({\n+    \"/standard, /standard, /standard\",\n+    \"/virtual, /virtual, /virtual\",\n+    \"/repeat/repeat, /repeat/repeat, GET /repeat/repeat\",\n+    \"/precedence/123, /precedence/:id, GET /precedence/:id\",\n+    \"/vertx-app/standard, /vertx-app/standard, /vertx-app/standard\",\n+    \"/vertx-app/child/standard, /vertx-app/child/standard, /vertx-app/child/standard\",\n+    \"/vertx-app/child/repeat/repeat, /vertx-app/child/repeat/repeat, GET /vertx-app/child/repeat/repeat\"",
+      "id": "PRRT_kwDODJKVX86v53Vw",
+      "opened": "2026-10-24T16:39:36Z",
+      "path": "instrumentation/vertx/vertx-web-3.0/testing/src/main/java/io/opentelemetry/javaagent/instrumentation/vertx/web/v3_0/AbstractVertxHttpServerTest.java",
+      "replies": [
+        {
+          "at": "2026-10-24T16:51:40Z",
+          "body": "Implemented in `b8c1ffed`: the fixture now ends with a simple response and no added span attributes, while `/standard` and `/virtual` retain their name overrides. The test now asserts exported span telemetry without response span-ID plumbing. Formatting, baseline Vert.x 3 coverage, and Vert.x 4 standard/virtual-thread cases passed; latest-3.x execution is blocked by unavailable Java 27 toolchain resolution.",
+          "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20925#discussion_r4367794934"
+        }
+      ],
+      "reviewed": "46d011fb447bed80ef527f98637216640a2f1ad4",
+      "url": "https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/20925#discussion_r4367761214"
+    }
+  ]
+}
