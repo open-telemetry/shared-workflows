@@ -819,7 +819,7 @@ class StateTest(unittest.TestCase):
                     self.assertIsNone(load_dashboard_state_cache())
 
     def test_loads_previous_routing_snapshots(self) -> None:
-        for version in (27, 28, 29):
+        for version in (27, 28, 29, 30):
             with (
                 self.subTest(version=version),
                 tempfile.TemporaryDirectory() as temp_dir,
@@ -1423,10 +1423,10 @@ class StateTest(unittest.TestCase):
     def test_notification_state_version_is_independent(self) -> None:
         self.assertEqual(BACKFILL_STATE_VERSION, 3)
         self.assertEqual(NOTIFICATION_STATE_VERSION, 3)
-        self.assertEqual(DASHBOARD_STATE_VERSION, 30)
+        self.assertEqual(DASHBOARD_STATE_VERSION, 31)
         self.assertEqual(DASHBOARD_STATE_COMPATIBLE_VERSIONS, (20, 21, 23))
         self.assertEqual(STATUS_COMMENT_ROLLOUT_STATE_VERSION, 3)
-        self.assertEqual(STATUS_COMMENT_REVISION, 24)
+        self.assertEqual(STATUS_COMMENT_REVISION, 25)
         self.assertEqual(AUTHOR_NUDGE_STATE_VERSION, 6)
         self.assertEqual(COPILOT_REVIEW_REQUEST_STATE_VERSION, 14)
 
@@ -1799,7 +1799,7 @@ class StateTest(unittest.TestCase):
 
     def test_lifecycle_state_version_blocks_incompatible_delivery_workers(self) -> None:
         current = current_delivery_versions()
-        for old_version in (13, 16):
+        for old_version in (13, 16, 30):
             old_worker = {**current, "DASHBOARD_STATE_VERSION": old_version}
             with self.subTest(old_version=old_version), tempfile.TemporaryDirectory() as temp_dir:
                 with patch("state._state_dir", Path(temp_dir)):

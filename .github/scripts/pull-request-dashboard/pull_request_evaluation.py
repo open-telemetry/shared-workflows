@@ -215,6 +215,16 @@ def _compute_facts(
         },
         key=lambda name: (name.casefold(), name),
     ))
+    conflicts = pr.conflicts
+    if (
+        conflicts == "unknown"
+        and previous_facts.conflicts == "yes"
+        and head_sha
+        and head_sha == previous_facts.head_sha
+        and pr.base_branch
+        and pr.base_branch == previous_facts.conflict_base_branch
+    ):
+        conflicts = "yes"
     return DashboardFacts(
         author=author,
         assignees=prepared_reviewers.assignee_logins,
@@ -248,7 +258,8 @@ def _compute_facts(
         author_can_act=author_can_act,
         is_draft=pr.is_draft,
         approval_count=prepared_reviewers.approval_count,
-        conflicts=pr.conflicts,
+        conflicts=conflicts,
+        conflict_base_branch=pr.base_branch if conflicts == "yes" else "",
         created_at=format_ts(created_ts),
         last_activity_at=format_ts(last_activity_ts),
         last_author_activity_at=format_ts(

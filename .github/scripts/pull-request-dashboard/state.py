@@ -53,7 +53,8 @@ FULL_PUBLISH_DELIVERED_FILE = "full-publish-delivered.json"
 # caches. Every constant ending in _STATE_VERSION or _REVISION is included.
 # dashboard-routing-state.json: accepted PR routing results and backfill readiness.
 # Routing facts carry conditional before/after Copilot cycle updates.
-DASHBOARD_STATE_VERSION = 30
+# Routing facts record the base branch of a confirmed merge conflict.
+DASHBOARD_STATE_VERSION = 31
 DASHBOARD_STATE_COMPATIBLE_VERSIONS = (20, 21, 23)
 # backfill-state.json: round-robin cursor used by full dashboard refreshes.
 BACKFILL_STATE_VERSION = 3
@@ -68,9 +69,9 @@ COPILOT_REVIEW_REQUEST_STATE_VERSION = 14
 COPILOT_REVIEW_FALLBACK_STATE_VERSION = 11
 # status-comment-rollout-state.json: target/completed renderer revisions and queue.
 STATUS_COMMENT_ROLLOUT_STATE_VERSION = 3
-# Rendered status-comment behavior. Increment when existing comments need to
-# adopt a change; hourly runs durably roll it out to all open PRs.
-STATUS_COMMENT_REVISION = 24
+# Status-comment rendering and delivery behavior. Hourly runs check all open
+# PRs when the revision changes.
+STATUS_COMMENT_REVISION = 25
 FULL_PUBLISH_STATE_VERSION = 1
 INITIAL_BACKFILL_COMPLETE_KEY = "initial_backfill_complete"
 _state_dir: Path | None = None
@@ -805,6 +806,10 @@ def decode_dashboard_facts(value: Any) -> DashboardFacts:
             "facts.conflicts",
             "unknown",
         ),
+        conflict_base_branch=_string(
+            value.get("conflict_base_branch", _MISSING),
+            "facts.conflict_base_branch",
+        ),
         created_at=_string(
             value.get("created_at", _MISSING),
             "facts.created_at",
@@ -964,6 +969,8 @@ def encode_dashboard_facts(facts: DashboardFacts) -> dict[str, Any]:
         stored["dashboard_top_level_feedback_cutoff"] = (
             facts.dashboard_top_level_feedback_cutoff
         )
+    if facts.conflict_base_branch:
+        stored["conflict_base_branch"] = facts.conflict_base_branch
     if facts.ci_failing_count is not None:
         stored["ci_failing_count"] = facts.ci_failing_count
     if facts.ci_failing_since is not None:
@@ -1104,7 +1111,7 @@ def encode_dashboard_state(state: DashboardState) -> dict[str, Any]:
 def load_dashboard_state_cache() -> DashboardState | None:
     path = dashboard_state_path()
     if path.exists():
-        state = load_state_file(path, DASHBOARD_STATE_VERSION, compatible_versions=(27, 28, 29))
+        state = load_state_file(path, DASHBOARD_STATE_VERSION, compatible_versions=(27, 28, 29, 30))
     else:
         state = load_state_file(
             path.with_name("dashboard-state.json"),

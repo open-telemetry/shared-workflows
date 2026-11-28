@@ -163,6 +163,7 @@ class DashboardFacts:
     is_draft: bool = False
     approval_count: int = 0
     conflicts: str = "unknown"
+    conflict_base_branch: str = ""
     created_at: str = ""
     last_activity_at: str = ""
     last_author_activity_at: str = ""

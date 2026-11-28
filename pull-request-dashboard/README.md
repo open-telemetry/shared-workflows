@@ -263,6 +263,11 @@ The dashboard groups open non-draft pull requests by who is expected to act next
   timestamp; a re-request before the command does not override the handoff.
   Format: `<1m`, `Xm`, `Xh`, or `Xd`.
 
+If GitHub temporarily reports unknown mergeability, the dashboard keeps a
+confirmed conflict visible for the same head commit and target branch until
+GitHub confirms it is clear. A new head or target branch needs its own
+mergeability result.
+
 Merge conflicts remain visible without overriding normal CI, discussion, and
 approval routing. A conflicted PR can therefore stay with reviewers or
 maintainers when they can resolve it themselves. If missing required checks or a
@@ -492,13 +497,13 @@ avoids leaving an author marked as blocked after completing their part.
 
 ## Live PR status comment
 
-After the first full dashboard run has populated repository state, each targeted
-PR update creates or updates one dashboard-managed status comment on that PR.
-The comment presents the time its status was last refreshed in UTC and a compact
-**Waiting on** and **Next step** summary. The timestamp is refreshed on every
-targeted PR update, even when the dashboard status is unchanged. When the author
-has the next action, pending review feedback is summarized as a count and its
-inline-thread and top-level-feedback links are nested under that next step,
+After the first full dashboard run has populated repository state, a targeted
+PR update creates a dashboard-managed status comment if needed and edits it
+when there's something new to publish.
+The comment shows when the dashboard last published its status in UTC and a
+compact **Waiting on** and **Next step** summary. When the author has the next
+action, pending review feedback is summarized as a count, with inline-thread
+and top-level-feedback links under that next step,
 followed by guidance for giving each item a clear outcome. When failing required
 checks and feedback both need author action, the two are listed under **Next
 steps**. At most 20 feedback links are shown across both groups; when more exist,
@@ -524,13 +529,16 @@ to a human author recovered from an assignee or the first commit's committer.
 Known maintenance bots still route to maintainers after one approval.
 
 A hidden marker lets the workflow update the comment in place and upgrade
-existing one-time guidance comments rather than creating duplicates. Status
-comments are refreshed automatically when their dashboard status or format
-changes, including on inactive pull requests. Clear outcomes keep stale or
-ambiguous feedback from being routed to the wrong person.
+existing one-time guidance comments rather than creating duplicates. A template
+rollout checks every open PR, including inactive ones. If the only differences
+are the refresh time and template revision, the dashboard records the check as
+complete without editing the comment or bumping the PR's GitHub activity time.
+Changes to the status, instructions, links, or routing and reminder markers
+still update the comment.
 
-Reviewers should prefer inline comments for feedback requiring explicit
-resolution. See
+Clear outcomes keep stale or ambiguous feedback from being routed to the wrong
+person. Reviewers should prefer inline comments for feedback requiring
+explicit resolution. See
 [`RATIONALE.md`](../.github/scripts/pull-request-dashboard/RATIONALE.md#top-level-feedback)
 for the tradeoffs behind this behavior.
 
